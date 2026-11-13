@@ -31,9 +31,11 @@ internal sealed class DiagramStaleness(DiagramCacheStore store, RunModels runs, 
             {
                 now = await DiagramRenderer.RenderAsync(entry.Diagram, context, ct).ConfigureAwait(false);
             }
-            catch (DecisionLogIntegrityException)
+            catch (Exception ex) when (ex is DecisionLogIntegrityException or ArgumentException)
             {
-                // A log that does not verify cannot say what a run diagram is made of: it is not called out of date, the log is the problem and Auto Doctor says it.
+                // A log that does not verify, or a plan that does not read back, cannot say what a diagram is made of: it is not called current, and it stays visible as one
+                // that is out of date (the same call the list of diagrams makes), never skipped as if all were well.
+                stale.Add(new StaleDiagram(entry.Diagram, entry.Current.Describes));
                 continue;
             }
 
@@ -104,10 +106,13 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
     public async Task<IReadOnlyList<DiagramStatus>> ListAsync(ProjectContext project, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
+
+        // The work below (the files, the rendering of every diagram) never starts on the thread that called, which may be the one of the interface.
+        await Task.Run(static () => { }).ConfigureAwait(false);
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var index = await _store.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            var index = await _store.LoadLockedAsync(project.ProjectId, ct).ConfigureAwait(false);
             var graph = await _graphs.LoadAsync(project, analyze: false, ct).ConfigureAwait(false);
             var head = await _graphs.HeadAsync(project, ct).ConfigureAwait(false);
             var context = new RenderContext(project, graph, _runs, _time.GetUtcNow());
@@ -157,6 +162,7 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
     {
         ArgumentNullException.ThrowIfNull(project);
         var diagram = new DiagramRef(kind, subject);
+        await Task.Run(static () => { }).ConfigureAwait(false);
 
         // The model is read before the gate is taken: calculating the analysis of a commit can take minutes and listing must not wait behind it.
         var graph = kind is DiagramKind.Solution or DiagramKind.ProjectNamespaces ? await _graphs.LoadAsync(project, analyze: true, ct).ConfigureAwait(false) : null;
@@ -167,7 +173,7 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var index = await _store.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            var index = await _store.LoadLockedAsync(project.ProjectId, ct).ConfigureAwait(false);
             var existing = index.Find(diagram);
             var text = rendered.Source.Mermaid;
             var textSha = ContentHash.Sha256Hex(System.Text.Encoding.UTF8.GetBytes(text));
@@ -214,7 +220,7 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var index = await _store.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            var index = await _store.LoadLockedAsync(project.ProjectId, ct).ConfigureAwait(false);
             if (index.Find(diagram) is not { Previous: { } previous } entry)
             {
                 throw new InvalidOperationException("This diagram has no previous text to put back.");
@@ -243,7 +249,7 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var index = await _store.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            var index = await _store.LoadLockedAsync(project.ProjectId, ct).ConfigureAwait(false);
             return index.Find(diagram) is { } entry
                 ? await _store.ReadTextAsync(project.ProjectId, diagram, previous: false, entry.Current.TextSha256, ct).ConfigureAwait(false)
                 : null;
@@ -258,15 +264,15 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(request);
-        if (_activity is null || _activity.IsBusy(project.ProjectId))
-        {
-            throw new InvalidOperationException("Diagrams are not exported while a run has the project: its files are changing.");
-        }
+        await Task.Run(static () => { }).ConfigureAwait(false);
+        RequireNoRun(project);
 
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var index = await _store.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            // Asked again inside the gate, and again before each file is written: a run may have started while this waited for its turn.
+            RequireNoRun(project);
+            var index = await _store.LoadLockedAsync(project.ProjectId, ct).ConfigureAwait(false);
 
             // Everything that can be wrong with the request is found before the first file is written.
             var texts = new Dictionary<DiagramRef, string>();
@@ -307,15 +313,14 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
                     }
                 }
 
+                RequireNoRun(project);
                 var bytes = DiagramExportFiles.Markdown(texts[diagram]);
                 DiagramExportFiles.Write(project.RootPath, path, bytes);
                 var exported = new DiagramExportedFile(diagram, path, DiagramExportFiles.Sha256(bytes));
                 written.Add(exported);
                 index = index.With(entry with { Export = new IndexExport(exported.Path, exported.Sha256, entry.Current.TextSha256) });
-            }
 
-            if (written.Count > 0)
-            {
+                // The index is saved after each file: if the next one fails, this one is not left written and unknown, to be taken for someone else's next time.
                 await _store.SaveAsync(project.ProjectId, index, ct).ConfigureAwait(false);
             }
 
@@ -324,6 +329,14 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         finally
         {
             _store.Gate.Release();
+        }
+    }
+
+    private void RequireNoRun(ProjectContext project)
+    {
+        if (_activity is null || _activity.IsBusy(project.ProjectId))
+        {
+            throw new DiagramExportBusyException();
         }
     }
 
@@ -368,6 +381,11 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         {
             // The log does not verify: what a run diagram is made of cannot be confirmed, so it is not called current.
             state = DiagramState.Stale;
+        }
+        catch (ArgumentException)
+        {
+            // What it is made of cannot be built into a diagram (the text would be over its limit, the plan does not read back): one row says so and the list goes on.
+            state = DiagramState.Unavailable;
         }
 
         return new DiagramStatus(

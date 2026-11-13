@@ -1,5 +1,7 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Diagrams;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Graph;
@@ -40,12 +42,14 @@ public sealed class SystemDocsClipboard : IDocsClipboard
 /// <param name="Analysis">The analysis of a commit: the discrepancies are in its report. It is asked for what is saved; it is only calculated when the person presses «Calcular».</param>
 /// <param name="Git">The history of the repository, to know the version the project is at.</param>
 /// <param name="Clipboard">«Copiar».</param>
+/// <param name="Live">The discrepancies that come from the cache and the log (the diagrams out of date, the requirements with no task), worked out again each time: the saved ones go stale.</param>
 public sealed record DocsBackend(
     IDiagramCatalog? Diagrams = null,
     IDiagramTextReader? Reader = null,
     ICommitAnalysisService? Analysis = null,
     IRepositoryHistoryReader? Git = null,
-    IDocsClipboard? Clipboard = null)
+    IDocsClipboard? Clipboard = null,
+    LiveConsistency? Live = null)
 {
     /// <summary>Nothing composed.</summary>
     public static DocsBackend None { get; } = new();
@@ -79,6 +83,25 @@ public static class DocsTexts
     {
         ArgumentNullException.ThrowIfNull(texts);
         return texts.Get("Docs_Export_" + state);
+    }
+
+    /// <summary>
+    /// Why something failed, in words of the resources by kind of failure: never the message of the exception, which is English technical detail and can carry a path of this
+    /// computer (ADR-0054). Anything that is not one of the known kinds says the model is not available.
+    /// </summary>
+    public static string Failure(IUiTextProvider texts, Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(texts);
+        ArgumentNullException.ThrowIfNull(exception);
+        return texts.Get(exception switch
+        {
+            DiagramExportBusyException => "Docs_Failure_Busy",
+            DecisionLogIntegrityException => "Docs_Failure_Log",
+            DiagramIndexUnreadableException => "Docs_Failure_Index",
+            UnauthorizedAccessException => "Docs_Failure_Access",
+            IOException => "Docs_Failure_Io",
+            _ => "Docs_Failure_Model",
+        });
     }
 
     /// <summary>The kind of diagram a finding of <c>doc.diagram-stale</c> names by its fixed word, or null.</summary>

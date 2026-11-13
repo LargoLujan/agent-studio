@@ -55,8 +55,14 @@ internal static class DiagramFakes
     {
         public string Commit { get; set; } = commit;
 
-        public Task<RepositorySummary> SummaryAsync(ProjectContext project, CancellationToken cancellationToken) =>
-            Task.FromResult(new RepositorySummary(project.RootPath, true, "main", Commit, false, []));
+        /// <summary>The thread the last question was answered on.</summary>
+        public int ThreadId { get; private set; }
+
+        public Task<RepositorySummary> SummaryAsync(ProjectContext project, CancellationToken cancellationToken)
+        {
+            ThreadId = Environment.CurrentManagedThreadId;
+            return Task.FromResult(new RepositorySummary(project.RootPath, true, "main", Commit, false, []));
+        }
 
         public Task<IReadOnlyList<BranchSummary>> BranchesAsync(ProjectContext project, CancellationToken cancellationToken) => throw new NotSupportedException();
 
@@ -86,14 +92,23 @@ internal static class DiagramFakes
             return Task.FromResult(plan.ContentHash);
         }
 
-        public Task<PlanDefinition?> FindAsync(string projectId, string hash, CancellationToken cancellationToken) => Task.FromResult(Stored.GetValueOrDefault(hash));
+        /// <summary>A store whose plans do not read back (the hash does not match, the content is broken): asking for one throws.</summary>
+        public bool Broken { get; set; }
+
+        public Task<PlanDefinition?> FindAsync(string projectId, string hash, CancellationToken cancellationToken) =>
+            Broken ? throw new ArgumentException("The plan does not read back.") : Task.FromResult(Stored.GetValueOrDefault(hash));
     }
 
     public sealed class Activity(bool busy = false) : IRunActivity
     {
+        private int _asked;
+
         public bool Busy { get; set; } = busy;
 
-        public bool IsBusy(string projectId) => Busy;
+        /// <summary>When set, the first so many questions are answered «no» and the next ones follow <see cref="Busy"/>: a run that starts between two questions of one call.</summary>
+        public int FreeFor { get; set; }
+
+        public bool IsBusy(string projectId) => _asked++ < FreeFor ? false : Busy;
     }
 
     /// <summary>The catalog over a temporary cache, with the doubles above. The clock is the one of the test.</summary>
@@ -114,7 +129,10 @@ internal static class DiagramFakes
             Graphs = new GraphModels(Analysis, History);
             Runs = new RunModels(Recorder, Plans);
             Catalog = new DiagramCatalog(Cache, Graphs, Runs, Activity, Clock);
+            Staleness = new DiagramStaleness(Catalog.Store, Runs, Clock);
         }
+
+        public DiagramStaleness Staleness { get; }
 
         public string Root { get; }
 

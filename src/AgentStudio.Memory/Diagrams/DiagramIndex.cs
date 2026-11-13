@@ -58,10 +58,30 @@ internal sealed class DiagramCacheStore(string folder)
 
     public string ProjectFolder(string projectId) => Path.Combine(_folder, SafeName.Of(projectId));
 
+    /// <summary>
+    /// The index, read behind the <see cref="Gate"/>: a read never meets the move of a write. For a caller that does not hold the gate (the checks of the documents and of
+    /// «desactualizado»); the catalog, which holds it, uses <see cref="LoadLockedAsync"/>.
+    /// </summary>
+    /// <exception cref="DiagramIndexUnreadableException">The index exists and could not be read: it is never taken for an empty one.</exception>
     public async Task<DiagramIndex> LoadAsync(string projectId, CancellationToken ct)
     {
+        await Gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            return await LoadLockedAsync(projectId, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    /// <summary>The index, for a caller that holds the <see cref="Gate"/>. No file is an empty index; a file that is there and cannot be read is an error, after a short retry.</summary>
+    /// <exception cref="DiagramIndexUnreadableException">The index exists and could not be read.</exception>
+    public async Task<DiagramIndex> LoadLockedAsync(string projectId, CancellationToken ct)
+    {
         var path = Path.Combine(ProjectFolder(projectId), "index.json");
-        var bytes = await ReadBytesAsync(path, MaxIndexBytes, ct).ConfigureAwait(false);
+        var bytes = await ReadBytesAsync(path, MaxIndexBytes, strict: true, ct).ConfigureAwait(false);
         return bytes is null ? DiagramIndex.Empty : Parse(bytes);
     }
 
@@ -106,7 +126,7 @@ internal sealed class DiagramCacheStore(string folder)
     /// <summary>The text kept for a diagram (<paramref name="previous"/>: its previous one), or null when there is none or it is not the one the index fingerprints.</summary>
     public async Task<string?> ReadTextAsync(string projectId, DiagramRef diagram, bool previous, string expectedSha256, CancellationToken ct)
     {
-        var bytes = await ReadBytesAsync(TextPath(projectId, diagram, previous), DiagramSource.MaxMermaidLength * 4, ct).ConfigureAwait(false);
+        var bytes = await ReadBytesAsync(TextPath(projectId, diagram, previous), DiagramSource.MaxMermaidLength * 4, strict: false, ct).ConfigureAwait(false);
         if (bytes is null)
         {
             return null;
@@ -133,23 +153,45 @@ internal sealed class DiagramCacheStore(string folder)
     private string TextPath(string projectId, DiagramRef diagram, bool previous) =>
         Path.Combine(ProjectFolder(projectId), Stem(diagram) + (previous ? ".prev" : ".mmd"));
 
-    private static async Task<byte[]?> ReadBytesAsync(string path, long maxBytes, CancellationToken ct)
+    /// <summary>
+    /// The bytes of a file; null when it is not there (or is over the limit). With <paramref name="strict"/>, a file that is there and cannot be read (another process has
+    /// it) is retried a few times and then an error: «no se pudo leer» is never the same as «no hay nada».
+    /// </summary>
+    private static async Task<byte[]?> ReadBytesAsync(string path, long maxBytes, bool strict, CancellationToken ct)
     {
-        try
+        const int attempts = 4;
+        for (var attempt = 1; ; attempt++)
         {
-            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
-            if (stream.Length > maxBytes)
+            try
+            {
+                await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+                if (stream.Length > maxBytes)
+                {
+                    return null;
+                }
+
+                var buffer = new byte[stream.Length];
+                await stream.ReadExactlyAsync(buffer, ct).ConfigureAwait(false);
+                return buffer;
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
             {
                 return null;
             }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                if (!strict)
+                {
+                    return null;
+                }
 
-            var buffer = new byte[stream.Length];
-            await stream.ReadExactlyAsync(buffer, ct).ConfigureAwait(false);
-            return buffer;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return null;
+                if (attempt == attempts)
+                {
+                    throw new DiagramIndexUnreadableException("The index of the diagrams exists and could not be read.", ex);
+                }
+
+                await Task.Delay(15 * attempt, ct).ConfigureAwait(false);
+            }
         }
     }
 
@@ -306,9 +348,12 @@ internal static class SafeName
             builder.Append(c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '_' or '-' ? c : '-');
         }
 
+        // Windows does not tell «Abc» from «abc»: a name is written as it is only when it is already lowercase; any other gets the fingerprint of the original, so no two
+        // names of the closed list can meet in one file whatever the case.
         var clean = builder.ToString().Trim('-');
-        return clean.Length > 0 && string.Equals(clean, name, StringComparison.Ordinal)
+        var lower = clean.ToLowerInvariant();
+        return clean.Length > 0 && string.Equals(clean, name, StringComparison.Ordinal) && string.Equals(lower, clean, StringComparison.Ordinal)
             ? clean
-            : (clean.Length == 0 ? "x" : clean) + "-" + ContentHash.Sha256Hex(name)[..8];
+            : (lower.Length == 0 ? "x" : lower) + "-" + ContentHash.Sha256Hex(name)[..8];
     }
 }

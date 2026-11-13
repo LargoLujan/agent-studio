@@ -210,19 +210,19 @@
     <comment>{0}: the file.</comment>
   </data>
   <data name="Docs_Error_List" xml:space="preserve">
-    <value>The list of diagrams could not be read: {0}</value>
+    <value>The list of diagrams could not be read. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Error_Read" xml:space="preserve">
-    <value>The text of the diagram could not be read: {0}</value>
+    <value>The text of the diagram could not be read. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Error_Action" xml:space="preserve">
-    <value>The action could not be completed: {0}</value>
+    <value>The action could not be completed. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Error_Export" xml:space="preserve">
-    <value>It could not be exported: {0}</value>
+    <value>It could not be exported. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Disc_Intro" xml:space="preserve">
@@ -318,7 +318,7 @@
     <comment>Shown when the list was cut.</comment>
   </data>
   <data name="Docs_Disc_Error" xml:space="preserve">
-    <value>The result could not be read: {0}</value>
+    <value>The result could not be read. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Text_doc_link_broken" xml:space="preserve">
@@ -418,5 +418,33 @@ Go to Work if a requirement has no task.</value>
   <data name="Doctor_Fix_open_graph" xml:space="preserve">
     <value>Open Auto Graph to see the discrepancies of the project</value>
     <comment>Sentence of the fix of Auto Doctor that goes to Auto Graph.</comment>
+  </data>
+  <data name="Docs_State_Unavailable" xml:space="preserve">
+    <value>Could not be generated</value>
+    <comment>State of a diagram that cannot be built from what there is now.</comment>
+  </data>
+  <data name="Docs_Failure_Busy" xml:space="preserve">
+    <value>A run is going. Export when it ends.</value>
+    <comment>Why something failed: a run has the project.</comment>
+  </data>
+  <data name="Docs_Failure_Log" xml:space="preserve">
+    <value>The history of the project cannot be verified.</value>
+    <comment>Why something failed: the log does not verify.</comment>
+  </data>
+  <data name="Docs_Failure_Index" xml:space="preserve">
+    <value>The saved list of diagrams could not be read. Try again.</value>
+    <comment>Why something failed: the index of the cache is not readable.</comment>
+  </data>
+  <data name="Docs_Failure_Io" xml:space="preserve">
+    <value>A file could not be read or written.</value>
+    <comment>Why something failed: a file.</comment>
+  </data>
+  <data name="Docs_Failure_Access" xml:space="preserve">
+    <value>Windows does not allow the use of a file or a folder.</value>
+    <comment>Why something failed: access denied.</comment>
+  </data>
+  <data name="Docs_Failure_Model" xml:space="preserve">
+    <value>The data of this diagram is not available.</value>
+    <comment>Why something failed: the model of the diagram.</comment>
   </data>
 </root>

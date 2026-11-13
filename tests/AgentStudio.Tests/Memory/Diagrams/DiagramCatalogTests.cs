@@ -384,7 +384,7 @@ public sealed class DiagramCatalogTests
         await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None);
 
         world.Activity.Busy = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Catalog.ExportAsync(world.Project, Request(Solution), CancellationToken.None));
+        await Assert.ThrowsAsync<DiagramExportBusyException>(() => world.Catalog.ExportAsync(world.Project, Request(Solution), CancellationToken.None));
         world.Activity.Busy = false;
         await Assert.ThrowsAsync<InvalidOperationException>(() => world.Catalog.ExportAsync(world.Project, Request(Solution, others: [Plan]), CancellationToken.None));
 

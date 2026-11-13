@@ -210,19 +210,19 @@
     <comment>{0}: the file.</comment>
   </data>
   <data name="Docs_Error_List" xml:space="preserve">
-    <value>No se pudo leer la lista de diagramas: {0}</value>
+    <value>No se pudo leer la lista de diagramas. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Error_Read" xml:space="preserve">
-    <value>No se pudo leer el texto del diagrama: {0}</value>
+    <value>No se pudo leer el texto del diagrama. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Error_Action" xml:space="preserve">
-    <value>No se pudo completar la acción: {0}</value>
+    <value>No se pudo completar la acción. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Error_Export" xml:space="preserve">
-    <value>No se pudo exportar: {0}</value>
+    <value>No se pudo exportar. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Docs_Disc_Intro" xml:space="preserve">
@@ -318,7 +318,7 @@
     <comment>Shown when the list was cut.</comment>
   </data>
   <data name="Docs_Disc_Error" xml:space="preserve">
-    <value>No se pudo leer el resultado: {0}</value>
+    <value>No se pudo leer el resultado. {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Text_doc_link_broken" xml:space="preserve">
@@ -418,5 +418,33 @@ Ve a Trabajo si falta una tarea para un requisito.</value>
   <data name="Doctor_Fix_open_graph" xml:space="preserve">
     <value>Abre Auto Graph para ver las discrepancias del proyecto</value>
     <comment>Sentence of the fix of Auto Doctor that goes to Auto Graph.</comment>
+  </data>
+  <data name="Docs_State_Unavailable" xml:space="preserve">
+    <value>No se pudo generar</value>
+    <comment>State of a diagram that cannot be built from what there is now.</comment>
+  </data>
+  <data name="Docs_Failure_Busy" xml:space="preserve">
+    <value>Hay una ejecución en marcha. Exporta cuando termine.</value>
+    <comment>Why something failed: a run has the project.</comment>
+  </data>
+  <data name="Docs_Failure_Log" xml:space="preserve">
+    <value>El historial del proyecto no se puede verificar.</value>
+    <comment>Why something failed: the log does not verify.</comment>
+  </data>
+  <data name="Docs_Failure_Index" xml:space="preserve">
+    <value>No se pudo leer la lista guardada de diagramas. Inténtalo otra vez.</value>
+    <comment>Why something failed: the index of the cache is not readable.</comment>
+  </data>
+  <data name="Docs_Failure_Io" xml:space="preserve">
+    <value>No se pudo leer o escribir un fichero.</value>
+    <comment>Why something failed: a file.</comment>
+  </data>
+  <data name="Docs_Failure_Access" xml:space="preserve">
+    <value>Windows no deja usar un fichero o una carpeta.</value>
+    <comment>Why something failed: access denied.</comment>
+  </data>
+  <data name="Docs_Failure_Model" xml:space="preserve">
+    <value>Los datos de este diagrama no están disponibles.</value>
+    <comment>Why something failed: the model of the diagram.</comment>
   </data>
 </root>

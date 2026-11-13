@@ -64,7 +64,7 @@
                                                 Command="{Binding DataContext.RegenerateCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanRegenerate, Converter={StaticResource Docs.BoolToVisibility}}"/>
                                         <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Disc_Board}" AutomationProperties.Name="{Binding BoardName}"
-                                                Command="{Binding DataContext.GoToBoardCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                                                Command="{Binding DataContext.GoToBoardCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanGoToBoard, Converter={StaticResource Docs.BoolToVisibility}}"/>
                                     </WrapPanel>
                                 </StackPanel>

@@ -22,7 +22,8 @@ public sealed class DiagramRowItem(DiagramStatus status, IUiTextProvider texts)
 
     public string ExportText { get; } = DocsTexts.Export(texts, status.Export);
 
-    public bool IsGenerated => Status.State != DiagramState.NotGenerated;
+    /// <summary>The cache holds a text for it (one that cannot be rebuilt now still has the one it had).</summary>
+    public bool IsGenerated => Status.State is DiagramState.Current or DiagramState.Stale || (Status.State == DiagramState.Unavailable && Status.ModelHash is not null);
 
     public bool IsStale => Status.State == DiagramState.Stale;
 
@@ -168,7 +169,7 @@ public sealed partial class DocsDiagramsSection : GraphSection
         {
             if (generation == _generation)
             {
-                Error = T.Format("Docs_Error_List", ex.Message);
+                Error = T.Format("Docs_Error_List", DocsTexts.Failure(T, ex));
             }
         }
         finally
@@ -246,7 +247,7 @@ public sealed partial class DocsDiagramsSection : GraphSection
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            SourceNotice = T.Format("Docs_Error_Read", ex.Message);
+            SourceNotice = T.Format("Docs_Error_Read", DocsTexts.Failure(T, ex));
         }
 
         CopyCommand.NotifyCanExecuteChanged();
@@ -356,7 +357,7 @@ public sealed partial class DocsDiagramsSection : GraphSection
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException)
 #pragma warning restore CA1031
         {
-            Error = T.Format("Docs_Error_Export", ex.Message);
+            Error = T.Format("Docs_Error_Export", DocsTexts.Failure(T, ex));
         }
         finally
         {
@@ -404,7 +405,7 @@ public sealed partial class DocsDiagramsSection : GraphSection
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or AgentStudio.Application.Decisions.DecisionLogIntegrityException)
 #pragma warning restore CA1031
         {
-            Error = T.Format("Docs_Error_Action", ex.Message);
+            Error = T.Format("Docs_Error_Action", DocsTexts.Failure(T, ex));
         }
         finally
         {

@@ -104,6 +104,12 @@ public sealed class DocsStringsTests
             Need(key);
         }
 
+        // The words for why something failed: by kind of failure, never the message of an exception.
+        foreach (var kind in new[] { "Busy", "Log", "Index", "Io", "Access", "Model" })
+        {
+            Need("Docs_Failure_" + kind);
+        }
+
         Assert.True(missing.Count == 0, "Values with no text: " + string.Join(", ", missing));
     }
 

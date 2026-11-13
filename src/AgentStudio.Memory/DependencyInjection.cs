@@ -145,9 +145,15 @@ public static class DependencyInjection
         services.TryAddSingleton<Application.Consistency.IConsistencyService>(provider => new Consistency.ConsistencyService(provider.GetServices<Application.Consistency.IConsistencyCheck>()));
 
         // The line of the discrepancies of Auto Doctor (D-30): it reads what the analysis saved and never starts it.
+        services.TryAddSingleton(provider => new Consistency.LiveConsistency(
+            provider.GetRequiredService<Diagrams.DiagramStaleness>(),
+            provider.GetService<Application.Work.IMilestoneService>() is { } milestones && provider.GetService<Application.Work.IBoardProjector>() is { } board
+                ? new Consistency.RequirementUncoveredCheck(milestones, board)
+                : null));
         services.AddSingleton<Application.Diagnostics.IDoctorCheckSource>(provider => new Consistency.DiscrepanciesCheckSource(
             provider.GetService<Application.Graph.ICommitAnalysisService>(),
-            provider.GetService<Application.Git.IRepositoryHistoryReader>()));
+            provider.GetService<Application.Git.IRepositoryHistoryReader>(),
+            provider.GetRequiredService<Consistency.LiveConsistency>()));
         return services;
     }
 

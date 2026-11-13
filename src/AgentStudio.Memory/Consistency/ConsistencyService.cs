@@ -71,10 +71,17 @@ public sealed class RequirementUncoveredCheck(IMilestoneService milestones, IBoa
 {
     public string Code => ConsistencyCodes.RequirementUncovered;
 
-    public async Task<IReadOnlyList<ConsistencyFinding>?> RunAsync(ConsistencyScope scope, CancellationToken ct)
+    public Task<IReadOnlyList<ConsistencyFinding>?> RunAsync(ConsistencyScope scope, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        var open = (await milestones.ListAsync(scope.Project, ct).ConfigureAwait(false))
+        return FindAsync(scope.Project, ct);
+    }
+
+    /// <summary>The uncovered requirements of the open milestones, or null when there is none open. It reads the log and the board, never the repository: it is what <see cref="LiveConsistency"/> asks again.</summary>
+    internal async Task<IReadOnlyList<ConsistencyFinding>?> FindAsync(ProjectContext project, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        var open = (await milestones.ListAsync(project, ct).ConfigureAwait(false))
             .Where(m => m.Status == MilestoneStatus.Open)
             .ToList();
         if (open.Count == 0)
@@ -86,7 +93,7 @@ public sealed class RequirementUncoveredCheck(IMilestoneService milestones, IBoa
         foreach (var milestone in open)
         {
             ct.ThrowIfCancellationRequested();
-            var projected = await board.ProjectAsync(scope.Project, milestone.Header.Id, ct).ConfigureAwait(false);
+            var projected = await board.ProjectAsync(project, milestone.Header.Id, ct).ConfigureAwait(false);
             foreach (var card in projected.Requirements.Where(c => c.Column == BoardColumn.Backlog))
             {
                 findings.Add(new ConsistencyFinding(

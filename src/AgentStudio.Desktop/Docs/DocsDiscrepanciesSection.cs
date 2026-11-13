@@ -151,7 +151,7 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
     public event EventHandler<string>? FileRequested;
 
     /// <summary>The person asks to go to the board of the milestones («Trabajo»).</summary>
-    public event EventHandler? BoardRequested;
+    public event EventHandler<string?>? BoardRequested;
 
     public override void CancelPending()
     {
@@ -260,7 +260,7 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
             if (generation == _generation)
             {
                 Notice = null;
-                Error = T.Format("Docs_Disc_Error", ex.Message);
+                Error = T.Format("Docs_Disc_Error", DocsTexts.Failure(T, ex));
             }
         }
         finally
@@ -275,10 +275,11 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
 
     private async Task ShowAsync(ProjectContext project, CommitAnalysis analysis, bool hasChanges, CancellationToken ct)
     {
-        var findings = analysis.Consistency.Findings.ToList();
-
-        // The diagrams that are out of date are what the cache says now, not what the analysis saw: regenerating one changes it without a new analysis.
-        if (_backend.Diagrams is { } catalog && analysis.Consistency.NotApplicable.All(c => c != ConsistencyCodes.DiagramStale))
+        // The diagrams out of date and the requirements with no task come from the cache and the log, not from the files of the commit: regenerating a diagram, or a new entry of
+        // a run, changes them without a new analysis, so they are worked out now (the line of Auto Doctor does the same: the two give the same count).
+        var report = _backend.Live is { } live ? await live.RefreshAsync(project, analysis, ct).ConfigureAwait(true) : analysis.Consistency;
+        var findings = report.Findings.ToList();
+        if (_backend.Live is null && _backend.Diagrams is { } catalog && report.NotApplicable.All(c => c != ConsistencyCodes.DiagramStale))
         {
             findings.RemoveAll(f => f.Code == ConsistencyCodes.DiagramStale);
             foreach (var status in (await catalog.ListAsync(project, ct).ConfigureAwait(true)).Where(s => s.State == DiagramState.Stale))
@@ -302,7 +303,7 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
 
         HasResult = true;
         DescribesText = T.Format(hasChanges ? "Docs_Disc_DescribesChanges" : "Docs_Disc_Describes", analysis.Commit[..7]);
-        Notice = analysis.Consistency.Truncated ? T.Get("Docs_Disc_Truncated") : null;
+        Notice = report.Truncated ? T.Get("Docs_Disc_Truncated") : null;
     }
 
     /// <summary>The order of the groups: the codes of Phase 6 as the contract lists them, and the checks that could not run last.</summary>
@@ -369,7 +370,7 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or AgentStudio.Application.Decisions.DecisionLogIntegrityException)
 #pragma warning restore CA1031
         {
-            Error = T.Format("Docs_Error_Action", ex.Message);
+            Error = T.Format("Docs_Error_Action", DocsTexts.Failure(T, ex));
             return;
         }
         finally
@@ -380,7 +381,8 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
         await LoadAsync(calculate: false, ct).ConfigureAwait(true);
     }
 
-    /// <summary>Goes to the board of the milestones.</summary>
+    /// <summary>Goes to the board of the milestone the requirement belongs to (its id is a fact of the finding), or to the milestones when the finding names none.</summary>
     [RelayCommand]
-    private void GoToBoard() => BoardRequested?.Invoke(this, EventArgs.Empty);
+    private void GoToBoard(FindingRowItem? row) =>
+        BoardRequested?.Invoke(this, row?.Finding.Facts.FirstOrDefault(f => f.Name == "milestone-id")?.Value);
 }

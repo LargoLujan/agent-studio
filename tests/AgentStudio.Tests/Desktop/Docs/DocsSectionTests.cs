@@ -370,6 +370,99 @@ public sealed class DocsSectionTests
         Assert.Equal("Las discrepancias no están disponibles en esta instalación.", section.UnavailableText);
     }
 
+    [Fact]
+    public async Task Going_to_the_board_carries_the_milestone_of_the_requirement()
+    {
+        using var world = new DiagramFakes.World();
+        world.Analysis.Findings =
+        [
+            new ConsistencyFinding(
+                ConsistencyCodes.RequirementUncovered,
+                null,
+                null,
+                [DoctorFact.Of("milestone", "M1"), DoctorFact.Of("milestone-id", "mil-1"), DoctorFact.Of("requirement", "R1"), DoctorFact.Of("title", "T")]),
+        ];
+        var section = await OpenDiscrepanciesAsync(world);
+        var asked = new List<string?>();
+        section.BoardRequested += (_, milestone) => asked.Add(milestone);
+
+        section.GoToBoardCommand.Execute(section.Rows[0]);
+
+        Assert.Equal("mil-1", Assert.Single(asked));
+    }
+
+    [Fact]
+    public async Task A_failure_is_said_with_a_text_of_the_resources_and_never_with_the_message_of_the_exception()
+    {
+        using var world = new DiagramFakes.World();
+        var (section, _) = await OpenDiagramsAsync(world);
+        await section.GenerateCommand.ExecuteAsync(null);
+        world.Activity.Busy = true;
+
+        await section.ExportCommand.ExecuteAsync(null);
+
+        Assert.Equal("No se pudo completar la acción. Hay una ejecución en marcha. Exporta cuando termine.", section.Error);
+        Assert.DoesNotContain("Diagrams are not exported", section.Error, StringComparison.Ordinal);
+        Assert.Equal("El historial del proyecto no se puede verificar.", DocsTexts.Failure(Spanish, new AgentStudio.Application.Decisions.DecisionLogIntegrityException("p", new AgentStudio.Domain.Decisions.DecisionLogVerification(false, 1, "x"))));
+        Assert.Equal("Los datos de este diagrama no están disponibles.", DocsTexts.Failure(Spanish, new ArgumentException(@"C:\secret\path")));
+        Assert.Equal("No se pudo leer o escribir un fichero.", DocsTexts.Failure(Spanish, new IOException(@"C:\secret\path")));
+    }
+
+    [Fact]
+    public async Task A_diagram_that_cannot_be_built_is_a_row_with_its_state_and_the_list_goes_on()
+    {
+        using var world = new DiagramFakes.World();
+        var (section, _) = await OpenDiagramsAsync(world);
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.RunPlan, DiagramFixtures.Run, CancellationToken.None);
+        world.Plans.Broken = true;
+
+        await section.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Equal(6, section.Rows.Count);
+        Assert.Equal("No se pudo generar", Assert.Single(section.Rows, r => r.Diagram.Kind == DiagramKind.RunPlan).StateText);
+        Assert.Null(section.Error);
+    }
+
+    [Fact]
+    public async Task The_screen_and_the_line_of_auto_doctor_give_the_same_count_and_regenerating_lowers_it_without_a_new_analysis()
+    {
+        using var world = new DiagramFakes.World();
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None);
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.RunSequence, DiagramFixtures.Run, CancellationToken.None);
+        var live = new LiveConsistency(world.Staleness, null);
+        var source = new DiscrepanciesCheckSource(world.Analysis, world.History, live);
+        var section = new DocsDiscrepanciesSection(new DocsBackend(world.Catalog, world.Catalog, world.Analysis, world.History, null, live), Spanish);
+        await new GraphDocumentViewModel([section]).SetProjectAsync(world.Project, CancellationToken.None);
+        Assert.Equal(DoctorStatus.Ok, Assert.Single(await source.CheckAsync(world.Project, CancellationToken.None)).Status);
+
+        // The model changes (the solution is out of date) and the log of the run grows (its sequence is): the saved analysis knew neither.
+        world.Analysis.Graph = DiagramFixtures.Graph(appName: "Renamed");
+        var last = world.Recorder.Entries.Last();
+        world.Recorder.Entries.Add(new AgentStudio.Domain.Decisions.DecisionEntry(
+            100,
+            DiagramFixtures.At.AddHours(1),
+            new AgentStudio.Domain.Decisions.Actor(AgentStudio.Domain.Decisions.ActorKind.Orchestrator, "o"),
+            AgentStudio.Domain.Decisions.DecisionKind.ReviewRequested,
+            "x",
+            AgentStudio.Application.Decisions.DecisionPayloadSerializer.Serialize(new AgentStudio.Application.Decisions.ReviewRequestedPayload(new AgentStudio.Domain.Common.TaskId("T2"), new AgentStudio.Domain.Common.AgentId("juez")) { RunId = DiagramFixtures.Run }),
+            null,
+            last.Hash,
+            AgentStudio.Domain.Common.ContentHash.Sha256Hex("extra")));
+        await section.RefreshCommand.ExecuteAsync(null);
+        var warning = Assert.Single(await source.CheckAsync(world.Project, CancellationToken.None));
+        Assert.Equal(DoctorStatus.Warning, warning.Status);
+        Assert.Equal("2", warning.Facts[0].Value);
+        Assert.Equal(2, section.Rows.Count);
+
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None);
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.RunSequence, DiagramFixtures.Run, CancellationToken.None);
+        await section.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Equal(DoctorStatus.Ok, Assert.Single(await source.CheckAsync(world.Project, CancellationToken.None)).Status);
+        Assert.Empty(section.Rows);
+        Assert.Equal(0, world.Analysis.Analyzed);
+    }
+
     // ---- the line of Auto Doctor (D-30) ----
 
     [Fact]

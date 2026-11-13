@@ -4,6 +4,7 @@ using AgentStudio.Application.Graph;
 using AgentStudio.Desktop.Docs;
 using AgentStudio.Desktop.Graph;
 using AgentStudio.Memory;
+using AgentStudio.Memory.Consistency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -29,7 +30,8 @@ internal static class DocsUiServices
             Optional<IDiagramTextReader>(provider),
             Optional<ICommitAnalysisService>(provider),
             provider.GetService<IRepositoryHistoryReader>(),
-            provider.GetService<IDocsClipboard>()));
+            provider.GetService<IDocsClipboard>(),
+            Optional<LiveConsistency>(provider)));
         services.AddSingleton<GraphSection>(provider => new DocsDiagramsSection(provider.GetRequiredService<DocsBackend>()));
         services.AddSingleton<GraphSection>(provider => new DocsDiscrepanciesSection(provider.GetRequiredService<DocsBackend>()));
         return services;

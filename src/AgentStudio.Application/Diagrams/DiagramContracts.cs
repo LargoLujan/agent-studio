@@ -37,6 +37,12 @@ public enum DiagramState
 
     /// <summary>It is not: it says which commit it describes.</summary>
     Stale,
+
+    /// <summary>
+    /// It cannot be built from what there is now (its model is too big for the text, or the plan is not readable): the row says so and the rest of the list goes on. Appended by
+    /// WP-D. It keeps the hash and the date of what the cache holds when there is something; it has none when there is not.
+    /// </summary>
+    Unavailable,
 }
 
 /// <summary>The state of the copy exported to the repository, compared with the cache and with what Agent Studio wrote (docs/20 D-25). What is exported is never read back.</summary>
@@ -143,8 +149,9 @@ public sealed record DiagramStatus
             throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown state of a diagram.");
         }
 
-        var generated = state != DiagramState.NotGenerated;
-        if (generated != (modelHash is not null && generatedAt is not null) || (!generated && (describes is not null || hasPrevious)))
+        var generated = state is DiagramState.Current or DiagramState.Stale;
+        var has = modelHash is not null && generatedAt is not null;
+        if ((state == DiagramState.Unavailable ? (modelHash is null) != (generatedAt is null) : generated != has) || (!has && (describes is not null || hasPrevious)))
         {
             throw new ArgumentException("A diagram that is not generated has no hash, no date, no commit and no previous text; one that is generated has a hash and a date.", nameof(state));
         }
@@ -310,6 +317,43 @@ public sealed record DiagramExportResult
         other is not null && Written.SequenceEqual(other.Written) && Conflicts.SequenceEqual(other.Conflicts);
 
     public override int GetHashCode() => HashCode.Combine(Written.Count, Conflicts.Count);
+}
+
+/// <summary>The index of the cache of the diagrams exists and could not be read. It is not an empty index: the states that depend on it are «no se pudo leer», never «todo bien». Added by WP-D.</summary>
+public sealed class DiagramIndexUnreadableException : IOException
+{
+    public DiagramIndexUnreadableException()
+    {
+    }
+
+    public DiagramIndexUnreadableException(string message)
+        : base(message)
+    {
+    }
+
+    public DiagramIndexUnreadableException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}
+
+/// <summary>A run has the project, so nothing is exported to its repository now (docs/20 D-25). Added by WP-D so the screen can say why with a text of its own.</summary>
+public sealed class DiagramExportBusyException : InvalidOperationException
+{
+    public DiagramExportBusyException()
+        : base("Diagrams are not exported while a run has the project: its files are changing.")
+    {
+    }
+
+    public DiagramExportBusyException(string message)
+        : base(message)
+    {
+    }
+
+    public DiagramExportBusyException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }
 
 /// <summary>One generator per kind: pure text from a model (docs/20 D-23). It uses a clock only for the header, injected, so the golden files fix it.</summary>

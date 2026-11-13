@@ -2559,3 +2559,18 @@ que `GraphUiServices` entrega al documento detrás de «Grafo».
 el apartado lo dice y no ofrece nada), `DocsTexts`, `IDocsClipboard` y las plantillas en `GraphView`. Los textos son `DocsStrings` (y `Text_doc_…`, `Text_requirement_…`, `Text_consistency_…`, y las claves de la línea de Auto Doctor,
 que cualquier área de recursos puede aportar porque el proveedor busca en todas); `DocsStrings` pasa a `ClosedAreas`. `MainViewModel.Graph.cs` conecta «Abrir el fichero» con el editor y «Ir a Trabajo» con «Trabajo»; `MainViewModel.Doctor.cs`
 añade el destino `graph` a «Ir a…».
+
+**Ajustes de la revisión independiente (2026-11-13).**
+
+- `LiveConsistency` (`Memory/Consistency`): vuelve a calcular al vuelo `doc.diagram-stale` y `requirement.uncovered` (salen de la caché y del registro, no de los ficheros del commit) y toma del informe guardado los demás. La pantalla
+  de «Discrepancias» y `DiscrepanciesCheckSource` pasan por él, así que dan la misma cuenta, y regenerar baja la cuenta sin un análisis nuevo. Una comprobación que falla sale como `consistency.check-failed`.
+- Toda lectura del índice pasa por el `Gate` de la caché (`DiagramCacheStore.LoadAsync`; el catálogo, que ya lo tiene, usa `LoadLockedAsync`). Un índice que no existe es vacío; uno que existe y no se lee, tras un reintento corto,
+  es `DiagramIndexUnreadableException` (Application): las comprobaciones lo dan como `consistency.check-failed` y la lista como error, nunca como «todo bien».
+- `DiagramExportBusyException` (Application): «hay una ejecución en marcha», que se pregunta antes del cerrojo, dentro y antes de cada fichero. La exportación guarda el índice tras cada fichero escrito.
+- `DiagramState.Unavailable` (añadido al final): un diagrama que no se puede construir (`ArgumentException` al hacer su texto) sale como una fila «No se pudo generar» y la lista sigue. `DiagramStaleness` da como desactualizado
+  un diagrama que no puede comprobar (registro que no verifica, plan que no se lee): no lo salta.
+- `SafeName`: un nombre solo se escribe tal cual si ya está en minúsculas; cualquier otro lleva la huella del original, así que `Abc` y `abc` no coinciden en Windows.
+- `MarkdownScanner` también deja fuera los bloques de código con sangría de cuatro espacios, los comentarios HTML (también de varias líneas) y los tramos de código de varias líneas (hasta 20 líneas de un párrafo), y limita lo que
+  leen todos los destinos de una línea (`LineBudget`); `Scan(texto, out pasos)` cuenta los caracteres leídos y las pruebas fijan el coste con ese número, no con un reloj.
+- Los métodos del catálogo empiezan saltando a un hilo del grupo (`Task.Run`), así que ni la lectura de ficheros ni la generación de los textos corren en el hilo de la interfaz.
+- La pantalla dice por qué falla algo con textos de recursos por clase de fallo (`Docs_Failure_*`), nunca con el mensaje de la excepción. «Ir a Trabajo» elige el hito del requisito (`Context.SelectMilestone`).
