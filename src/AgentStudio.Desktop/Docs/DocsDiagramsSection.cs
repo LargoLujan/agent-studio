@@ -36,6 +36,9 @@ public sealed class DiagramRowItem(DiagramStatus status, IUiTextProvider texts)
         _ => "○",
     };
 
+    /// <summary>What a screen reader says of the row in the list: the list item takes its name from the text of the row, never from the name of the type.</summary>
+    public override string ToString() => AutomationName;
+
     public string AutomationName { get; } = texts.Format("Docs_Row_Name", DocsTexts.Name(texts, status.Diagram), DocsTexts.State(texts, status), DocsTexts.Export(texts, status.Export));
 }
 

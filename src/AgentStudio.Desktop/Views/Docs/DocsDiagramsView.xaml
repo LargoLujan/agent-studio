@@ -34,7 +34,7 @@
                        Visibility="{Binding IsEmpty, Converter={StaticResource Docs.BoolToVisibility}}"/>
 
             <!-- The list: each diagram with its state in words and with a sign. -->
-            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Margin="0,8,0,0" MaxHeight="260"
+            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Margin="0,8,0,0" MaxHeight="420"
                      AutomationProperties.Name="{l:T Docs_Diagrams_List_Name}"
                      Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}">
                 <ListBox.ItemTemplate>

@@ -60,7 +60,7 @@ public sealed class DocsSectionTests
         Assert.Equal("La solución", section.Rows[0].Name);
         Assert.Equal("Sin generar", section.Rows[0].StateText);
         Assert.Same(section.Rows[0], section.SelectedRow);
-        Assert.Equal("Este diagrama aún no está generado. Pulsa Generar.", section.SourceNotice);
+        Assert.Equal("Todavía no hay texto para este diagrama. Pulsa Generar.", section.SourceNotice);
         Assert.False(section.HasSource);
         Assert.Equal("Generar", section.GenerateLabel);
         Assert.True(section.GenerateCommand.CanExecute(null));

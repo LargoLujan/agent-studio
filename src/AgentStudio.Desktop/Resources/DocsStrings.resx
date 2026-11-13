@@ -174,7 +174,7 @@
     <comment>Shown when no diagram is chosen.</comment>
   </data>
   <data name="Docs_Source_NotGenerated" xml:space="preserve">
-    <value>Este diagrama aún no está generado. Pulsa Generar.</value>
+    <value>Todavía no hay texto para este diagrama. Pulsa Generar.</value>
     <comment>Shown when the diagram chosen is not generated.</comment>
   </data>
   <data name="Docs_Source_Lost" xml:space="preserve">
@@ -250,7 +250,7 @@
     <comment>Tooltip.</comment>
   </data>
   <data name="Docs_Disc_NotCalculated" xml:space="preserve">
-    <value>Todavía no hay resultado para esta versión guardada. Pulsa Calcular para obtenerlo.</value>
+    <value>No hay resultado para esta versión. Pulsa Calcular.</value>
     <comment>Shown when nothing is saved for the version the project is at.</comment>
   </data>
   <data name="Docs_Disc_Calculating" xml:space="preserve">

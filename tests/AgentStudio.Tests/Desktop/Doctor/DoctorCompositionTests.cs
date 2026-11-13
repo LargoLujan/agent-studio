@@ -34,7 +34,9 @@ public sealed class DoctorCompositionTests
         Assert.Same(provider.GetRequiredService<ToolSnapshotProvider>(), provider.GetRequiredService<IInstalledToolInventory>());
         Assert.Contains(provider.GetServices<IDoctorRunScope>(), s => ReferenceEquals(s, provider.GetRequiredService<ToolSnapshotProvider>()));
         var sections = provider.GetServices<IDoctorCheckSource>().Select(s => s.Section).Order().ToArray();
-        Assert.Equal([DoctorSection.Providers, DoctorSection.Tools, DoctorSection.Project, DoctorSection.Containers], sections);
+
+        // The four sections of this package, and the second source of «Proyecto»: the line of the discrepancies (WP-D, docs/20 D-30), which reads what Auto Graph saved.
+        Assert.Equal([DoctorSection.Providers, DoctorSection.Tools, DoctorSection.Project, DoctorSection.Project, DoctorSection.Containers], sections);
     }
 
     [Fact]
