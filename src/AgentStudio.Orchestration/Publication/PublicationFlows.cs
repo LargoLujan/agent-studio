@@ -242,6 +242,13 @@ internal sealed class PublishFlow(
             _accountRead = true;
         }
 
+        // The gate passes before anything of the platform runs, and again at every retry (D-26): a verdict challenged meanwhile stops it here.
+        var openOperation = new HostingOperation(project, run, HostingOperationKind.OpenPullRequest, repository, baseBranch, null, commit, null);
+        if (await AuthorizeAsync(context, openOperation, holdsProject: false, context.Stopping).ConfigureAwait(false) is { } stopped)
+        {
+            return stopped;
+        }
+
         // What is already there is asked before anything is repeated (D-18, step 5): a cut after the platform opened it leaves it opened.
         var found = await provider.FindPullRequestAsync(repository, Head, context.Stopping).ConfigureAwait(false);
         if (Interrupted(context, found) is { } interrupted)

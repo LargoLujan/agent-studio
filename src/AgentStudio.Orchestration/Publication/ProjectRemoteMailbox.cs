@@ -349,6 +349,8 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 {
                     await HandleAsync(message).ConfigureAwait(false);
                 }
+
+                await SaveIfDirtyAsync().ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
@@ -358,8 +360,6 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             {
                 Interlocked.Decrement(ref _inFlight);
             }
-
-            await SaveIfDirtyAsync().ConfigureAwait(false);
         }
     }
 
