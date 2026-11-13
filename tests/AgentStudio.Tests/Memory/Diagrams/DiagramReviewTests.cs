@@ -1,6 +1,7 @@
 using System.IO;
 using AgentStudio.Application.Consistency;
 using AgentStudio.Application.Diagrams;
+using AgentStudio.Application.Graph;
 using AgentStudio.Memory.Consistency;
 using AgentStudio.Memory.Diagrams;
 using AgentStudio.Tests.Memory.Consistency;
@@ -201,5 +202,58 @@ public sealed class DiagramReviewTests
         Assert.NotEmpty(list);
         Assert.NotEqual(0, world.History.ThreadId);
         Assert.NotEqual(caller, world.History.ThreadId);
+    }
+
+    [Fact]
+    public async Task Undoing_and_the_live_discrepancies_do_not_do_their_work_on_the_thread_that_asked()
+    {
+        using var world = new DiagramFakes.World();
+        var ct = TestContext.Current.CancellationToken;
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, ct);
+        world.Analysis.Graph = DiagramFixtures.Graph(appName: "Renamed");
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, ct);
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.RunSequence, DiagramFixtures.Run, ct);
+        var live = new LiveConsistency(world.Staleness, null);
+        var saved = new CommitAnalysis(world.Analysis.Graph, new ConsistencyReport(DiagramFixtures.Commit, [], [], false));
+        int callerUndo = 0, callerLive = 0;
+
+        await Task.Factory.StartNew(
+            () =>
+            {
+                callerUndo = Environment.CurrentManagedThreadId;
+                world.Catalog.RestorePreviousAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                callerLive = Environment.CurrentManagedThreadId;
+                live.RefreshAsync(world.Project, saved, CancellationToken.None).GetAwaiter().GetResult();
+            },
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+
+        Assert.Equal(callerUndo, callerLive);
+        Assert.NotEqual(0, world.History.ThreadId);
+        Assert.NotEqual(callerUndo, world.History.ThreadId);
+        Assert.NotEqual(0, world.Recorder.ThreadId);
+        Assert.NotEqual(callerLive, world.Recorder.ThreadId);
+    }
+
+    [Fact]
+    public async Task What_is_out_of_date_is_the_same_the_second_time_and_follows_the_model_when_it_changes()
+    {
+        using var world = new DiagramFakes.World();
+        var ct = TestContext.Current.CancellationToken;
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, ct);
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.ProjectNamespaces, DiagramFixtures.CoreProject, ct);
+        var current = DiagramFixtures.Graph();
+        var renamed = DiagramFixtures.Graph(appName: "Renamed");
+
+        Assert.Empty(await world.Staleness.FindAsync(world.Project, current, ct));
+        Assert.Empty(await world.Staleness.FindAsync(world.Project, current, ct));
+        var first = await world.Staleness.FindAsync(world.Project, renamed, ct);
+        var second = await world.Staleness.FindAsync(world.Project, renamed, ct);
+
+        Assert.NotEmpty(first);
+        Assert.Equal(first.Select(s => s.Diagram), second.Select(s => s.Diagram));
+        Assert.Contains(first, s => s.Diagram.Kind == DiagramKind.Solution);
+        Assert.Empty(await world.Staleness.FindAsync(world.Project, current, ct));
     }
 }

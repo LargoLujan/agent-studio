@@ -392,6 +392,27 @@ public sealed class DiagramCatalogTests
     }
 
     [Fact]
+    public async Task A_failure_after_the_first_file_keeps_what_was_written_known_and_carries_the_list()
+    {
+        using var world = new DiagramFakes.World();
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None);
+        await world.Catalog.GenerateAsync(world.Project, DiagramKind.ProjectNamespaces, DiagramFixtures.CoreProject, CancellationToken.None);
+
+        // A run starts between the first file and the second: the questions of the first file are free (the call, the gate and the file), the next one is not.
+        world.Activity.Busy = true;
+        world.Activity.FreeFor = 3;
+        var failure = await Assert.ThrowsAsync<DiagramExportInterruptedException>(() => world.Catalog.ExportAsync(world.Project, Request(Solution, others: [Core]), CancellationToken.None));
+
+        Assert.IsType<DiagramExportBusyException>(failure.InnerException);
+        var written = Assert.Single(failure.Written);
+        Assert.Equal("docs/generado/diagramas/solucion.md", written.Path);
+        world.Activity.Busy = false;
+        var list = await world.Catalog.ListAsync(world.Project, CancellationToken.None);
+        Assert.Equal(DiagramExportState.SameAsCache, Of(list, Solution).Export);
+        Assert.NotEqual(DiagramExportState.SameAsCache, Of(list, Core).Export);
+    }
+
+    [Fact]
     public async Task Exporting_to_another_folder_names_the_files_from_a_closed_list_and_cleans_names_that_came_from_data()
     {
         using var world = new DiagramFakes.World();

@@ -337,6 +337,41 @@ public sealed class DiagramIndexUnreadableException : IOException
     }
 }
 
+/// <summary>
+/// An export failed after it had already written files. The files are written and their index is saved (they are known as exported), so the list of them travels with the
+/// failure: <see cref="Exception.InnerException"/> is the cause, and what it says is what the screen should say.
+/// </summary>
+public sealed class DiagramExportInterruptedException : InvalidOperationException
+{
+    public DiagramExportInterruptedException()
+        : this([], [], new InvalidOperationException("The export was interrupted."))
+    {
+    }
+
+    public DiagramExportInterruptedException(string message)
+        : this([], [], new InvalidOperationException(message))
+    {
+    }
+
+    public DiagramExportInterruptedException(string message, Exception innerException)
+        : this([], [], innerException)
+    {
+    }
+
+    public DiagramExportInterruptedException(IReadOnlyList<DiagramExportedFile> written, IReadOnlyList<DiagramExportConflict> conflicts, Exception cause)
+        : base("The export was interrupted after writing " + (written?.Count ?? 0) + " file(s): " + cause?.Message, cause)
+    {
+        Written = [.. written ?? []];
+        Conflicts = [.. conflicts ?? []];
+    }
+
+    /// <summary>The files that were written (and indexed) before the failure.</summary>
+    public IReadOnlyList<DiagramExportedFile> Written { get; }
+
+    /// <summary>The conflicts found before the failure.</summary>
+    public IReadOnlyList<DiagramExportConflict> Conflicts { get; }
+}
+
 /// <summary>A run has the project, so nothing is exported to its repository now (docs/20 D-25). Added by WP-D so the screen can say why with a text of its own.</summary>
 public sealed class DiagramExportBusyException : InvalidOperationException
 {

@@ -31,6 +31,9 @@ public sealed class LiveConsistency
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(saved);
+
+        // The work below (the index, the rendering of the diagrams, the log) never starts on the thread that called, which may be the one of the interface.
+        await Task.Run(static () => { }).ConfigureAwait(false);
         var report = saved.Consistency;
         var notApplicable = report.NotApplicable.ToList();
         var findings = report.Findings
