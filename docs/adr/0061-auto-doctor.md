@@ -38,13 +38,31 @@
   9. **Un arreglo aplicado deja rastro** (D-11): `DoctorFixApplied` (el código del arreglo, el de la comprobación y, si deshace otra entrada, su secuencia), fuera de
      toda ejecución y sin texto, sin rutas de la máquina y sin nada de un token.
   10. **Las versiones de las herramientas van dentro de la evidencia** (D-12, WP-E): un bloque `tools:` en la cabecera que ya escribe el verificador, anclado por la
-      huella del contenido, sin campo nuevo ni migración. Se preguntan en el mismo sitio y con el mismo aislamiento que el paso.
+      huella del contenido, sin campo nuevo ni migración. (La primera redacción las preguntaba con `--version` en la copia; la adenda de WP-E lo corrige: se leen del
+      recurso de versión del ejecutable, sin ejecutar nada.)
 - **Lo que fija el P0** ([docs/04 §25](../04-contratos.md#25-fase-6-auto-doctor-auto-graph-entorno-declarado-y-diagramas)): `Domain/Diagnostics` y `Domain/Environments`,
   `Application/Diagnostics/{DoctorContracts,EnvironmentContracts}.cs`, `DoctorFixApplied` y sus pruebas (`Phase6DoctorContractTests` comprueba por reflexión que
   la puerta no tiene parámetros libres y que la jerarquía de arreglos está cerrada).
 - **Alternativas descartadas:** un modelo por tipo de comprobación (cada uno pediría su vista y su prueba); lanzar las sondas a integridad baja (rompería
   `docker`, que habla con su servicio por una tubería, sin quitar un riesgo nuevo); un localizador propio solo para Auto Doctor (dejaba abiertas la verificación y
   las sondas); instalar herramientas con `winget` (ejecutar instaladores con permisos altos: cadena de suministro, decisión 8).
+- **Adenda de WP-E (2026-11-13): el entorno declarado y las versiones en las evidencias.**
+  - **El lector** (`IDeclaredEnvironmentReader`, `Infrastructure/Environments/DeclaredEnvironmentReader`) abre solo los 15 ficheros de la lista, validados con
+    `RepositoryPaths`, con 256 KB como tope y sin pasar por un enlace simbólico ni una unión (el fichero ni ninguna carpeta entre la raíz y él; la raíz que eligió la
+    persona sí puede ser una unión). Un punto de reanálisis sin destino, como el marcador de OneDrive, es un fichero normal. Se comprueba sobre lo abierto
+    (la ruta final del manejador debe ser la raíz final más la ruta relativa), no por el nombre otra vez. Lo que hay dentro lo lee código puro de Domain
+    (`DeclaredFileParser`): nada lanza para un texto hostil y todo valor llega limpio y acotado. De compose solo se dice que existe y su tamaño. El tipo no tiene
+    ningún camino para arrancar un proceso, y una prueba lo comprueba por estructura y con un repositorio con herramientas plantadas.
+  - **Comparar** (`EnvironmentComparer`, Domain): `rollForward` evaluado sobre los SDK instalados (`SdkResolver`, las nueve políticas), rangos de `engines` y de
+    `.nvmrc` con un subconjunto de semver, y `requires-python` con un subconjunto de PEP 440. Todos totales y acotados. **`sdk.paths` que no sea solo `$host$` nunca da
+    «cumple»**: el anfitrión buscaría antes en carpetas que no se leen. Lo que no se evalúa es «sin comprobar». `DeclaredKind.Extends` es el único tipo añadido al
+    contrato del P0.
+  - **Las versiones en la evidencia** (D-12, corregido): **no se ejecuta nada**. El bloque `# tools:` de la cabecera lo escribe `VerificationRunner` con lo que le da un
+    `IStepToolVersionReader` opcional (el real, `StepToolVersionReader`, lee el recurso de versión del mismo `.exe` que resuelve el lanzamiento, con la regla de
+    `ExecutableSearch`). El SDK de .NET sale con la versión del **host** y una nota que lo dice: saber cuál elige `global.json` sin ejecutar `dotnet` queda como límite
+    conocido. Un bloque no se puede falsificar con la salida de un proceso, que va con prefijo y después de la cabecera.
+  - **Composición:** `AddAgentStudioEnvironments` (en `Infrastructure/Environments`, para no tocar `AddAgentStudioInfrastructure`) lo llama la raíz de composición después de
+    registrar el inventario de WP-A.
 - **Consecuencias y residuales aceptados:** una herramienta del sistema comprometida fuera del proyecto engaña a Auto Doctor (el residual del PATH de ADR-0018);
   la capa git arranca `git` dentro del repositorio; y `global.json` admite `sdk.paths` desde el SDK de .NET 10, que la verificación seguiría usando dentro de la copia
   (a integridad baja): Auto Doctor lo avisa (`doctor.env.dotnet.sdk-in-repo`) y cambiar la verificación queda fuera de esta fase.

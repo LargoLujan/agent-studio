@@ -28,12 +28,18 @@ public sealed class DeclaredEnvironmentReader : IDeclaredEnvironmentReader
     /// Whether an entry of the path is a link that is not read through: a symbolic link or a junction, which .NET reports with a target. A reparse point with no target,
     /// such as the placeholder of a file that lives in OneDrive, is a regular file for this purpose.
     /// </summary>
-    internal static bool IsLink(FileAttributes attributes, string? linkTarget) =>
+    public static bool IsLink(FileAttributes attributes, string? linkTarget) =>
         attributes.HasFlag(FileAttributes.ReparsePoint) && linkTarget is not null;
 
     public async Task<DeclaredEnvironment> ReadAsync(string projectRoot, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
+        if (!Path.IsPathFullyQualified(projectRoot))
+        {
+            // A relative root would be read from the current folder of the app, which is not the project.
+            throw new ArgumentException("The root of a project is a full path.", nameof(projectRoot));
+        }
+
         var builder = new DeclaredReadingBuilder();
         string root;
         try

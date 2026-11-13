@@ -2377,7 +2377,20 @@ Hay **dos tipos nuevos** al final de `DecisionKind`, ambos en `V = 1`, y **ningu
 | `InstalledTools`, `InstalledSdk`, `InstalledRuntime`, `InstalledTool`, `DockerStatus`, `WslStatus` | `Domain/Environments/InstalledTools.cs` | El inventario de lo instalado. Docker y WSL con sus tres estados y la regla de que cada estado lleva sus versiones y no otras; el alias de Python de la Tienda no cuenta como instalado |
 | `GitHubSkillOrigin` | `Domain/Skills/GitHubSkillOrigin.cs` | El origen validado de una skill fijada: `owner`, `repo`, rama, commit (40 hex) y carpeta, con las reglas de D-14 comprobadas carácter a carácter (nada de `$` ni de expresiones regulares que dejen pasar un salto de línea final). Se rechaza, no se corrige: ni `..`, ni `?`, ni `#`, ni `%`, ni `\`, ni `//` en una rama |
 
-La lógica de WP-E (`rollForward`, rangos de Node y de Python, el comparador) **no** está en el P0: usa estos tipos.
+La lógica de WP-E (2026-11-13) usa estos tipos y añade, todos puros y sin disco ni procesos:
+
+| Tipo | Fichero | Qué fija |
+|---|---|---|
+| `DeclaredReadingBuilder` | `Domain/Environments/DeclaredReadingBuilder.cs` | Junta entradas y motivos de lo leído sin que un fichero hostil pueda hacer lanzar la lectura: limpia de caracteres ocultos, corta a 200 y 214 caracteres, un valor vacío es un motivo `NotInterpreted` y nada pasa de 500 elementos |
+| `DeclaredFileParser` | `Domain/Environments/DeclaredFileParser.cs` | De texto a entradas y motivos, para los 11 ficheros de la lista que se interpretan (no los cuatro de compose). JSON con comentarios y coma final solo en `global.json` y `devcontainer.json`, profundidad 32, claves repetidas rechazadas y la línea de cada propiedad; texto con líneas de hasta 4 096 caracteres; `requires-python` solo de la tabla `[project]` exacta. `DeclaredKind.Extends` (al final del enum) nombra el `extends` de un Dev Container |
+| `SemverRange`, `Pep440Specifier`, `RangeVerdict` | `Domain/Environments/{SemverRange,Pep440Specifier}.cs` | Evaluadores totales (nunca lanzan) y acotados (200 caracteres, 20 conjuntos, 20 comparadores) de un subconjunto de semver y de PEP 440; lo que no entienden es `NotComparable`, nunca `Satisfied` |
+| `SdkResolver`, `GlobalJsonRollForward`, `SdkResolution` | `Domain/Environments/SdkResolver.cs` | Las nueve políticas de `rollForward` sobre la lista de SDK instalados; `sdk.paths` que no sea solo `$host$` es `NotComparable` |
+| `EnvironmentComparer`, `EnvironmentCheckCodes` | `Domain/Environments/EnvironmentComparer.cs` | De `DeclaredEnvironment` + `InstalledTools` a `DoctorCheck` de la sección «entorno declarado» (una por código, con los hechos `declared`, `source`, `installed` y `resolved`) |
+
+En la aplicación, `Application/Verification/EvidenceToolVersions.cs` trae `EvidenceToolVersion`, `IStepToolVersionReader` y `EvidenceToolVersions`
+(`Format`, `Parse`, `VersionOf`) para el bloque `# tools:` de la cabecera de la evidencia de verificación; `VerificationRunner` recibe el lector como
+último parámetro opcional. Las implementaciones están en `Infrastructure/Environments/` (`DeclaredEnvironmentReader`, `DeclaredEnvironmentCheckSource`,
+`StepToolVersionReader`, registradas por `AddAgentStudioEnvironments`).
 
 ### 25.2 Aplicación
 
@@ -2396,8 +2409,8 @@ La lógica de WP-E (`rollForward`, rangos de Node y de Python, el comparador) **
 | `ConsistencyCodes`, `ConsistencyFinding`, `ConsistencyReport`, `ConsistencyScope`, `IConsistencyCheck`, `IConsistencyService` | `Application/Consistency/ConsistencyContracts.cs` | WP-D. `IConsistencyCheck.RunAsync` devuelve `null` cuando la comprobación no aplica |
 | `ISkillHealthBatchChecker`, `SkillHealthBatchResult`, `SkillHealthFailure`, `ISkillsDoctorPolicy`, `ISkillScriptReviews`, `ISkillsDoctorSecrets`, `GitHubToken`, `SkillsDoctorTokenUse` | `Application/Skills/SkillPorts.cs` | WP-S. `ISkillHealthChecker` no cambia. `GitHubToken.ToString()` nunca da el token; `Reveal()` es el único camino |
 
-`IUntrustedRoots` **no** está: lo trae WP-0 en `Application/Execution/ProcessContracts.cs`. `EvidenceToolVersions` (D-12) tampoco: lo completa WP-E, que
-es quien decide cómo se embebe el bloque `tools:` en la cabecera (que hoy son líneas `# …`).
+`IUntrustedRoots` **no** está: lo trae WP-0 en `Application/Execution/ProcessContracts.cs`. `EvidenceToolVersions` (D-12) lo trae WP-E (ver §25.1): el bloque
+son líneas `# tools:` y `#   nombre versión (nota)` de la cabecera, antes de `# working directory:`.
 
 ### 25.3 El proceso de análisis (`AgentStudio.GraphWorker`)
 

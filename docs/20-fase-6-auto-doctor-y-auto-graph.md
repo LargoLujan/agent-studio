@@ -493,27 +493,46 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 
 **D-12 · Las versiones van en la cabecera de la evidencia, no en un campo nuevo.**
 
-- **Cómo:** antes de ejecutar un paso, `VerificationRunner` pregunta la versión de su ejecutable y de lo que declare en
-  `Requires`, y la escribe en la cabecera que ya escribe (`WriteHeaderAsync`), en un bloque fijo:
+- **Cómo:** al escribir la cabecera de un paso (`WriteHeaderAsync`), `VerificationRunner` pone el bloque con las versiones de las
+  herramientas del paso (su ejecutable y los de los pasos que declare en `Requires`, directos o no), justo antes de
+  `# working directory:`. Las líneas son de cabecera (empiezan por `#`, como todas las demás) y el bloque es este:
 
   ```text
-  tools:
-    dotnet 10.0.303
-    node 22.11.0
+  # tools:
+  #   dotnet 11.0.0-preview.2.26159.112 (version resource of the dotnet host; the SDK is the one global.json picks)
+  #   node 22.11.0 (version resource of node.exe)
+  #   npm unknown (the package.json of npm was not found)
   ```
 
-- **Dónde se pregunta:** en el mismo sitio y con el mismo aislamiento que el paso: en la copia del commit, a integridad
-  baja y con el entorno del paso. Así sale «el SDK que resolvió `global.json` en la copia», que es lo que pide docs/16 D-06.
-  Aquí sí se ejecuta dentro de la copia: es la verificación, que ya lo hace, no Auto Doctor.
-- **Lista cerrada** de preguntas (`dotnet --version`, `node --version`, `npm --version`, `python --version`). Para cualquier
-  otro ejecutable se lee su recurso de versión sin ejecutarlo (como `NodeVerificationProfile.InstalledVersion`), y si no
-  tiene, sale `desconocida`.
-- **Una versión que no se obtiene no falla el paso:** sale `desconocida` con su motivo. 20 segundos como tope.
+  Cada línea es `nombre versión` y, si hay, una nota entre paréntesis; `unknown` es una versión que no se pudo saber, y la nota
+  dice por qué. El bloque se escribe siempre, también para un paso que no llega a arrancar.
+- **De dónde sale la versión (ajuste de WP-E, 2026-11-13): sin ejecutar nada.** La primera versión de este documento mandaba
+  lanzar `dotnet --version` dentro de la copia. Se descarta: el encargo de WP-E y F6-8 piden no ejecutar nada del repositorio, y un
+  lanzamiento más por paso cambiaría lo que el motor registra y lo que ven las pruebas. La versión se lee del **recurso de versión
+  del ejecutable que el lanzamiento resuelve** (`StepToolVersionReader`, en `Infrastructure/Environments`, con la misma regla que los
+  lanzadores: `ExecutableSearch.ResolveBareName`, que solo da `.exe`, mira el sistema, Windows y el PATH, y descarta lo que cae
+  dentro de un proyecto abierto). Es el mismo fichero que arranca el paso, no el de la puerta de Auto Doctor (que contesta por una
+  carpeta neutra y no existe aquí): esa puerta no se usa ni se duplica.
+  - `node.exe`: solo vale el recurso si es el de Node (`ProductName` = `Node.js`); un *shim* con versión propia sale `unknown`.
+  - `npm`: el perfil de Node lo arranca como `node …\npm-cli.js`; su versión sale del `package.json` que está dos carpetas por encima
+    de ese `npm-cli.js` (`name` = `npm`).
+  - `dotnet.exe`: el recurso es el del **host**, no el del SDK, y la nota lo dice. Saber qué SDK resuelve el `global.json` de la copia
+    obligaría a ejecutar `dotnet` o a leer ficheros de la copia con los derechos del usuario (lo que el motor evita, ver
+    `VerificationRunner`): queda como límite conocido y como mejora para la Fase 16 (§12).
+  - Un script (`.cmd`, `.bat`), un fichero que no existe, una ruta relativa o un nombre que no se encuentra fuera de los proyectos
+    salen `unknown` con su motivo.
+- **Una versión que no se obtiene no falla el paso:** sale `unknown` con su motivo.
+- **Lector sin lector configurado:** `VerificationRunner` recibe el `IStepToolVersionReader` como último parámetro opcional del
+  constructor. Sin él, el bloque se escribe igual con todas las versiones `unknown` y el motivo «no reader of tool versions is
+  configured»; `AddAgentStudioVerification` le da el que registre `AddAgentStudioEnvironments`.
 - **Un lector puro** (`EvidenceToolVersions.Parse`, en Application) saca el bloque del contenido, para la tarjeta de la
-  evidencia y para la Fase 16.
+  evidencia y para la Fase 16. Solo lee la cabecera (las líneas `#` del principio, hasta la primera que no lo es) y toma el primer
+  bloque: lo que escribe un proceso va con el prefijo `stdout| ` o `stderr| ` y viene después, así que no puede falsificarlo.
+  Una evidencia anterior no tiene bloque y da una lista vacía.
 - **Por qué en el contenido:** el contenido ya está anclado por su SHA-256 en `EvidenceRegistered`. Un campo nuevo pediría
   cambiar `EvidenceDraft`, `EvidenceRecord`, el payload a la versión 3 y una migración, para decir lo mismo.
-- **Descartado:** tomar las versiones de Auto Doctor. Serían las de la carpeta neutra, no las que resolvió el paso.
+- **Descartado:** tomar las versiones de Auto Doctor. Serían las de la carpeta neutra, no las que resolvió el paso. **Descartado
+  también** (ajuste de WP-E): preguntarlas con `--version` dentro de la copia, por lo que dice el segundo punto.
 
 ### 3.6 El doctor de skills (F6-6)
 
@@ -965,7 +984,9 @@ public interface IDeclaredEnvironmentReader
 }
 ```
 
-`src/AgentStudio.Application/Verification/EvidenceToolVersions.cs`: `Format(...)` y `Parse(...)` del bloque `tools:` (D-12).
+`src/AgentStudio.Application/Verification/EvidenceToolVersions.cs`: `Format(...)` y `Parse(...)` del bloque `tools:` (D-12), `EvidenceToolVersion`
+(una herramienta con su versión o `unknown` y su nota) e `IStepToolVersionReader` (las versiones de los pasos, sin ejecutar nada; lo implementa
+`Infrastructure/Environments/StepToolVersionReader`).
 
 `src/AgentStudio.Application/Git/RepositorySnapshotContracts.cs`:
 
@@ -1334,7 +1355,12 @@ del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado
 
 - `src/AgentStudio.Domain/Environments/**` (la lógica: `rollForward`, rangos y el comparador).
 - `src/AgentStudio.Infrastructure/Environments/**` (nuevo): el lector de D-05 y D-06, y la fuente de comprobaciones del
-  entorno. Va aparte de `Infrastructure/Diagnostics/**` para no compartir carpeta con WP-A.
+  entorno. Va aparte de `Infrastructure/Diagnostics/**` para no compartir carpeta con WP-A. **Hecho (2026-11-13):**
+  `DeclaredEnvironmentReader`, `DeclaredEnvironmentCheckSource`, `StepToolVersionReader` y `AddAgentStudioEnvironments` (que el
+  proyecto de composición debe llamar, después de registrar el inventario de WP-A). En Domain: `DeclaredReadingBuilder`,
+  `DeclaredFileParser` (los lectores de los 14 ficheros que se interpretan), `SemverRange`, `Pep440Specifier`, `SdkResolver`
+  (las nueve políticas de `rollForward`) y `EnvironmentComparer`, con los códigos de `EnvironmentCheckCodes`. Se añadió
+  `DeclaredKind.Extends` (el `extends` de un Dev Container, que D-06 manda nombrar y no tenía tipo).
 - `src/AgentStudio.Orchestration/Verification/VerificationRunner.cs` (existe): el bloque `tools:`.
 - `src/AgentStudio.Application/Verification/EvidenceToolVersions.cs` (lo completa).
 - Pruebas: `tests/AgentStudio.Tests/Domain/Environments/**`, `Infrastructure/Environments/**` con los repositorios de ejemplo,
@@ -1480,6 +1506,15 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   se fija la 10.0.13 para alinearla con los demás paquetes de `Microsoft.Extensions.*`): licencia MIT, autor Microsoft
   (`dotnet/dotnet`), grupo `net10.0` sin dependencias, listada, publicada el 2026-10-13, sin retirada y sin aviso en el feed de
   vulnerabilidades de nuget.org del 2026-11-11. La referencia está en `AgentStudio.Infrastructure.csproj` (la usará WP-S).
+- **La versión del SDK en la cabecera de la evidencia (WP-E, 2026-11-13).** En esta máquina `dotnet.exe` trae como recurso de versión
+  la del host (`11.0.0-preview.2.26159.112`) mientras `dotnet --version` da `10.0.303`: el bloque `tools:` da la del host, con su nota, y no
+  la del SDK que resolvió `global.json` (D-12). Dar la segunda sin ejecutar nada exigiría leer el `global.json` de la copia y aplicar
+  `SdkResolver` (ya existe, es código puro) a la carpeta `sdk\` de la instalación; el motor evita leer la copia con los derechos del
+  usuario, así que queda para la Fase 16 o para cuando el motor tenga un lector seguro de ficheros de la copia.
+- **`LinkTarget` de .NET para una unión y para el marcador de OneDrive (WP-E).** El lector del entorno declarado cuenta como enlace lo que
+  tiene `ReparsePoint` **y** destino (`LinkTarget`). Una unión y un enlace simbólico de fichero se probaron en esta máquina
+  (`DeclaredEnvironmentReaderTests`); el marcador de sincronización de OneDrive no se puede plantar en una prueba, y su comportamiento
+  (punto de reanálisis sin destino: se lee) solo se fija en la función pura `DeclaredEnvironmentReader.IsLink`.
 - **`git archive` y `export-ignore`:** que la copia de la verificación se comporta así en esta capa.
 - **El coste de «Proponer relaciones»** (D-21): tokens por lanzamiento. Es una estimación hasta medirlo.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
