@@ -251,7 +251,7 @@ public sealed record RemoteStateObservedPayload(
     /// <exception cref="ArgumentException">The snapshot does not validate or does not have the fingerprint of the entry.</exception>
     public RemoteSnapshot ToSnapshot()
     {
-        var snapshot = Snapshot.ToSnapshot(ToPullRequest());
+        var snapshot = (Snapshot ?? throw new ArgumentException("The entry holds no snapshot.", nameof(Snapshot))).ToSnapshot(ToPullRequest());
         if (!string.Equals(snapshot.Fingerprint, Fingerprint, StringComparison.Ordinal))
         {
             throw new ArgumentException("The snapshot of the entry is not the one its fingerprint names.");

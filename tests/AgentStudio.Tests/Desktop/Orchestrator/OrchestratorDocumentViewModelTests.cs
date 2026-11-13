@@ -317,6 +317,9 @@ public sealed class OrchestratorDocumentViewModelTests
 
         await document.ExecuteCommand.ExecuteAsync(null);
 
+        var key = UserText.KeyOf(ProjectActivityEntry.BusyRemoteCode);
+        Assert.True(new ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("es-ES")).Has(key));
+        Assert.True(new ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("en")).Has(key));
         Assert.True(approval?.Approved);
         Assert.Same(approval, document.PlanDecision);
         Assert.True(document.ExecuteCommand.CanExecute(null));

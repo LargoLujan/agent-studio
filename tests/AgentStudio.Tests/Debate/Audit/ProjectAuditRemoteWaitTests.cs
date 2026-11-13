@@ -35,7 +35,7 @@ public sealed class ProjectAuditRemoteWaitTests
         Assert.Equal(before, bench.Entries.Count);
 
         bench.Activity.Release();
-        await RemoteWaitClock.AdvanceUntilAsync(bench.World.Clock, auditing, ProjectActivityEntry.RemoteWaitPoll);
+        await RemoteWaitClock.AdvanceUntilAsync(bench.World.Clock, auditing, ProjectActivityEntry.RemoteWaitPoll, () => bench.Activity.Entered.Count == 1);
         var report = await auditing;
 
         Assert.Single(bench.Gate.Requests);

@@ -140,6 +140,19 @@ public sealed class BackgroundWorkRegistryTests
     }
 
     [Fact]
+    public void A_remote_operation_of_agent_studio_is_not_listed_as_work()
+    {
+        var activity = new FakeProjectActivity();
+        using var registry = Registry(activity);
+        registry.TrackProject(RootC, () => ProjectC);
+
+        activity.Holding["p-c"] = ProjectActivityKind.RemoteOperation;
+        registry.Poll();
+
+        Assert.Empty(registry.Active);
+    }
+
+    [Fact]
     public void A_project_held_by_a_run_that_is_followed_is_counted_once()
     {
         var activity = new FakeProjectActivity { Holding = { ["p-a"] = ProjectActivityKind.Run } };

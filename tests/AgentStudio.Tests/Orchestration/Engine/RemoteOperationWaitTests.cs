@@ -40,7 +40,7 @@ public sealed class RemoteOperationWaitTests
         Assert.Empty(await harness.Runs.ListAsync(ProjectId, Ct));
 
         remote.Dispose();
-        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, starting, ProjectActivityEntry.RemoteWaitPoll);
+        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, starting, ProjectActivityEntry.RemoteWaitPoll, () => activity.Current(ProjectId) == ProjectActivityKind.Run);
         await using var run = await starting;
 
         Assert.Equal(RunPhase.Succeeded, (await run.CompleteAsync(harness)).Phase);
@@ -63,7 +63,7 @@ public sealed class RemoteOperationWaitTests
         Assert.Equal(entries, harness.Entries.Count);
 
         remote.Dispose();
-        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, resuming, ProjectActivityEntry.RemoteWaitPoll);
+        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, resuming, ProjectActivityEntry.RemoteWaitPoll, () => activity.Current(ProjectId) == ProjectActivityKind.Run);
         await using var resumed = await resuming;
 
         Assert.Equal(RunPhase.Succeeded, (await resumed.CompleteAsync(harness)).Phase);
@@ -83,7 +83,7 @@ public sealed class RemoteOperationWaitTests
         Assert.Empty(harness.Claude.Starts);
 
         remote.Dispose();
-        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, planning, ProjectActivityEntry.RemoteWaitPoll);
+        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, planning, ProjectActivityEntry.RemoteWaitPoll, () => activity.Current(ProjectId) == ProjectActivityKind.Planning);
 
         Assert.NotNull(await planning);
         Assert.Single(harness.Claude.Starts);
@@ -131,7 +131,7 @@ public sealed class RemoteOperationWaitTests
         var started = harness.Time.GetUtcNow();
 
         var starting = orchestrator.StartAsync(harness.Request(Plan(Work("T1"))), Ct);
-        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, starting, ProjectActivityEntry.RemoteWaitPoll);
+        await RemoteWaitClock.AdvanceUntilAsync(harness.Time, starting, ProjectActivityEntry.RemoteWaitPoll, () => activity.Current(ProjectId) == ProjectActivityKind.Run);
         var refused = await Assert.ThrowsAsync<UserTextException>(() => starting);
 
         Assert.Equal(ProjectActivityEntry.BusyRemoteCode, refused.Text.Code);

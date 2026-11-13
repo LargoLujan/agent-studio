@@ -32,7 +32,7 @@ public sealed class DebateRemoteWaitTests
         Assert.Empty((await world.LogAsync()).Entries);
 
         remote.Dispose();
-        await RemoteWaitClock.AdvanceUntilAsync(world.Clock, opening, ProjectActivityEntry.RemoteWaitPoll);
+        await RemoteWaitClock.AdvanceUntilAsync(world.Clock, opening, ProjectActivityEntry.RemoteWaitPoll, () => world.Activity.Current(Project) == ProjectActivityKind.Debate);
         await using var run = await opening;
         await CompletedAsync(run);
 

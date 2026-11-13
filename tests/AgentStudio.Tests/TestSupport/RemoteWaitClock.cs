@@ -46,6 +46,23 @@ internal sealed class RemoteWaitClock : TimeProvider
     /// </summary>
     public Task AdvanceUntilAsync(Task task, TimeSpan step) => AdvanceUntilAsync(_inner, task, step);
 
+    /// <summary>
+    /// Moves the time one <paramref name="step"/> at a time only until <paramref name="taken"/> says the code under test got the project; from then on the clock stays
+    /// where it is, so what runs after the wait does not depend on how fast this thread spins.
+    /// </summary>
+    public static async Task AdvanceUntilAsync(FakeTimeProvider time, Task task, TimeSpan step, Func<bool> taken)
+    {
+        ArgumentNullException.ThrowIfNull(time);
+        ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(taken);
+        for (var spins = 0; !task.IsCompleted && !taken(); spins++)
+        {
+            Assert.True(spins < 2_000_000, "The code under test never got the project.");
+            time.Advance(step);
+            await Task.Yield();
+        }
+    }
+
     /// <summary>The same for a <see cref="FakeTimeProvider"/> that a world of tests already has (the engine harness, the debate world…).</summary>
     public static async Task AdvanceUntilAsync(FakeTimeProvider time, Task task, TimeSpan step)
     {
