@@ -14,18 +14,17 @@ internal readonly record struct MarkdownCode(string Text, int Line);
 /// over several lines of one paragraph). A Markdown file of a repository is data that is not trusted (ADR-0018), so this is a scanner of characters of linear cost, with
 /// no regular expression that can backtrack: the code spans are matched with the next run of backticks of the same length (worked out in one pass from the
 /// right), the brackets with a stack (one pass), and what follows a <c>](</c> is read up to a fixed length and, in all, up to <see cref="LineBudget"/> characters per
-/// line, so a line made of <c>[](a</c> repeated cannot make every candidate read to the end. A line is read only up to <see cref="MaxLineLength"/> characters. It does not
+/// line (plus one per character of the line, so a long line of prose keeps all its real links), so a line made of <c>[](a</c> repeated cannot make every candidate read to the
+/// end. A line is read whole, however long: the size of the file is already bounded by its reader. A block starts at a list item, a heading, a table row, a quote or a blank line,
+/// and a lone backtick does not cross it; an indented block is code only outside a list item. It does not
 /// follow a link of reference style (<c>[text][name]</c>) or an autolink: only what D-28 names.
 /// </summary>
 internal static class MarkdownScanner
 {
-    /// <summary>The most characters of a line that are read: the rest of a longer line is not looked at.</summary>
-    public const int MaxLineLength = 2_000;
-
     /// <summary>The most characters of a destination (with its title) that are read.</summary>
     public const int MaxDestinationLength = 500;
 
-    /// <summary>The most characters that the destinations of one line may make the scanner read, all candidates together.</summary>
+    /// <summary>The most characters that the destinations of one line may make the scanner read, all candidates together, besides one per character of the line.</summary>
     public const int LineBudget = 4_000;
 
     /// <summary>The most lines a code span that began on an earlier line may go on for: past it the backtick was only a backtick.</summary>
@@ -46,13 +45,14 @@ internal static class MarkdownScanner
         var inComment = false;
         var previousBlank = true;
         var inIndented = false;
+        var inList = false;
         var span = new SpanState();
         long cost = 0;
         while (position <= text.Length)
         {
             var end = NextLineEnd(text, position);
             lineNumber++;
-            var raw = text.AsSpan(position, Math.Min(end - position, MaxLineLength));
+            var raw = text.AsSpan(position, end - position);
             var blank = raw.Trim().IsEmpty;
             if (fence is { } open)
             {
@@ -63,12 +63,29 @@ internal static class MarkdownScanner
             }
             else
             {
-                if (blank)
+                // A blank line and the start of a block (an item, a heading, a table row, a quote) end a code span: a lone backtick must not cross blocks.
+                var startsBlock = !inComment && StartsBlock(raw, out _);
+                if (blank || startsBlock)
                 {
                     span.Reset();
                 }
 
-                var indented = !blank && !inComment && span.OpenLength == 0 && IsIndented(raw) && (previousBlank || inIndented);
+                if (!blank && !inComment)
+                {
+                    var flush = raw[0] is not (' ' or '\t');
+                    if (startsBlock)
+                    {
+                        StartsBlock(raw, out var isItem);
+                        inList = isItem || (inList && !flush);
+                    }
+                    else if (flush && previousBlank)
+                    {
+                        inList = false;
+                    }
+                }
+
+                // A line indented four spaces is a block of code only outside a list item: inside one it is a nested list or a paragraph that goes on.
+                var indented = !blank && !inComment && !inList && span.OpenLength == 0 && IsIndented(raw) && (previousBlank || inIndented);
                 if (indented)
                 {
                     inIndented = true;
@@ -83,8 +100,7 @@ internal static class MarkdownScanner
                     }
                     else
                     {
-                        var visible = BlankComments(raw, ref inComment);
-                        ScanLine(visible is null ? raw : visible, lineNumber, links, code, span, ref cost);
+                        ScanLine(raw, lineNumber, links, code, span, ref inComment, ref cost);
                     }
                 }
             }
@@ -110,6 +126,40 @@ internal static class MarkdownScanner
 
     /// <summary>A line that starts with a tab or four spaces: a line of an indented block of code when it follows a blank line (or another such line).</summary>
     private static bool IsIndented(ReadOnlySpan<char> line) => line.Length > 0 && (line[0] == '\t' || line.StartsWith("    ", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Whether the line starts a block of Markdown (a list item, a heading, a table row, a quote); <paramref name="isItem"/> tells a list item (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>
+    /// followed by a space) from the others.
+    /// </summary>
+    private static bool StartsBlock(ReadOnlySpan<char> line, out bool isItem)
+    {
+        isItem = false;
+        var rest = line.TrimStart(" \t");
+        if (rest.IsEmpty)
+        {
+            return false;
+        }
+
+        if (rest[0] is '#' or '|' or '>')
+        {
+            return true;
+        }
+
+        var digits = 0;
+        while (digits < rest.Length && digits < 9 && char.IsAsciiDigit(rest[digits]))
+        {
+            digits++;
+        }
+
+        var marker = digits > 0 ? (digits < rest.Length && rest[digits] is '.' or ')' ? digits : -1) : (rest[0] is '-' or '*' or '+' ? 0 : -1);
+        if (marker >= 0 && (marker + 1 >= rest.Length || rest[marker + 1] is ' ' or '\t'))
+        {
+            isItem = true;
+            return true;
+        }
+
+        return false;
+    }
 
     /// <summary>What a code span that began on an earlier line of the paragraph is waiting for: a run of backticks of this length.</summary>
     private sealed class SpanState
@@ -137,52 +187,6 @@ internal static class MarkdownScanner
         }
 
         public void Reset() => (OpenLength, Lines) = (0, 0);
-    }
-
-    /// <summary>
-    /// The line with the parts of HTML comments (<c>&lt;!-- … --&gt;</c>, which can go on over several lines: <paramref name="inComment"/> carries it) written as spaces, or null when
-    /// it has none. Linear: each step goes forward.
-    /// </summary>
-    private static char[]? BlankComments(ReadOnlySpan<char> raw, ref bool inComment)
-    {
-        if (!inComment && raw.IndexOf("<!--", StringComparison.Ordinal) < 0)
-        {
-            return null;
-        }
-
-        var copy = raw.ToArray();
-        var i = 0;
-        while (i < copy.Length)
-        {
-            if (inComment)
-            {
-                var close = ((ReadOnlySpan<char>)copy)[i..].IndexOf("-->", StringComparison.Ordinal);
-                if (close < 0)
-                {
-                    Array.Fill(copy, ' ', i, copy.Length - i);
-                    return copy;
-                }
-
-                Array.Fill(copy, ' ', i, close + 3);
-                i += close + 3;
-                inComment = false;
-            }
-            else
-            {
-                var open = ((ReadOnlySpan<char>)copy)[i..].IndexOf("<!--", StringComparison.Ordinal);
-                if (open < 0)
-                {
-                    return copy;
-                }
-
-                i += open;
-                Array.Fill(copy, ' ', i, 4);
-                i += 4;
-                inComment = true;
-            }
-        }
-
-        return copy;
     }
 
     private readonly record struct Fence(char Mark, int Length);
@@ -233,17 +237,44 @@ internal static class MarkdownScanner
         return length >= open.Length && line[(indent + length)..].Trim().IsEmpty;
     }
 
-    private static void ScanLine(ReadOnlySpan<char> line, int lineNumber, List<MarkdownLink> links, List<MarkdownCode> code, SpanState span, ref long cost)
+    /// <summary>The next <c>&lt;!--</c> at or after <paramref name="from"/> that is not escaped, or -1.</summary>
+    private static int IndexOfComment(ReadOnlySpan<char> line, int from, bool[] escaped)
     {
-        if (line.IsEmpty)
+        var at = from;
+        while (at < line.Length)
+        {
+            var found = line[at..].IndexOf("<!--", StringComparison.Ordinal);
+            if (found < 0)
+            {
+                return -1;
+            }
+
+            if (!escaped[at + found])
+            {
+                return at + found;
+            }
+
+            at += found + 1;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// One line, read left to right so that what starts first wins (as in CommonMark): a code span (the next run of backticks of the same length closes it), an HTML comment
+    /// (<c>&lt;!-- … --&gt;</c>, carried over lines by <paramref name="inComment"/>) or a link. A <c>&lt;!--</c> inside a code span opens no comment, and a backtick inside a comment opens no span.
+    /// </summary>
+    private static void ScanLine(ReadOnlySpan<char> raw, int lineNumber, List<MarkdownLink> links, List<MarkdownCode> code, SpanState span, ref bool inComment, ref long cost)
+    {
+        if (raw.IsEmpty)
         {
             return;
         }
 
-        var escaped = new bool[line.Length];
-        for (var i = 0; i < line.Length - 1; i++)
+        var escaped = new bool[raw.Length];
+        for (var i = 0; i < raw.Length - 1; i++)
         {
-            if (line[i] == '\\')
+            if (raw[i] == '\\')
             {
                 escaped[i + 1] = true;
                 i++;
@@ -252,12 +283,12 @@ internal static class MarkdownScanner
 
         // The runs of backticks, and for each the next run of the same length: that one closes the span.
         var runs = new List<(int Start, int Length)>();
-        for (var i = 0; i < line.Length;)
+        for (var i = 0; i < raw.Length;)
         {
-            if (line[i] == '`' && !escaped[i])
+            if (raw[i] == '`' && !escaped[i])
             {
                 var start = i;
-                while (i < line.Length && line[i] == '`')
+                while (i < raw.Length && raw[i] == '`')
                 {
                     i++;
                 }
@@ -278,13 +309,29 @@ internal static class MarkdownScanner
             nextOfLength[runs[r].Length] = r;
         }
 
-        var inCode = new bool[line.Length];
-        var firstRun = 0;
+        var inCode = new bool[raw.Length];
+        var comment = new bool[raw.Length];
+        var anyComment = false;
+        var position = 0;
+        var run = 0;
 
-        // A span that began on an earlier line of the paragraph goes on until a run of its length: all before it is code. Without one, the whole line is.
-        if (span.OpenLength > 0)
+        // What began on an earlier line: a comment goes on until its end; a span until a run of its length (without one, the whole line is code).
+        if (inComment)
         {
-            var closes = runs.FindIndex(run => run.Length == span.OpenLength);
+            var close = raw.IndexOf("-->", StringComparison.Ordinal);
+            if (close < 0)
+            {
+                return;
+            }
+
+            position = close + 3;
+            Array.Fill(comment, true, 0, position);
+            anyComment = true;
+            inComment = false;
+        }
+        else if (span.OpenLength > 0)
+        {
+            var closes = runs.FindIndex(r => r.Length == span.OpenLength);
             if (closes < 0)
             {
                 if (span.Continue())
@@ -294,30 +341,77 @@ internal static class MarkdownScanner
             }
             else
             {
-                Array.Fill(inCode, true, 0, runs[closes].Start + runs[closes].Length);
+                position = runs[closes].Start + runs[closes].Length;
+                Array.Fill(inCode, true, 0, position);
                 span.Reset();
-                firstRun = closes + 1;
+                run = closes + 1;
             }
         }
 
-        for (var r = firstRun; r < runs.Count; r++)
+        var nextComment = -2;
+        while (position < raw.Length)
         {
-            var (start, length) = runs[r];
-            if (closing[r] < 0)
+            while (run < runs.Count && runs[run].Start < position)
             {
-                // A run that nothing on this line closes: the span may close on a later line of the paragraph, and everything after it is code until then.
-                span.Open(length);
-                Array.Fill(inCode, true, start, line.Length - start);
+                run++;
+            }
+
+            if (nextComment != -1 && nextComment < position)
+            {
+                nextComment = IndexOfComment(raw, position, escaped);
+            }
+
+            var runStart = run < runs.Count ? runs[run].Start : int.MaxValue;
+            if (nextComment >= 0 && nextComment < runStart)
+            {
+                var afterOpen = nextComment + 4;
+                var close = afterOpen <= raw.Length ? raw[afterOpen..].IndexOf("-->", StringComparison.Ordinal) : -1;
+                var stop = close < 0 ? raw.Length : afterOpen + close + 3;
+                Array.Fill(comment, true, nextComment, stop - nextComment);
+                anyComment = true;
+                inComment = close < 0;
+                position = stop;
+                continue;
+            }
+
+            if (run >= runs.Count)
+            {
                 break;
             }
 
-            var (closeStart, closeLength) = runs[closing[r]];
-            var innerStart = start + length;
-            code.Add(new MarkdownCode(line[innerStart..closeStart].ToString(), lineNumber));
+            var (start, length) = runs[run];
+            if (closing[run] < 0)
+            {
+                // A run that nothing on this line closes: the span may close on a later line of the paragraph, and everything after it is code until then.
+                span.Open(length);
+                Array.Fill(inCode, true, start, raw.Length - start);
+                break;
+            }
+
+            var (closeStart, closeLength) = runs[closing[run]];
+            code.Add(new MarkdownCode(raw[(start + length)..closeStart].ToString(), lineNumber));
             Array.Fill(inCode, true, start, closeStart + closeLength - start);
 
             // The runs inside the span are part of it: the next run to look at is the one after the closing run.
-            r = closing[r];
+            run = closing[run] + 1;
+            position = closeStart + closeLength;
+        }
+
+        // The parts of comments are written as spaces: what is in them is neither a link nor a bracket.
+        ReadOnlySpan<char> line = raw;
+        if (anyComment)
+        {
+            var copy = raw.ToArray();
+            for (var i = 0; i < copy.Length; i++)
+            {
+                if (comment[i])
+                {
+                    copy[i] = ' ';
+                    inCode[i] = true;
+                }
+            }
+
+            line = copy;
         }
 
         // Brackets: a stack, one pass.
@@ -341,7 +435,8 @@ internal static class MarkdownScanner
             }
         }
 
-        var budget = LineBudget;
+        // The budget grows with the line (one character per character), so the real links of a long line of prose are all read, and the cost stays linear in its length.
+        var budget = LineBudget + line.Length;
         for (var i = 0; i < line.Length && budget > 0; i++)
         {
             if (line[i] != '[' || match[i] < 0 || inCode[i] || escaped[i])
