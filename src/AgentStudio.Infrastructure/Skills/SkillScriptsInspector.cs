@@ -9,12 +9,15 @@ namespace AgentStudio.Infrastructure.Skills;
 /// The fingerprint of the <c>scripts/</c> folder of a skill (docs/20 D-14): the SHA-256 of the sorted relative paths and the content of every file. Nothing is
 /// run, and nothing is followed: a link (a file or a folder) counts by its name and is never opened, so a link planted in the folder cannot take the contents
 /// of anything else into the hash or out of the folder. The folder is limited (<see cref="MaxFiles"/> files; each is hashed whole, in chunks): past the limit
-/// the fingerprint says so and can never equal one of a smaller folder. The folder is also limited in bytes (<see cref="MaxTotalBytes"/>): past it nothing is hashed and the
+/// (or <see cref="MaxEntries"/> files and folders) the skill is listed but not reviewable. The folder is also limited in bytes (<see cref="MaxTotalBytes"/>): past it nothing is hashed and the
 /// skill is not reviewable.
 /// </summary>
 public sealed class SkillScriptsInspector : ISkillScriptsInspector
 {
     public const int MaxFiles = 500;
+
+    /// <summary>The most entries (files and folders) of <c>scripts/</c> that are visited: past it the skill is not reviewable.</summary>
+    public const int MaxEntries = 5_000;
 
     /// <summary>The most bytes of all the files of one <c>scripts/</c> folder that are read: past it the skill is not reviewable.</summary>
     public const long MaxTotalBytes = 32L * 1024 * 1024;
@@ -37,6 +40,7 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
 
         var files = new List<(string Relative, FileInfo File, bool Link)>();
         var truncated = false;
+        var visited = 0;
         var pending = new Stack<DirectoryInfo>();
         if (IsLink(root))
         {
@@ -54,7 +58,9 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
             foreach (var entry in directory.EnumerateFileSystemInfos())
             {
                 var relative = Path.GetRelativePath(root.FullName, entry.FullName).Replace('\\', '/');
-                if (files.Count >= MaxFiles)
+
+                // Files and folders both count against a limit: a huge tree of empty folders is not walked without end either.
+                if (files.Count >= MaxFiles || ++visited > MaxEntries)
                 {
                     truncated = true;
                     break;
@@ -77,6 +83,12 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
 
         files.Sort((a, b) => string.CompareOrdinal(a.Relative, b.Relative));
         var names = files.Select(f => f.Relative).ToList();
+
+        // A file past the limit is in no fingerprint, so what is listed is not the whole folder: it is never reviewable.
+        if (truncated)
+        {
+            return TooBig(names);
+        }
 
         // A folder over the total budget is not read at all (it would block the screen that asks for it): it is listed, and never reviewable.
         long total = 0;
@@ -122,11 +134,6 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
 
                 hash.AppendData(buffer.AsSpan(0, read));
             }
-        }
-
-        if (truncated)
-        {
-            hash.AppendData(Encoding.UTF8.GetBytes("TRUNCATED"));
         }
 
         return new SkillScriptsInfo(Convert.ToHexStringLower(hash.GetHashAndReset()), names);

@@ -122,6 +122,31 @@ public sealed class SkillScriptsTests : IDisposable
     }
 
     [Fact]
+    public async Task More_files_than_the_limit_or_a_tree_of_folders_past_it_is_not_reviewable_and_the_health_check_says_so()
+    {
+        var many = SkillFolder("many");
+        Directory.CreateDirectory(Path.Combine(many, "scripts"));
+        for (var i = 0; i <= SkillScriptsInspector.MaxFiles; i++)
+        {
+            File.WriteAllText(Path.Combine(many, "scripts", $"s{i:D4}.sh"), "x");
+        }
+
+        var folders = SkillFolder("folders");
+        for (var i = 0; i <= SkillScriptsInspector.MaxEntries; i++)
+        {
+            Directory.CreateDirectory(Path.Combine(folders, "scripts", $"d{i:D5}"));
+        }
+
+        var inspector = new SkillScriptsInspector();
+        Assert.False((await inspector.InspectAsync(many, Ct))!.Reviewable);
+        Assert.False((await inspector.InspectAsync(folders, Ct))!.Reviewable);
+
+        var check = Assert.Single((await new SkillHealthReader(inspector, Store()).ReadLocalAsync(Skill("many", many), Ct)).Checks, c => c.Code == SkillHealthCodes.Scripts);
+        Assert.Equal(SkillHealthStatus.Warning, check.Status);
+        Assert.Equal(SkillsUserTexts.ReaderScriptsTooBig, check.TextCode);
+    }
+
+    [Fact]
     public async Task A_script_resolves_only_when_it_is_a_plain_file_inside_scripts()
     {
         var folder = SkillFolder("open", ("run.ps1", "x"), ("lib/deep/x.py", "y"));

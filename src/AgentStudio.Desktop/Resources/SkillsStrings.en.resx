@@ -819,7 +819,11 @@ Mark the scripts as reviewed once you have read them.</value>
   </data>
   <data name="Skills_Effective_OffRemoved" xml:space="preserve">
     <value>Off ({0}): the agent was removed and came back with the same name. Turn it on here if you want it.</value>
+  </data>
   <data name="Skills_Scripts_TooBig" xml:space="preserve">
     <value>This scripts folder is too big to review here: it cannot be marked as reviewed. Open it and read it outside the app.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_too_big" xml:space="preserve">
+    <value>This scripts folder is too big to review: it cannot be marked as reviewed. Read it outside the app. None is run.</value>
   </data>
 </root>

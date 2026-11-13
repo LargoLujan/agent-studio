@@ -45,6 +45,9 @@ public static class SkillsUserTexts
     /// <summary>Argument 0: the number of scripts.</summary>
     public const string ReaderScriptsChanged = "skills.reader-scripts-changed";
     public const string ReaderScriptsUnreadable = "skills.reader-scripts-unreadable";
+
+    /// <summary>The <c>scripts/</c> folder is too big to be read, so it cannot be reviewed.</summary>
+    public const string ReaderScriptsTooBig = "skills.reader-scripts-too-big";
     public const string ReaderUnreadNoCopy = "skills.reader-unread-no-copy";
     public const string ReaderUnreadNoFolder = "skills.reader-unread-no-folder";
     public const string ReaderUnreadFolderLink = "skills.reader-unread-folder-link";
@@ -65,7 +68,7 @@ public static class SkillsUserTexts
         DoctorOff, DoctorInvalidOrigin, DoctorNoNetwork, DoctorForbidden, DoctorNotFound, DoctorUpstreamNotFound, DoctorRateLimited, DoctorRateLimitedSoon,
         DoctorRedirectRefused, DoctorUnreadable, DoctorBadToken, DoctorArchived, DoctorNotArchived, DoctorCommitGone, DoctorBranchGone, DoctorFolderMissing,
         DoctorUpToDate, DoctorUpdateToReview, ReaderUpstreamUnchecked, ReaderArchivedUnchecked, ReaderScriptsNoCopy, ReaderScriptsNoReader, ReaderScriptsNone,
-        ReaderScriptsReviewed, ReaderScriptsUnreviewed, ReaderScriptsChanged, ReaderScriptsUnreadable, ReaderUnreadNoCopy, ReaderUnreadNoFolder,
+        ReaderScriptsReviewed, ReaderScriptsUnreviewed, ReaderScriptsChanged, ReaderScriptsUnreadable, ReaderScriptsTooBig, ReaderUnreadNoCopy, ReaderUnreadNoFolder,
         ReaderUnreadFolderLink, ReaderUnreadFileMissing, ReaderUnreadFileLink, ReaderUnreadFailed, ReaderSizeUnread, ReaderTooLargeFrontmatter, ReaderTooLargeSize,
         .. AgentStudio.Domain.Skills.SkillHealthTextCodes.All,
     ];
