@@ -12,9 +12,10 @@ namespace AgentStudio.Memory.Diagrams;
 /// a byte-order mark) is taken out: <see cref="UntrustedText.Clean"/>;</item>
 /// <item>white space is joined into one space and the text is trimmed, so the same name always gives the same bytes;</item>
 /// <item>the text is cut at <see cref="MaxLength"/> characters (never inside a surrogate pair), with «…», <b>before</b> escaping, so an entity is never cut in half;</item>
-/// <item>every character of <see cref="Escaped"/> becomes its decimal entity of Mermaid (<c>#NN;</c>), also the <c>#</c> of an entity written by the data and the
-/// <c>;</c> of its end, so the text cannot be read as an entity, as a statement end, as a comment (<c>%%</c>), as an arrow, as a markdown string (a backtick) or as the
-/// end of a quoted label; and, for the name of a participant of a sequence diagram, the <c>:</c> that would split it from its message.</item>
+/// <item>every character of <see cref="Escaped"/> (the quote, <c>#</c>, <c>&amp;</c>, <c>;</c>, <c>&lt;</c>, <c>&gt;</c>, <c>%</c>, the backtick, the backslash and <c>|</c>) becomes
+/// its decimal entity of Mermaid (<c>#NN;</c>), also the <c>#</c> of an entity written by the data and the <c>;</c> of its end, so the text cannot be read as an entity, as a
+/// statement end, as a comment (<c>%%</c>), as an arrow, as a markdown string (a backtick), as the end of a quoted label or of the label of an edge; and, for the name of a
+/// participant of a sequence diagram, the <c>:</c> that would split it from its message.</item>
 /// </list>
 /// What is left has only letters, digits, spaces and the characters that no syntax of the grammar of the generators reads inside a quoted label.
 /// </summary>
@@ -29,7 +30,7 @@ internal static class MermaidText
     private const string Ellipsis = "…";
 
     /// <summary>The characters that are always written as an entity. A name cannot carry any of them into a diagram.</summary>
-    private const string Escaped = "\"#&;<>%`\\";
+    private const string Escaped = "\"#&;<>%`\\|";
 
     /// <summary>Escapes <paramref name="untrusted"/> for a quoted label (a node, a subgraph, an edge label, a note).</summary>
     public static string Label(string? untrusted) => Write(untrusted, participant: false);

@@ -322,6 +322,6 @@ internal static class MarkdownScanner
     {
         ArgumentNullException.ThrowIfNull(bytes);
         var text = new UTF8Encoding(false, false).GetString(bytes);
-        return text.Length > 0 && text[0] == '﻿' ? text[1..] : text;
+        return text.Length > 0 && text[0] == '\uFEFF' ? text[1..] : text;
     }
 }

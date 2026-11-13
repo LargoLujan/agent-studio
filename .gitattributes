@@ -7,6 +7,9 @@
 *.bat text eol=crlf
 *.sh  text eol=lf
 
+# The golden files of the generated diagrams are compared byte by byte with text that ends its lines with \n (docs/20 D-24): a checkout must not turn them into CRLF.
+tests/AgentStudio.Tests/Memory/Diagrams/Fixtures/** text eol=lf
+
 # Binary assets
 *.png binary
 *.jpg binary
