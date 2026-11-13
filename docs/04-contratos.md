@@ -2599,7 +2599,11 @@ añade el destino `graph` a «Ir a…».
 - `DiagramExportBusyException` (Application): «hay una ejecución en marcha», que se pregunta antes del cerrojo, dentro y antes de cada fichero. La exportación guarda el índice tras cada fichero escrito.
 - `DiagramState.Unavailable` (añadido al final): un diagrama que no se puede construir (`ArgumentException` al hacer su texto) sale como una fila «No se pudo generar» y la lista sigue. `DiagramStaleness` da como desactualizado
   un diagrama que no puede comprobar (registro que no verifica, plan que no se lee): no lo salta.
-- `SafeName`: un nombre solo se escribe tal cual si ya está en minúsculas; cualquier otro lleva la huella del original, así que `Abc` y `abc` no coinciden en Windows.
+- `SafeName`: un nombre solo se escribe tal cual si ya está en minúsculas; cualquier otro lleva la huella del original, así que `Abc` y `abc` no coinciden en Windows. Por eso el nombre de una exportación cambió para todo sujeto con mayúsculas: una exportación hecha con una versión anterior a la
+  publicación de la Fase 6 quedaría huérfana (no hubo ninguna publicada, así que no hay nada que migrar).
+- `DiagramExportInterruptedException` (Application): una exportación que falla después de escribir algún fichero lleva la lista de lo escrito (`Written`, `Conflicts`) y la causa en `InnerException`; el
+  índice se guarda con `CancellationToken.None` tras cada fichero, así que lo escrito nunca queda «escrito y desconocido». `DiagramStaleness` calcula una vez por modelo (su `ModelHash`) lo que dan los diagramas
+  del grafo; los de una ejecución se dibujan en cada refresco.
 - `MarkdownScanner` también deja fuera los bloques de código con sangría de cuatro espacios, los comentarios HTML (también de varias líneas) y los tramos de código de varias líneas (hasta 20 líneas de un párrafo), y limita lo que
   leen todos los destinos de una línea (`LineBudget`); `Scan(texto, out pasos)` cuenta los caracteres leídos y las pruebas fijan el coste con ese número, no con un reloj.
 - Los métodos del catálogo empiezan saltando a un hilo del grupo (`Task.Run`), así que ni la lectura de ficheros ni la generación de los textos corren en el hilo de la interfaz.

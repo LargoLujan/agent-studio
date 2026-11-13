@@ -1560,6 +1560,9 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
 - **El coste de «Proponer relaciones»** (D-21): tokens por lanzamiento. Es una estimación hasta medirlo.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
 - **No se compiló ni se ejecutó nada** para escribir este documento: las firmas de §4 son propuestas.
+- **Nombres de los ficheros exportados de diagramas (2026-11-13):** el nombre de un fichero lleva la huella del sujeto cuando el sujeto tiene alguna mayúscula (`SafeName`),
+  para que `Abc` y `abc` no coincidan en Windows. Una exportación hecha con una versión anterior a la publicación de la Fase 6 tendría otro nombre y quedaría huérfana (el
+  índice no la reconocería y saldría como «no exportado»); no hubo ninguna versión publicada, así que no hay nada que migrar.
 
 ---
 
