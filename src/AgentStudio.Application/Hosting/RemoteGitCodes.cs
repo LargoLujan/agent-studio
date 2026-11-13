@@ -39,6 +39,9 @@ public static class RemoteGitCodes
     /// <summary>Whether the commit that goes up uses Git LFS could not be read (the command failed, ran out of time or wrote too much): closed, nothing is published.</summary>
     public const string LfsCheckFailed = "lfs-check-failed";
 
+    /// <summary>The repository is a partial clone (<c>extensions.partialClone</c>, or a remote with <c>promisor</c> or <c>partialclonefilter</c>): git would fetch missing objects on demand from a remote the repository chooses, so nothing is published.</summary>
+    public const string PartialCloneUnsupported = "partial-clone-unsupported";
+
     public const string TimedOut = "timed-out";
 
     public const string OutputTooLarge = "output-too-large";

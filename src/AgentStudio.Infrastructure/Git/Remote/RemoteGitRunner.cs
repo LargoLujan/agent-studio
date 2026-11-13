@@ -73,7 +73,7 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         var (inspection, prepared) = await InspectCoreAsync(project, destination, null, checkLfs: false, ct).ConfigureAwait(false);
         if (prepared is null || inspection.FailureCode is not null || inspection.Refusals.Count > 0)
         {
-            return new RemoteBranchRead(false, null, inspection.FailureCode ?? RemoteGitCodes.ConfigurationRefused);
+            return new RemoteBranchRead(false, null, inspection.FailureCode ?? RefusalCode(inspection));
         }
 
         return await LsRemoteAsync(prepared, branch, ct).ConfigureAwait(false);
@@ -105,7 +105,7 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
 
         if (inspection.Refusals.Count > 0)
         {
-            return new RemotePushResult(RemotePushOutcome.ConfigurationRefused, null, inspection, RemoteGitCodes.ConfigurationRefused);
+            return new RemotePushResult(RemotePushOutcome.ConfigurationRefused, null, inspection, RefusalCode(inspection));
         }
 
         if (inspection.UsesLfs)
@@ -134,12 +134,13 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
             return new RemotePushResult(RemotePushOutcome.Failed, null, inspection, RemoteGitCodes.GitFailed);
         }
 
+        // Whenever the process of the push did start and no line says with certainty that the remote refused, the remote is read: the connection can drop after the server applied the reference (a reset, a hang up), the
+        // tree of processes can be killed halfway by the time or the cap, and none of that says what the remote has.
         var line = RemotePushLine.Missing;
-        string? lost = null;
+        string? happened = null;
         if (result.TimedOut || result.OutputLimitExceeded)
         {
-            // Killed halfway: what the remote got is read, not guessed.
-            lost = result.TimedOut ? RemoteGitCodes.TimedOut : RemoteGitCodes.OutputTooLarge;
+            happened = result.TimedOut ? RemoteGitCodes.TimedOut : RemoteGitCodes.OutputTooLarge;
         }
         else
         {
@@ -148,23 +149,37 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
             {
                 case RemotePushLine.RejectedNotFastForward:
                     return new RemotePushResult(RemotePushOutcome.RejectedNotFastForward, null, inspection, RemoteGitCodes.RejectedNotFastForward);
-                case RemotePushLine.Other:
+                case RemotePushLine.RejectedByRemote:
                     return new RemotePushResult(RemotePushOutcome.Failed, null, inspection, RemoteGitCodes.PushRejected);
-                case RemotePushLine.Missing when result.ExitCode != 0:
-                    var code = RemoteGitOutput.ClassifyError(result.StandardError);
-                    return new RemotePushResult(OutcomeOf(code), null, inspection, code);
+            }
+
+            if (result.ExitCode != 0 && line is RemotePushLine.Missing or RemotePushLine.Other)
+            {
+                happened = line == RemotePushLine.Other ? RemoteGitCodes.PushRejected : RemoteGitOutput.ClassifyError(result.StandardError);
             }
         }
 
-        // After the push the commit is checked on the remote: anything else is «not confirmed».
         var after = await LsRemoteAsync(prepared, branch, ct).ConfigureAwait(false);
         if (after.Reached && string.Equals(after.Commit, push.Commit, StringComparison.Ordinal))
         {
             return new RemotePushResult(line == RemotePushLine.UpToDate ? RemotePushOutcome.AlreadyUpToDate : RemotePushOutcome.Pushed, push.Commit, inspection);
         }
 
-        return new RemotePushResult(RemotePushOutcome.NotConfirmed, after.Reached ? after.Commit : null, inspection, lost ?? after.FailureCode);
+        if (!after.Reached)
+        {
+            // It could not be read: what happened is the code, and the result is «not confirmed», never a guess.
+            return new RemotePushResult(RemotePushOutcome.NotConfirmed, null, inspection, happened ?? after.FailureCode);
+        }
+
+        // It was read and the branch is not at the commit: what the push said stands. A time out, the cap, or a «pushed» line the remote does not bear out are «not confirmed».
+        return happened is RemoteGitCodes.TimedOut or RemoteGitCodes.OutputTooLarge || happened is null
+            ? new RemotePushResult(RemotePushOutcome.NotConfirmed, after.Commit, inspection, happened)
+            : new RemotePushResult(OutcomeOf(happened), null, inspection, happened);
     }
+    // A partial clone has its own code; any other refusal is «configuration refused» and the keys are in the inspection.
+    private static string RefusalCode(RemoteGitInspection inspection) =>
+        inspection.Refusals.Any(RemoteConfigInspection.IsPartialClone) ? RemoteGitCodes.PartialCloneUnsupported : RemoteGitCodes.ConfigurationRefused;
+
     private static RemotePushOutcome OutcomeOf(string? code) => code switch
     {
         RemoteGitCodes.CredentialsNeeded => RemotePushOutcome.CredentialsNeeded,
@@ -353,10 +368,36 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
     }
 
     // The entries of the PATH git does not get: the ones inside the folder of the project (links resolved) and the ones inside an untrusted root.
-    private Func<string, bool> ExcludedFromPath(string projectRoot)
+    private Func<string, bool> ExcludedFromPath(string projectRoot) =>
+        entry => IsInsideOrSame(entry, projectRoot) || IsInsideOrSame(entry, _worktreeRoot) || _locator.IsUntrusted(entry);
+
+    /// <summary>
+    /// Whether <paramref name="path"/> is <paramref name="root"/> or lies inside it, by the path as given and by the final path with every link resolved. It compares with the root given and keeps no exception for roots that are
+    /// «too wide» (the folder of the profile, the root of a drive), which the resolution of the untrusted roots leaves out: a project opened there is a project all the same. A path that cannot be understood counts as inside.
+    /// </summary>
+    internal static bool IsInsideOrSame(string path, string root)
     {
-        var project = UntrustedPaths.Resolve([projectRoot]);
-        return entry => UntrustedPaths.IsInside(entry, project) || _locator.IsUntrusted(entry);
+        try
+        {
+            static bool Covers(string candidate, string folder) => GitNaming.SamePath(candidate, folder) || GitNaming.IsUnder(candidate, folder);
+            var folders = new List<string> { root };
+            if (GitCallbacks.ResolveFinalPath(root) is { } finalRoot)
+            {
+                folders.Add(finalRoot);
+            }
+
+            var candidates = new List<string> { path };
+            if (GitCallbacks.ResolveFinalPath(path) is { } finalPath)
+            {
+                candidates.Add(finalPath);
+            }
+
+            return candidates.Any(candidate => folders.Any(folder => Covers(candidate, folder)));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return true;
+        }
     }
 
     // git.exe by full path: an .exe (never a .cmd or .bat shim), outside every untrusted root and outside the project, as it is now.
@@ -372,6 +413,6 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
             return null;
         }
 
-        return UntrustedPaths.IsInside(path, UntrustedPaths.Resolve([projectRoot])) ? null : path;
+        return IsInsideOrSame(path, projectRoot) || IsInsideOrSame(path, _worktreeRoot) ? null : path;
     }
 }

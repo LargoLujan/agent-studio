@@ -138,7 +138,9 @@ public sealed class RemoteConfigInspectionTests
 
         Assert.Equal(shown, local.Key);
         Assert.Equal("global", inside.Scope);
-        Assert.Empty(Analyze(false, Entry("global", key, origin: "file:C:/Users/ana/.gitconfig")).Refusals);
+
+        // In the person's own files it is judged by the address: a remote called like THIS address is refused (url, pushurl...), any other is not.
+        Assert.Empty(RemoteConfigInspection.Analyze([Entry("global", key, origin: "file:C:/Users/ana/.gitconfig")], "https://github.com/x/y.git", _ => false).Refusals);
     }
 
     [Theory]

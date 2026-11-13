@@ -263,6 +263,9 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         { "remote.pushDefault", "remote.pushDefault", "origin", "remote.pushdefault" },
         { "branch.main.pushRemote", "branch.main.pushRemote", "origin", "branch.*.pushremote" },
         { "core.alternateRefsCommand", "core.alternateRefsCommand", "sh -c 'exit 1'", "core.alternaterefscommand" },
+        { "remote.origin.promisor", "remote.origin.promisor", "true", "remote.*.promisor" },
+        { "remote.origin.partialclonefilter", "remote.origin.partialclonefilter", "blob:none", "remote.*.partialclonefilter" },
+        { "extensions.partialClone", "extensions.partialClone", "origin", "extensions.partialclone" },
     };
 
     [Theory]
@@ -524,6 +527,25 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         Assert.Equal(RemotePushOutcome.Pushed, commented.Outcome);
     }
 
+    [Theory]
+    [InlineData("C#/**/*.png filter=lfs diff=lfs merge=lfs -text\n", true)]
+    [InlineData("    *.psd filter=lfs\n", true)]
+    [InlineData("\t*.psd filter=lfs\n", true)]
+    [InlineData("*.psd -text filter=lfs\n", true)]
+    [InlineData("\"a#b/*.psd\" filter=lfs\n", true)]
+    [InlineData("# *.psd filter=lfs\n*.cs text\n", false)]
+    [InlineData("   # *.psd filter=lfs\n", false)]
+    [InlineData("\n   \n*.cs text\n", false)]
+    public async Task The_comment_marker_only_comments_out_a_line_that_starts_with_it(string attributes, bool refused)
+    {
+        ConfigureLfsFilter();
+        CommitAttributes(".gitattributes", attributes);
+
+        var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
+
+        Assert.Equal(refused ? RemotePushOutcome.LfsRefused : RemotePushOutcome.Pushed, result.Outcome);
+    }
+
     [Fact]
     public async Task A_commit_that_cannot_be_asked_about_lfs_is_not_published()
     {
@@ -556,6 +578,23 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         Assert.Empty(RemoteRefs());
         Assert.Equal(string.Empty, TempGitRepo.Git(other, "for-each-ref").Trim());
         Assert.Equal(before, _repo.Snapshot());
+    }
+
+    [Fact]
+    public async Task A_remote_called_like_the_address_in_the_global_configuration_is_refused_too_and_nothing_reaches_either_remote()
+    {
+        var other = Path.Combine(_container, "other.git");
+        TempGitRepo.Git(_container, "init", "-q", "--bare", other);
+        WriteGlobal($"[remote \"{BareAddress}\"]\n\tpushurl = {other.Replace('\\', '/')}\n");
+
+        var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, result.Outcome);
+        var refusal = Assert.Single(result.Inspection.Refusals);
+        Assert.Equal(("remote.*.pushurl", "global"), (refusal.Key, refusal.Scope));
+        Assert.Equal(["config"], Launched);
+        Assert.Empty(RemoteRefs());
+        Assert.Equal(string.Empty, TempGitRepo.Git(other, "for-each-ref").Trim());
     }
 
     [Fact]

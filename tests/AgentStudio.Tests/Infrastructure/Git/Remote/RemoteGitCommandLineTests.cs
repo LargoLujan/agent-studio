@@ -64,7 +64,13 @@ public sealed class RemoteGitCommandLineTests
 
         if (command[0] == "grep")
         {
-            Assert.Equal(["grep", "-l", "-i", "-E", "--no-color", "-e", "^[^#]*filter=lfs"], command.Take(7));
+            Assert.Equal(["grep", "-l", "-i", "-E", "--no-color", "-e", "^[[:space:]]*[^#[:space:]].*filter=lfs"], command.Take(7));
+
+            // The tree is HEAD or a commit of 40 hexadecimal characters, comes before the two dashes, and the only pathspec is the one of the attributes files.
+            var dashes = command.ToList().IndexOf("--");
+            Assert.Equal(8, dashes);
+            Assert.True(command[7] == "HEAD" || RemoteGitCommandLine.IsCommit(command[7]), command[7]);
+            Assert.Equal([":(glob)**/.gitattributes"], command.Skip(dashes + 1));
         }
         foreach (var argument in command)
         {
@@ -234,14 +240,14 @@ public sealed class RemoteGitCommandLineTests
         Assert.ThrowsAny<Exception>(() => AssertClosed(good with { Arguments = ["-c", good.Arguments[3], "-c", good.Arguments[1], .. good.Arguments.Skip(4)] }));
         Assert.ThrowsAny<Exception>(() => AssertClosed(good with { Environment = new Dictionary<string, string?>(good.Environment!) { ["GIT_SSH_COMMAND"] = "evil" } }));
         Assert.ThrowsAny<Exception>(() => AssertClosed(good with { Environment = new Dictionary<string, string?>(good.Environment!) { ["GIT_TERMINAL_PROMPT"] = "1" } }));
-        AssertClosed(Spec("grep", "-l", "-i", "-E", "--no-color", "-e", "^[^#]*filter=lfs", RemoteGitFixture.Commit, "--", ":(glob)**/.gitattributes"));
+        AssertClosed(Spec("grep", "-l", "-i", "-E", "--no-color", "-e", "^[[:space:]]*[^#[:space:]].*filter=lfs", RemoteGitFixture.Commit, "--", ":(glob)**/.gitattributes"));
     }
 
     [Fact]
     public void The_command_that_reads_the_attributes_of_a_commit_is_a_local_grep_of_the_tree_and_takes_only_a_commit_or_head()
     {
         Assert.Equal(
-            ["grep", "-l", "-i", "-E", "--no-color", "-e", "^[^#]*filter=lfs", RemoteGitFixture.Commit, "--", ":(glob)**/.gitattributes"],
+            ["grep", "-l", "-i", "-E", "--no-color", "-e", "^[[:space:]]*[^#[:space:]].*filter=lfs", RemoteGitFixture.Commit, "--", ":(glob)**/.gitattributes"],
             RemoteGitCommandLine.LfsAttributes(RemoteGitFixture.Commit));
         Assert.Equal("HEAD", RemoteGitCommandLine.LfsAttributes("HEAD")[7]);
         foreach (var other in new[] { "--force", "main", "-e", "HEAD~1", "refs/heads/x", string.Empty, "1111" })

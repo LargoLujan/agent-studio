@@ -18,7 +18,10 @@ internal enum RemotePushLine
     /// <summary>Rejected because the remote branch is not an ancestor of the commit: <c>non-fast-forward</c> or <c>fetch first</c>.</summary>
     RejectedNotFastForward,
 
-    /// <summary>Any other flag: a rejection by the remote (<c>remote rejected</c>), a forced update or a deletion, which this executor never asks for.</summary>
+    /// <summary>Rejected by the remote for a reason of its own (<c>[remote rejected]</c>, a hook, a protected branch, or any other reason after <c>!</c>): the remote said no with certainty.</summary>
+    RejectedByRemote,
+
+    /// <summary>Any other flag: a forced update or a deletion, which this executor never asks for. It says nothing certain about the remote.</summary>
     Other,
 }
 
@@ -51,6 +54,7 @@ internal static class RemoteGitOutput
                 '*' or ' ' => RemotePushLine.Updated,
                 '=' => RemotePushLine.UpToDate,
                 '!' when summary.Contains("(non-fast-forward)", StringComparison.Ordinal) || summary.Contains("(fetch first)", StringComparison.Ordinal) => RemotePushLine.RejectedNotFastForward,
+                '!' => RemotePushLine.RejectedByRemote,
                 _ => RemotePushLine.Other,
             };
         }

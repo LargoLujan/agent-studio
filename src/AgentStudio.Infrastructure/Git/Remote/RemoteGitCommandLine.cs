@@ -77,7 +77,7 @@ internal static class RemoteGitCommandLine
     public static IReadOnlyList<string> GetUrl(string address) => ["ls-remote", "--get-url", "--", address];
 
     /// <summary>
-    /// Whether the tree of a commit has a <c>.gitattributes</c> (at any depth) with a line that says <c>filter=lfs</c> and is not a comment: a local command, read-only and with no network. <c>git grep</c> of a tree reads the objects and runs
+    /// Whether the tree of a commit has a <c>.gitattributes</c> (at any depth) with a line that says <c>filter=lfs</c> and does not start with <c>#</c> (in <c>.gitattributes</c> a <c>#</c> only comments out a line when it comes first, so a path with a <c>#</c> in it, <c>C#/**/*.png filter=lfs</c>, counts): a local command, read-only and with no network. <c>git grep</c> of a tree reads the objects and runs
     /// no filter or conversion; it exits with 0 when there is a match, 1 when there is none and more for a failure. <paramref name="treeish"/> is a commit (40 hexadecimal characters) or <c>HEAD</c>, never other text.
     /// </summary>
     public static IReadOnlyList<string> LfsAttributes(string treeish)
@@ -87,7 +87,7 @@ internal static class RemoteGitCommandLine
             throw new ArgumentException("A commit of 40 lowercase hexadecimal characters, or HEAD.", nameof(treeish));
         }
 
-        return ["grep", "-l", "-i", "-E", "--no-color", "-e", "^[^#]*filter=lfs", treeish, "--", ":(glob)**/.gitattributes"];
+        return ["grep", "-l", "-i", "-E", "--no-color", "-e", "^[[:space:]]*[^#[:space:]].*filter=lfs", treeish, "--", ":(glob)**/.gitattributes"];
     }
 
     /// <summary><c>ls-remote --refs</c> of one branch of the repository.</summary>

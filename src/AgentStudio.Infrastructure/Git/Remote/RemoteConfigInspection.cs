@@ -21,7 +21,7 @@ internal static class RemoteConfigInspection
     /// <summary>
     /// The pattern of <c>--get-regexp</c>: the sections that have a key to judge, plus <c>filter</c> for git-lfs. Git prints the section and the variable in lowercase and the subsection as written.
     /// </summary>
-    public const string Pattern = @"^(credential|url|http|remote|branch|push|core|include|includeif|filter)\.";
+    public const string Pattern = @"^(credential|url|http|remote|branch|push|core|include|includeif|filter|extensions)\.";
 
     private const int MaxFileCharacters = 260;
 
@@ -49,6 +49,11 @@ internal static class RemoteConfigInspection
             var definedByRepository = !IsTrustedScope(entry.Scope) || originInsideRepository(entry.Origin);
             if (definedByRepository && IsRefusedKey(section, subsection, variable))
             {
+                Add(refusals, entry, section, subsection, variable);
+            }
+            else if (section == "remote" && subsection is not null && string.Equals(subsection, address, StringComparison.Ordinal) && variable is "url" or "pushurl" or "push" or "receivepack" or "uploadpack" or "proxy" or "proxyauthmethod" or "vcs")
+            {
+                // A remote called exactly like the address, in the person's own files: `ls-remote --get-url` does not see its pushurl (it applies insteadOf and url only), and its keys would divert or launch.
                 Add(refusals, entry, section, subsection, variable);
             }
             else if (section == "url" && variable == "pushinsteadof" && address.StartsWith(entry.Value, StringComparison.Ordinal))
@@ -81,6 +86,13 @@ internal static class RemoteConfigInspection
         return new RemoteConfigRefusal("url.*.insteadof", "unknown", string.Empty);
     }
 
+    /// <summary>Whether a refusal is for a key that makes the repository a partial clone: it carries its own code, <see cref="RemoteGitCodes.PartialCloneUnsupported"/>.</summary>
+    public static bool IsPartialClone(RemoteConfigRefusal refusal)
+    {
+        ArgumentNullException.ThrowIfNull(refusal);
+        return refusal.Key is "extensions.partialclone" or "remote.*.promisor" or "remote.*.partialclonefilter";
+    }
+
     // Anything that is not one of the three scopes of the person's own files is treated as the repository's (fail closed).
     private static bool IsTrustedScope(string scope) => scope is "system" or "global";
 
@@ -91,10 +103,13 @@ internal static class RemoteConfigInspection
         "http" => !(subsection is null && variable == "followredirects"),
         "remote" => subsection is null
             ? variable == "pushdefault"
-            : IsAddress(subsection) || variable is "pushurl" or "push" or "receivepack" or "uploadpack" or "proxy" or "proxyauthmethod" or "vcs",
+            : IsAddress(subsection) || variable is "pushurl" or "push" or "receivepack" or "uploadpack" or "proxy" or "proxyauthmethod" or "vcs" or "promisor" or "partialclonefilter",
         "branch" => subsection is not null && variable == "pushremote",
         "push" => subsection is null && variable == "pushoption",
         "core" => subsection is null && variable == "alternaterefscommand",
+
+        // A partial clone: git fetches the objects it lacks on demand, from the remote the repository calls promisor (it depends on GIT_NO_LAZY_FETCH, from git 2.44, to be stopped: it is refused instead).
+        "extensions" => subsection is null && variable == "partialclone",
         _ => false,
     };
 

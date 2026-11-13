@@ -40,7 +40,7 @@
      de un fichero dentro del repositorio (un `include` de la configuración global que apunte dentro): `credential.*`,
      `url.*.insteadOf` y `pushInsteadOf`, `http.<url>.*` y las demás `http.*` locales (anularlas con `-c` quitaría también
      el proxy global de la persona), `remote.*.pushurl`, `push`, `receivepack`, `uploadpack`, `proxy` y `vcs`, y
-     `push.pushOption`. `remote.*.url` y `remote.*.fetch` no se rechazan. Si un `insteadOf` **global** reescribe la
+     `push.pushOption`. `remote.<nombre>.url` y `remote.<nombre>.fetch` de un remoto de nombre llano no se rechazan; sí cualquier clave de un remoto cuyo nombre sea una dirección o una ruta (adenda). Si un `insteadOf` **global** reescribe la
      dirección construida, también se rechaza; se comprueba preguntando a git (`git ls-remote --get-url`, sin red), no
      prediciéndolo. Fallo cerrado. La pantalla nombra la clave y su fichero, nunca su valor. Las raíces «dentro del
      repositorio» las calcula este componente con código propio: las de la capa interna viven en `GitCommandRunner`.
@@ -69,7 +69,7 @@
   - **«Delante y detrás»** de una rama remota solo se calcula si sus commits ya están en el equipo.
 - **Alternativas descartadas:** un «modo remoto» en `GitCommandRunner` (la red en el componente más costoso de cerrar);
   `git fetch` normal o a refs propias (escribe en el repositorio y añade una operación con red para un dato que la
-  plataforma da); usar el remoto por su nombre (`remote.*.pushurl` y `remote.*.push` decidirían el destino); guardar un
+  plataforma da); usar el remoto por su nombre (`remote.*.pushurl` y `remote.*.push` decidirían el destino; y un remoto que se llame como la dirección, que git busca por el nombre que se le da, también: ver la adenda); guardar un
   token en la bóveda y pasarlo a git (Agent Studio tocaría la credencial); publicar por SSH en esta entrega (más
   superficie: `ssh.exe`, su configuración y su agente).
 - **Residuales aceptados:**
@@ -120,7 +120,7 @@ Medido con git 2.45.2 en Windows contra un remoto bare local (transporte `file`,
 - **Un remoto que se llama como la dirección.** Medido con git 2.45.2 (remoto bare local): git busca el remoto por el nombre que se le pasa, y se le pasa la dirección, así que un `[remote "<dirección>"]` del repositorio se aplica al `push`. Con
   `mirror = true` y un refspec explícito termina con «--mirror can't be combined with refspecs» sin empujar; con `pushurl` el `push` fue a otro repositorio; con `url` también (y `ls-remote --get-url` lo delata); con `receivepack` corrió el programa
   (falló al arrancar por la ruta, pero se lanzó). Se rechaza cualquier clave `remote.<subsección>.*` del repositorio cuya subsección contenga `:`, `/` o `\`, escrita `remote.*.<variable>`.
-- **Git LFS por el commit que sube.** Una orden local más, cerrada y sin red: `git grep -l -i -E --no-color -e "^[^#]*filter=lfs" <commit> -- ":(glob)**/.gitattributes"` (salida 0 con coincidencia, 1 sin ella; en cualquier carpeta; un
+- **Git LFS por el commit que sube.** Una orden local más, cerrada y sin red: `git grep -l -i -E --no-color -e "^[[:space:]]*[^#[:space:]].*filter=lfs" <commit> -- ":(glob)**/.gitattributes"` (salida 0 con coincidencia, 1 sin ella; en cualquier carpeta; un
   comentario no cuenta). Solo se lanza con el filtro `lfs` configurado; `info/attributes` se lee del disco; sin commit (`InspectAsync`) se pregunta por `HEAD`; si no se puede saber, `lfs-check-failed` y no se publica. Entra en el catálogo de órdenes
   (`config`, `grep`, `ls-remote`, `push`) y en la prueba que recorre cada `ProcessSpec`.
 - **Un `push` cortado.** Si agota el tiempo o pasa del tope de salida, el árbol de procesos muere a mitad y el remoto puede tener ya la rama: se hace el `ls-remote` de confirmación y el resultado es `Pushed` o `NotConfirmed`. La cancelación sale como
@@ -129,3 +129,12 @@ Medido con git 2.45.2 en Windows contra un remoto bare local (transporte `file`,
   del mismo usuario, ADR-0018). Los clasificadores del error estándar son líneas que empiezan como las escribe git, no palabras sueltas.
 - **`trace2.*`:** según la documentación de git, solo se leen de la configuración de sistema y global (no del repositorio ni de `-c`); las variables `GIT_TRACE2*` se quitan con el resto de `GIT_*`. Sin medir.
 - **Códigos:** `RemoteGitCodes` vive en `Application/Hosting` y viaja en los tres resultados del puerto (`RemotePushResult.FailureCode` incluido).
+
+## Adenda de la tercera ronda de WP1 (2026-11-13)
+
+- **LFS, el patrón.** En `.gitattributes` el `#` solo comenta si va al principio de la línea. Medido con git 2.45.2: `^[[:space:]]*[^#[:space:]].*filter=lfs` casa `C#/**/*.png filter=lfs` (ruta con `#`), líneas con sangría o con tabulador, y el atributo en cualquier posición, y no casa
+  `# …`, `   # …` ni líneas vacías. (Una línea con un comentario al final, `*.cs text # filter=lfs`, casa: ante la duda se rechaza.) Residual: unos atributos puestos solo en `core.attributesFile` o en la configuración global de atributos no se ven.
+- **Un `push` que arrancó y no dice nada cierto:** siempre `ls-remote` de confirmación (ver `docs/21` §10.3). Solo una línea `!` del `--porcelain` evita la lectura.
+- **Clon parcial:** `extensions.partialClone`, `remote.*.promisor` y `remote.*.partialclonefilter` del repositorio se rechazan con `partial-clone-unsupported`; ni el `grep` ni el `push` dependen de `GIT_NO_LAZY_FETCH` (git 2.44 o posterior).
+- **Remoto con el nombre de la dirección en la configuración global o de sistema:** `pushurl` y las demás claves que desvían o lanzan se rechazan en cualquier ámbito (`ls-remote --get-url` no ve `pushurl`).
+- **Carpetas y «dentro del proyecto».** Cada nivel se comprueba antes de crear el siguiente; el `PATH` y el `git.exe` se comparan con la raíz del proyecto y la de los worktrees sin la excepción de raíces demasiado anchas.

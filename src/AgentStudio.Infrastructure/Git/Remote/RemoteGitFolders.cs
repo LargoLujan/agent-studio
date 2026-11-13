@@ -31,19 +31,22 @@ internal sealed record RemoteGitFolders(string HooksFile, string TempFolder)
     /// <exception cref="UnauthorizedAccessException">A folder or the file could not be created.</exception>
     public void Ensure()
     {
-        Directory.CreateDirectory(TempFolder);
-        Directory.CreateDirectory(Path.GetDirectoryName(HooksFile)!);
-
-        // Neither the folders nor the file may be a link (a junction or a symbolic link leads what git writes, or reads as «no hooks», somewhere else). They are checked before they are used, every time. What is left
-        // is the window between this and the start of git, for a process of the same user: the residual of ADR-0018.
-        foreach (var folder in new[] { TempFolder, Path.GetDirectoryName(HooksFile)!, Path.GetDirectoryName(Path.GetDirectoryName(HooksFile))! }.Distinct(StringComparer.OrdinalIgnoreCase))
+        // Neither the folders nor the file may be a link (a junction or a symbolic link leads what git writes, or reads as «no hooks», somewhere else). Each level is checked BEFORE the next one is created, so a link in the way
+        // never gets a folder made at its destination, and every time before it is used. What is left is the window between this and the start of git, for a process of the same user: the residual of ADR-0018.
+        var hosting = Path.GetDirectoryName(HooksFile)!;
+        foreach (var folder in new[] { Path.GetDirectoryName(hosting)!, hosting, TempFolder }.Distinct(StringComparer.OrdinalIgnoreCase))
         {
+            if (!Directory.Exists(folder))
+            {
+                // One level: the parent has just been checked (or is the first one, which is the person's own AgentStudio folder).
+                Directory.CreateDirectory(folder);
+            }
+
             if (new DirectoryInfo(folder).Attributes.HasFlag(FileAttributes.ReparsePoint))
             {
                 throw new UnsafeFolderException($"'{folder}' is a link: the temporary folder and the hooks file of the remote executor must be real folders; refusing to run git until it is deleted.");
             }
         }
-
         if (!File.Exists(HooksFile) && !Directory.Exists(HooksFile))
         {
             try

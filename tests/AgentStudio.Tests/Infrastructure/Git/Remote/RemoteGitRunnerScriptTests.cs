@@ -1067,6 +1067,194 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
         Directory.Delete(_fixture.Folders.TempFolder);
     }
 
+    // ---- a push whose process started and says nothing certain: the remote is read ----
+
+    [Theory]
+    [InlineData("fatal: unable to access 'https://github.com/o/r.git/': Recv failure: Connection was reset")]
+    [InlineData("error: RPC failed; curl 56 Recv failure\nfatal: the remote end hung up unexpectedly")]
+    [InlineData("fatal: unable to access 'https://github.com/o/r.git/': Could not resolve host: github.com")]
+    [InlineData("fatal: unable to update url base from redirection")]
+    [InlineData("fatal: could not read Username for 'https://github.com': terminal prompts disabled")]
+    [InlineData("something nobody has seen")]
+    public async Task A_push_that_ended_badly_without_a_line_but_got_there_is_pushed_because_the_remote_is_read(string error)
+    {
+        _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        _script.LsRemote.Add(RemoteGitScript.Ok(RemoteGitScript.BranchLine(RemoteGitFixture.Commit)));
+        _script.PushResult = RemoteGitScript.Failure(128, error);
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
+        Assert.Equal(RemoteGitFixture.Commit, result.RemoteCommit);
+        Assert.Null(result.FailureCode);
+        Assert.Equal(["config", "get-url", "ls-remote", "push", "ls-remote"], _script.Kinds);
+    }
+
+    [Fact]
+    public async Task A_push_that_ended_badly_and_whose_remote_cannot_be_read_is_not_confirmed_with_the_code_of_what_happened()
+    {
+        _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        _script.LsRemote.Add(RemoteGitScript.Failure(128, "fatal: unable to access 'u': Could not resolve host: github.com"));
+        _script.PushResult = RemoteGitScript.Failure(128, "fatal: unable to access 'u': Recv failure: Connection was reset\nfatal: Could not read from remote repository.");
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.NotConfirmed, result.Outcome);
+        Assert.Null(result.RemoteCommit);
+        Assert.Equal(RemoteGitCodes.RemoteUnreachable, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task A_push_that_ended_badly_and_whose_branch_is_read_as_not_there_has_the_result_its_error_gave()
+    {
+        _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        _script.PushResult = RemoteGitScript.Failure(128, "fatal: could not read Username for 'https://github.com': terminal prompts disabled");
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.CredentialsNeeded, result.Outcome);
+        Assert.Equal(RemoteGitCodes.CredentialsNeeded, result.FailureCode);
+        Assert.Equal(["config", "get-url", "ls-remote", "push", "ls-remote"], _script.Kinds);
+    }
+
+    [Theory]
+    [InlineData("!", "[rejected] (non-fast-forward)")]
+    [InlineData("!", "[remote rejected] (pre-receive hook declined)")]
+    public async Task A_line_that_says_with_certainty_that_the_remote_refused_is_not_followed_by_a_read(string flag, string summary)
+    {
+        _script.LsRemote.Add(RemoteGitScript.Ok(RemoteGitScript.BranchLine(RemoteGitFixture.OtherCommit)));
+        _script.PushResult = new ProcessResult(1, RemoteGitScript.PorcelainOutput(flag, Refspec, summary), "error: failed to push", TimeSpan.Zero, false);
+
+        await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(["config", "get-url", "ls-remote", "push"], _script.Kinds);
+    }
+
+    // ---- partial clones ----
+
+    [Theory]
+    [InlineData("extensions.partialclone", "origin", "extensions.partialclone")]
+    [InlineData("remote.origin.promisor", "true", "remote.*.promisor")]
+    [InlineData("remote.origin.partialclonefilter", "blob:none", "remote.*.partialclonefilter")]
+    [InlineData("remote.upstream.promisor", "", "remote.*.promisor")]
+    public async Task A_partial_clone_is_refused_with_its_own_code_and_nothing_is_read_or_published(string key, string value, string shown)
+    {
+        Plant("local", "file:.git/config", key, value);
+
+        var push = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+        var read = await Runner().ReadBranchAsync(_fixture.Project, RemoteGitFixture.Repository, RemoteBranch.ForRun(RemoteGitFixture.Run), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, push.Outcome);
+        Assert.Equal(RemoteGitCodes.PartialCloneUnsupported, push.FailureCode);
+        Assert.Equal(shown, Assert.Single(push.Inspection.Refusals).Key);
+        Assert.Equal(RemoteGitCodes.PartialCloneUnsupported, read.FailureCode);
+        Assert.Equal(["config", "config"], _script.Kinds);
+    }
+
+    [Fact]
+    public async Task The_system_configuration_of_the_person_that_names_a_promisor_is_not_the_repository_s_and_a_plain_refusal_has_the_plain_code()
+    {
+        ThePushWorks();
+        Plant("system", "file:C:/etc/gitconfig", "extensions.partialclone", "origin");
+
+        var accepted = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+        _script.ConfigOutput = RemoteGitCommands.ConfigEntry("local", "file:.git/config", "credential.helper", "x");
+        var refused = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, accepted.Outcome);
+        Assert.Equal(RemoteGitCodes.ConfigurationRefused, refused.FailureCode);
+    }
+
+    // ---- a remote called like the address, in the person's own files ----
+
+    [Theory]
+    [InlineData("system", "pushurl")]
+    [InlineData("global", "pushurl")]
+    [InlineData("global", "push")]
+    [InlineData("global", "receivepack")]
+    [InlineData("global", "uploadpack")]
+    [InlineData("global", "proxy")]
+    [InlineData("global", "vcs")]
+    [InlineData("global", "url")]
+    public async Task A_pushurl_and_the_other_keys_that_divert_or_launch_of_a_remote_called_like_the_address_are_refused_in_any_scope(string scope, string variable)
+    {
+        Plant(scope, "file:C:/Users/ana/.gitconfig", "remote." + Address + "." + variable, "x");
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, result.Outcome);
+        var refusal = Assert.Single(result.Inspection.Refusals);
+        Assert.Equal("remote.*." + variable, refusal.Key);
+        Assert.Equal(scope, refusal.Scope);
+        Assert.Equal(["config"], _script.Kinds);
+    }
+
+    [Fact]
+    public async Task A_remote_called_like_another_address_or_with_a_harmless_key_in_the_persons_files_is_not_refused()
+    {
+        ThePushWorks();
+        Plant("global", "file:C:/Users/ana/.gitconfig", "remote.https://github.com/other/repo.git.pushurl", "x");
+        Plant("global", "file:C:/Users/ana/.gitconfig", "remote." + Address + ".tagopt", "--no-tags");
+        Plant("global", "file:C:/Users/ana/.gitconfig", "remote.origin.pushurl", "x");
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
+    }
+
+    // ---- the folders: each level is checked before the next one is made ----
+
+    [Fact]
+    public async Task A_folder_of_the_executor_that_is_a_link_gets_nothing_created_at_its_destination()
+    {
+        var real = Path.Combine(Path.GetDirectoryName(_fixture.Root)!, "real-hosting");
+        Directory.CreateDirectory(real);
+        var hosting = Path.GetDirectoryName(_fixture.Folders.HooksFile)!;
+        Directory.CreateDirectory(Path.GetDirectoryName(hosting)!);
+        GitManagerTestBase.CreateJunction(hosting, real);
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemoteGitCodes.UnsafeFolder, result.FailureCode);
+        Assert.Empty(Directory.GetFileSystemEntries(real));
+        Assert.Empty(_script.Specs);
+        Directory.Delete(hosting);
+    }
+
+    // ---- «inside the project», with no exception for wide roots ----
+
+    [Fact]
+    public void A_path_is_inside_a_root_or_the_root_itself_even_when_the_root_is_the_profile_or_a_drive()
+    {
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var drive = Path.GetPathRoot(Path.GetTempPath())!;
+
+        Assert.True(RemoteGitRunner.IsInsideOrSame(Path.Combine(profile, "bin", "git.exe"), profile));
+        Assert.True(RemoteGitRunner.IsInsideOrSame(profile, profile));
+        Assert.True(RemoteGitRunner.IsInsideOrSame(Path.Combine(drive, "tools"), drive));
+        Assert.True(RemoteGitRunner.IsInsideOrSame(Path.Combine(drive, "Windows", "System32"), drive));
+        Assert.False(RemoteGitRunner.IsInsideOrSame(profile + "-other", profile));
+        Assert.False(RemoteGitRunner.IsInsideOrSame(Path.Combine(Path.GetDirectoryName(profile)!, "someone-else", "bin"), profile));
+    }
+
+    [Fact]
+    public async Task The_path_git_gets_has_nothing_inside_the_worktrees_of_the_app_and_a_git_there_is_not_used()
+    {
+        ThePushWorks();
+        var inWorktrees = Path.Combine(_fixture.WorktreeRoot, "abc", "bin");
+        var fine = Path.GetDirectoryName(_fixture.GitPath)!;
+        var ambient = new Dictionary<string, string> { ["PATH"] = string.Join(';', inWorktrees, fine) };
+        var gitInWorktrees = Path.Combine(_fixture.WorktreeRoot, "git.exe");
+        Directory.CreateDirectory(_fixture.WorktreeRoot);
+        File.WriteAllBytes(gitInWorktrees, []);
+
+        await _fixture.NewRunner(_script, ambient: () => ambient).PushRunBranchAsync(_fixture.Push(), Ct);
+        var refused = await _fixture.NewRunner(new RemoteGitScript(), locator: new FixedLocator(gitInWorktrees)).PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.All(_script.Specs, spec => Assert.Equal(fine, spec.Environment!["PATH"]));
+        Assert.Equal(RemoteGitCodes.GitUnavailable, refused.FailureCode);
+    }
+
     // ---- D-07 over the whole battery ----
 
     [Fact]
