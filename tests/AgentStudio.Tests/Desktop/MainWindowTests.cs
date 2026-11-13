@@ -489,7 +489,7 @@ public sealed class MainWindowTests
             var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Path)));
             return (
                 ReferenceEquals(((FrameworkElement)window.FindName("ExplorerPanel")).DataContext, vm.Explorer),
-                ReferenceEquals(((FrameworkElement)window.FindName("AutoDoctorPanel")).DataContext, vm.Diagnostics),
+                ReferenceEquals(((FrameworkElement)window.FindName("AutoDoctorPanel")).DataContext, vm.Doctor),
                 ReferenceEquals(((FrameworkElement)window.FindName("JournalPanel")).DataContext, vm.Journal));
         });
 

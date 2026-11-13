@@ -82,7 +82,7 @@ public static class ActivityClassifier
         return purpose switch
         {
             AgentRunPurpose.Planner or AgentRunPurpose.OrderReview or AgentRunPurpose.PreparationChat => ActivityKind.Coordination,
-            AgentRunPurpose.DebateParticipant or AgentRunPurpose.SkillRecommendation or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.Help => ActivityKind.Analysis,
+            AgentRunPurpose.DebateParticipant or AgentRunPurpose.SkillRecommendation or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.Help or AgentRunPurpose.GraphRelations => ActivityKind.Analysis,
             AgentRunPurpose.Judge or AgentRunPurpose.DebateJudge or AgentRunPurpose.ProjectAudit => ActivityKind.Review,
             AgentRunPurpose.DailySummary or AgentRunPurpose.ClientDocumentDraft => ActivityKind.Documentation,
             _ => input.Run is { FollowsConflict: true } ? ActivityKind.Conflicts : ActivityPaths.OfDiff(input.Task?.ChangedPaths ?? [], testPaths),

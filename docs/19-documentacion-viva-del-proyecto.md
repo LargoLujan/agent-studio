@@ -944,6 +944,25 @@ gantt
 - **Se lleva WP-D de la Fase 6** (diagramas y discrepancias, F6-10, F6-11 y ADR-0045), que es su base. La Fase 6 se queda con
   Auto Doctor, Auto Graph y el entorno. Si prefieres no moverlo, la 16 construye encima (decisión 1 (b)).
 - **Los números son nombres, no el orden,** como en docs/16 y docs/17.
+- **Actualización del 2026-11-12, tras el diseño de la Fase 6** ([20](20-fase-6-auto-doctor-y-auto-graph.md) §1.2): ese
+  documento propone lo contrario del punto «Se lleva WP-D». La Fase 6 se queda con WP-D y entrega F6-10 y F6-11 como texto
+  (el modelo de Auto Graph, la copia del commit, los generadores de la solución, el plan y la secuencia, la gramática, la
+  cabecera, «desactualizado» y cuatro comprobaciones), y esta fase construye encima: el motor que dibuja, los demás
+  diagramas, los de agentes y el resto de `doc.*`. Si lo aceptas (decisión 1 de aquí y de docs/20), WP-16B amplía esos
+  generadores en vez de crearlos, ADR-0045 lo escribe la Fase 6 y aquí lleva una adenda con el motor, y la fila «F6-10 y
+  F6-11» de §11.3 sobra.
+- **Lo que la Fase 6 dejó construido (2026-11-13, WP-D; [04 §25.8](04-contratos.md#258-diagramas-y-discrepancias-wp-d) y la adenda de [ADR-0045](adr/0045-diagramas-generados-con-su-version.md)) y esta fase debe saber:**
+  `IDiagramGenerator`, `IDiagramCatalog` e `IDiagramTextReader` (el texto de la caché) ya tienen implementación en `Memory/Diagrams`; la cabecera es **tres líneas `%%` dentro del texto Mermaid** (no `<!-- -->`) y el
+  Markdown exportado lleva un comentario HTML y un bloque `mermaid`; el escapador único es `MermaidText` (y escribe como entidad también el acento grave, `\` y `|`); «desactualizado» es la huella del modelo **o** la versión de
+  los generadores, decidida solo con el índice de la caché (`DiagramStaleness`); `DiagramKind` y los tipos de `IConsistencyCheck` se amplían añadiendo valores y comprobaciones, y el servicio aísla cada comprobación
+  (`consistency.check-failed`). El texto generado **no** se ha pasado por `mermaid.parse`: el motor de esta fase debe hacerlo con los dorados de `tests/AgentStudio.Tests/Memory/Diagrams/Fixtures`, en particular con el alias
+  entre comillas de `participant`.
+- **Dos reglas compartidas con la Fase 6,** para que no haya dos dueños:
+  - **dónde vive lo generado** (D-26 y decisión 8): la misma regla vale para los diagramas de la Fase 6 (docs/20 D-25). Caché
+    de tu equipo por defecto, y al repositorio solo si lo pides, en `docs/generado/` (los diagramas, en
+    `docs/generado/diagramas/`), con un solo exportador y una sola cabecera, que fija la Fase 6;
+  - **quién lee YAML** (decisión 9): la librería de YAML de esta fase es el **único** lector de `compose.yaml` de la app. La
+    Fase 6 no interpreta YAML: de compose solo dice que existe (docs/20 D-05 y su decisión 10).
 
 ### 11.2 Reglas comunes
 
@@ -1116,6 +1135,9 @@ Nueve decisiones, todas de las que cambian el alcance, el coste o el riesgo. La 
    - (b) Igual, pero WP-D se queda en la Fase 6 y la 16 construye encima. Dos dueños para los diagramas.
    - (c) Dentro de la Fase 6, que pasa a XL y retrasa Auto Doctor.
    - (d) Al final, después de la 15. Rompe F15-2 (el inventario de todas las pantallas) y pide un recorrido propio.
+   - **Nota del 2026-11-12:** el diseño de la Fase 6 ([20](20-fase-6-auto-doctor-y-auto-graph.md) §1.2 y su decisión 1)
+     recomienda la (b), con el reparto escrito pieza a pieza para que no haya dos dueños. Es la misma decisión vista desde
+     los dos documentos: se toma una vez.
 2. **El formato de los diagramas** (D-16 a D-18).
    - **(a) Recomendada:** Mermaid, con mermaid.js fijado por huella dentro de WebView2 y sin red. Ya lo eligió docs/16 D-21.
    - (b) PlantUML: su C4 es más maduro, pero necesita Java 11 en tu equipo (o un servidor, que es red).
@@ -1148,12 +1170,16 @@ Nueve decisiones, todas de las que cambian el alcance, el coste o el riesgo. La 
      (`docs/generado/`), solo si lo pides, con la cabecera «generado».
    - (b) Siempre en el repositorio, versionado con el código (docs-as-code puro). Cada exportación cambia tu árbol.
    - (c) Nunca en el repositorio.
+   - **Nota del 2026-11-12:** es la misma pregunta que la decisión 9 de docs/20, y la respuesta vale para los diagramas de la
+     Fase 6. Con la (a), los diagramas exportados van a `docs/generado/diagramas/`.
 9. **Las librerías para leer YAML y OpenAPI** (D-08).
    - **(a) Recomendada:** una de YAML con licencia MIT (YamlDotNet) y el lector oficial de OpenAPI de Microsoft
      (`Microsoft.OpenApi`, MIT), fijadas en el P0 tras comprobar versión, licencia y avisos, con las referencias externas
      apagadas.
    - (b) Solo la de YAML, y un lector propio de OpenAPI: una dependencia menos, más código propio.
    - (c) Ninguna: solo OpenAPI en JSON. Compose, flujos de CI y OpenAPI en YAML saldrían «no interpretados».
+   - **Nota del 2026-11-12:** la Fase 6 no interpreta YAML (docs/20, decisión 10), así que el lector de esta decisión es el
+     único de `compose.yaml`. Si en docs/20 eliges traer la librería ya a la Fase 6, se fija allí y aquí se reutiliza.
 
 ---
 

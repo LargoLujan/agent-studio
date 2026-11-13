@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the «Diagramas» and «Discrepancias» sections of Auto Graph (docs/20 sections 6.4, ADR-0054) in Spanish of Spain, the source language. Also the texts of the codes of the discrepancies (Text_<code>) and of the line of Auto Doctor that counts them (Doctor_Check_project_discrepancies_*). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Docs_Title" xml:space="preserve">
+    <value>Diagramas y discrepancias</value>
+    <comment>Title of the sections Diagramas and Discrepancias of Auto Graph.</comment>
+  </data>
+  <data name="Docs_NoProject" xml:space="preserve">
+    <value>Abre un proyecto para ver esto.</value>
+    <comment>Shown when no project is open.</comment>
+  </data>
+  <data name="Docs_Unavailable" xml:space="preserve">
+    <value>Los diagramas no están disponibles en esta instalación.</value>
+    <comment>Shown when the catalog of diagrams is not composed.</comment>
+  </data>
+  <data name="Docs_Diagrams_Intro" xml:space="preserve">
+    <value>Aquí ves los diagramas del proyecto como texto. Se guardan en este equipo y no cambian tu repositorio.</value>
+    <comment>Intro of the section Diagramas.</comment>
+  </data>
+  <data name="Docs_Diagrams_Empty" xml:space="preserve">
+    <value>Todavía no hay diagramas que mostrar.</value>
+    <comment>Shown when the list is empty.</comment>
+  </data>
+  <data name="Docs_Diagrams_List_Name" xml:space="preserve">
+    <value>Diagramas del proyecto</value>
+    <comment>Accessible name of the list of diagrams.</comment>
+  </data>
+  <data name="Docs_Kind_Solution" xml:space="preserve">
+    <value>La solución</value>
+    <comment>Name of the diagram of the solution.</comment>
+  </data>
+  <data name="Docs_Kind_ProjectNamespaces" xml:space="preserve">
+    <value>Espacios de nombres de {0}</value>
+    <comment>{0}: the project. Name of the diagram of the namespaces of a project.</comment>
+  </data>
+  <data name="Docs_Kind_RunPlan" xml:space="preserve">
+    <value>Plan de la ejecución {0}</value>
+    <comment>{0}: the run. Name of the diagram of a plan.</comment>
+  </data>
+  <data name="Docs_Kind_RunSequence" xml:space="preserve">
+    <value>Secuencia de la ejecución {0}</value>
+    <comment>{0}: the run. Name of the diagram of a sequence.</comment>
+  </data>
+  <data name="Docs_State_NotGenerated" xml:space="preserve">
+    <value>Sin generar</value>
+    <comment>State of a diagram that is not in the cache.</comment>
+  </data>
+  <data name="Docs_State_Current" xml:space="preserve">
+    <value>Al día</value>
+    <comment>State of a diagram whose model did not change.</comment>
+  </data>
+  <data name="Docs_State_Stale" xml:space="preserve">
+    <value>Desactualizado</value>
+    <comment>State of a diagram whose model changed.</comment>
+  </data>
+  <data name="Docs_State_StaleVersion" xml:space="preserve">
+    <value>Desactualizado: describe la versión guardada {0}</value>
+    <comment>{0}: the first characters of the saved version the diagram describes.</comment>
+  </data>
+  <data name="Docs_Export_NotExported" xml:space="preserve">
+    <value>Sin exportar al repositorio</value>
+    <comment>State of the copy in the repository.</comment>
+  </data>
+  <data name="Docs_Export_SameAsCache" xml:space="preserve">
+    <value>Exportado y al día</value>
+    <comment>State of the copy in the repository.</comment>
+  </data>
+  <data name="Docs_Export_Older" xml:space="preserve">
+    <value>Exportado, pero es una versión anterior</value>
+    <comment>State of the copy in the repository.</comment>
+  </data>
+  <data name="Docs_Export_ChangedOutside" xml:space="preserve">
+    <value>Exportado, pero se cambió fuera de la aplicación</value>
+    <comment>State of the copy in the repository.</comment>
+  </data>
+  <data name="Docs_Export_Unknown" xml:space="preserve">
+    <value>Hay un fichero que no escribió este equipo</value>
+    <comment>State of the copy in the repository.</comment>
+  </data>
+  <data name="Docs_Row_Name" xml:space="preserve">
+    <value>{0}. {1}. {2}</value>
+    <comment>{0}: the diagram; {1}: its state; {2}: the state of its copy in the repository. Name for the screen reader.</comment>
+  </data>
+  <data name="Docs_Generate" xml:space="preserve">
+    <value>Generar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Regenerate" xml:space="preserve">
+    <value>Regenerar</value>
+    <comment>Button, for a diagram that is already generated.</comment>
+  </data>
+  <data name="Docs_Generate_Hint" xml:space="preserve">
+    <value>Crea el texto del diagrama en este equipo, con la versión que describe</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Undo" xml:space="preserve">
+    <value>Deshacer</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Undo_Hint" xml:space="preserve">
+    <value>Vuelve al texto que tenía el diagrama antes de regenerarlo</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Copy" xml:space="preserve">
+    <value>Copiar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Copy_Hint" xml:space="preserve">
+    <value>Copia el texto del diagrama al portapapeles</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Export" xml:space="preserve">
+    <value>Exportar al repositorio</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Export_Hint" xml:space="preserve">
+    <value>Escribe el diagrama en docs/generado/diagramas, solo cuando tú lo pides</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Refresh" xml:space="preserve">
+    <value>Actualizar la lista</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Refresh_Hint" xml:space="preserve">
+    <value>Vuelve a mirar el estado de cada diagrama</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Conflict_Heading" xml:space="preserve">
+    <value>Estos ficheros ya existen y no los escribió esta aplicación, o los cambiaste fuera</value>
+    <comment>Heading of the question about the files that were changed outside.</comment>
+  </data>
+  <data name="Docs_Conflict_Item" xml:space="preserve">
+    <value>{0} ({1})</value>
+    <comment>{0}: the file; {1}: why it is a conflict.</comment>
+  </data>
+  <data name="Docs_Conflict_Question" xml:space="preserve">
+    <value>¿Qué hago con ellos?</value>
+    <comment>Question to the person.</comment>
+  </data>
+  <data name="Docs_Conflict_Overwrite" xml:space="preserve">
+    <value>Sobrescribir</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Conflict_SaveAsNew" xml:space="preserve">
+    <value>Guardar con otro nombre</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Conflict_Skip" xml:space="preserve">
+    <value>Dejarlos como están</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Source_Heading" xml:space="preserve">
+    <value>Texto del diagrama</value>
+    <comment>Label above the text.</comment>
+  </data>
+  <data name="Docs_Source_Name" xml:space="preserve">
+    <value>Texto del diagrama, solo lectura</value>
+    <comment>Accessible name of the box with the text.</comment>
+  </data>
+  <data name="Docs_Source_Choose" xml:space="preserve">
+    <value>Elige un diagrama de la lista.</value>
+    <comment>Shown when no diagram is chosen.</comment>
+  </data>
+  <data name="Docs_Source_NotGenerated" xml:space="preserve">
+    <value>Todavía no hay texto para este diagrama. Pulsa Generar.</value>
+    <comment>Shown when the diagram chosen is not generated.</comment>
+  </data>
+  <data name="Docs_Source_Lost" xml:space="preserve">
+    <value>El texto guardado ya no está. Pulsa Regenerar.</value>
+    <comment>Shown when the cache lost the text of a diagram.</comment>
+  </data>
+  <data name="Docs_Message_Generated" xml:space="preserve">
+    <value>Diagrama generado.</value>
+    <comment>Message.</comment>
+  </data>
+  <data name="Docs_Message_Unchanged" xml:space="preserve">
+    <value>Ya estaba al día. No se ha cambiado nada.</value>
+    <comment>Message.</comment>
+  </data>
+  <data name="Docs_Message_Undone" xml:space="preserve">
+    <value>Has vuelto al texto anterior.</value>
+    <comment>Message.</comment>
+  </data>
+  <data name="Docs_Message_Copied" xml:space="preserve">
+    <value>Texto copiado.</value>
+    <comment>Message.</comment>
+  </data>
+  <data name="Docs_Message_Exported" xml:space="preserve">
+    <value>Exportado: {1}</value>
+    <comment>{0}: how many files were written; {1}: the first one.</comment>
+  </data>
+  <data name="Docs_Message_ExportedNone" xml:space="preserve">
+    <value>No se ha escrito ningún fichero.</value>
+    <comment>Message.</comment>
+  </data>
+  <data name="Docs_Message_FileGone" xml:space="preserve">
+    <value>El fichero {0} ya no está en tu carpeta.</value>
+    <comment>{0}: the file.</comment>
+  </data>
+  <data name="Docs_Error_List" xml:space="preserve">
+    <value>No se pudo leer la lista de diagramas. {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Docs_Error_Read" xml:space="preserve">
+    <value>No se pudo leer el texto del diagrama. {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Docs_Error_Action" xml:space="preserve">
+    <value>No se pudo completar la acción. {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Docs_Error_Export" xml:space="preserve">
+    <value>No se pudo exportar. {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Docs_Disc_Intro" xml:space="preserve">
+    <value>Cosas del proyecto que no encajan entre sí. Se buscan sin usar IA, en la última versión guardada.</value>
+    <comment>Intro of the section Discrepancias.</comment>
+  </data>
+  <data name="Docs_Disc_Unavailable" xml:space="preserve">
+    <value>Las discrepancias no están disponibles en esta instalación.</value>
+    <comment>Shown when the analysis is not composed.</comment>
+  </data>
+  <data name="Docs_Disc_Calculate" xml:space="preserve">
+    <value>Calcular</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Disc_Calculate_Hint" xml:space="preserve">
+    <value>Mira esta versión guardada del proyecto. Puede tardar un poco</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Disc_Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Disc_Refresh_Hint" xml:space="preserve">
+    <value>Vuelve a leer el último resultado guardado</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Docs_Disc_NotCalculated" xml:space="preserve">
+    <value>No hay resultado para esta versión. Pulsa Calcular.</value>
+    <comment>Shown when nothing is saved for the version the project is at.</comment>
+  </data>
+  <data name="Docs_Disc_Calculating" xml:space="preserve">
+    <value>Calculando…</value>
+    <comment>Status while the analysis runs.</comment>
+  </data>
+  <data name="Docs_Disc_Describes" xml:space="preserve">
+    <value>Describe la versión guardada {0}.</value>
+    <comment>{0}: the first characters of the saved version.</comment>
+  </data>
+  <data name="Docs_Disc_DescribesChanges" xml:space="preserve">
+    <value>Describe la versión guardada {0}. Tu carpeta tiene cambios que no se ven aquí.</value>
+    <comment>{0}: the first characters of the saved version.</comment>
+  </data>
+  <data name="Docs_Disc_Clean" xml:space="preserve">
+    <value>No hay ninguna discrepancia.</value>
+    <comment>Shown when the result is empty.</comment>
+  </data>
+  <data name="Docs_Disc_List_Name" xml:space="preserve">
+    <value>Discrepancias del proyecto</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Docs_Disc_Where" xml:space="preserve">
+    <value>{0}, línea {1}</value>
+    <comment>{0}: the file; {1}: the line.</comment>
+  </data>
+  <data name="Docs_Disc_Name" xml:space="preserve">
+    <value>{0}. {1}</value>
+    <comment>{0}: what it says; {1}: where it is. Name for the screen reader.</comment>
+  </data>
+  <data name="Docs_Disc_OpenFile" xml:space="preserve">
+    <value>Abrir el fichero</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Disc_OpenFile_Name" xml:space="preserve">
+    <value>Abrir el fichero {0}</value>
+    <comment>{0}: the file. Name of the button for the screen reader.</comment>
+  </data>
+  <data name="Docs_Disc_Regenerate" xml:space="preserve">
+    <value>Regenerar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Disc_Regenerate_Name" xml:space="preserve">
+    <value>Regenerar el diagrama. {0}</value>
+    <comment>{0}: what the discrepancy says. Name of the button for the screen reader.</comment>
+  </data>
+  <data name="Docs_Disc_Board" xml:space="preserve">
+    <value>Ir a Trabajo</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Docs_Disc_Board_Name" xml:space="preserve">
+    <value>Ir a Trabajo. {0}</value>
+    <comment>{0}: what the discrepancy says. Name of the button for the screen reader.</comment>
+  </data>
+  <data name="Docs_Disc_Group" xml:space="preserve">
+    <value>{0} ({1})</value>
+    <comment>{0}: the kind of discrepancy; {1}: how many.</comment>
+  </data>
+  <data name="Docs_Disc_NoVersion" xml:space="preserve">
+    <value>Este proyecto no tiene ninguna versión guardada que leer.</value>
+    <comment>Shown when the project has no saved version.</comment>
+  </data>
+  <data name="Docs_Disc_Truncated" xml:space="preserve">
+    <value>Había más discrepancias de las que se muestran.</value>
+    <comment>Shown when the list was cut.</comment>
+  </data>
+  <data name="Docs_Disc_Error" xml:space="preserve">
+    <value>No se pudo leer el resultado. {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Text_doc_link_broken" xml:space="preserve">
+    <value>Enlaces rotos</value>
+    <comment>Title of the group of the discrepancy doc.link-broken.</comment>
+  </data>
+  <data name="Text_doc_link_broken_missing" xml:space="preserve">
+    <value>El enlace {0} no lleva a ningún sitio.</value>
+    <comment>{0}: the link as written.</comment>
+  </data>
+  <data name="Text_doc_link_broken_outside" xml:space="preserve">
+    <value>El enlace {0} sale del proyecto.</value>
+    <comment>{0}: the link as written.</comment>
+  </data>
+  <data name="Text_doc_link_broken_case" xml:space="preserve">
+    <value>El enlace {0} solo falla por las mayúsculas. El fichero se llama {1}.</value>
+    <comment>{0}: the link as written; {1}: the real name.</comment>
+  </data>
+  <data name="Text_doc_adr_cites_missing" xml:space="preserve">
+    <value>Decisiones que citan ficheros que ya no existen</value>
+    <comment>Title of the group of the discrepancy doc.adr-cites-missing.</comment>
+  </data>
+  <data name="Text_doc_adr_cites_missing_Line" xml:space="preserve">
+    <value>Cita {0}, que ya no existe.</value>
+    <comment>{0}: the path cited.</comment>
+  </data>
+  <data name="Text_doc_diagram_stale" xml:space="preserve">
+    <value>Diagramas desactualizados</value>
+    <comment>Title of the group of the discrepancy doc.diagram-stale.</comment>
+  </data>
+  <data name="Text_doc_diagram_stale_Line" xml:space="preserve">
+    <value>{0} está desactualizado.</value>
+    <comment>{0}: the diagram.</comment>
+  </data>
+  <data name="Text_requirement_uncovered" xml:space="preserve">
+    <value>Requisitos sin ninguna tarea</value>
+    <comment>Title of the group of the discrepancy requirement.uncovered.</comment>
+  </data>
+  <data name="Text_requirement_uncovered_Line" xml:space="preserve">
+    <value>El requisito {0} ({1}) del hito {2} no tiene ninguna tarea.</value>
+    <comment>{0}: the requirement; {1}: its title; {2}: the milestone.</comment>
+  </data>
+  <data name="Text_consistency_check_failed" xml:space="preserve">
+    <value>Comprobaciones que no se pudieron hacer</value>
+    <comment>Title of the group of the checks that failed.</comment>
+  </data>
+  <data name="Text_consistency_check_failed_Line" xml:space="preserve">
+    <value>No se pudo comprobar: {0}. Vuelve a calcular.</value>
+    <comment>{0}: the title of the check.</comment>
+  </data>
+  <data name="Info_Docs_Diagrams_Title" xml:space="preserve">
+    <value>Diagramas</value>
+    <comment>Information button and title of the section.</comment>
+  </data>
+  <data name="Info_Docs_Diagrams_What" xml:space="preserve">
+    <value>Un diagrama cuenta en texto cómo está hecho el proyecto o cómo fue una ejecución. Lleva la versión que describe. Avisa cuando se queda desactualizado.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Docs_Diagrams_Actions" xml:space="preserve">
+    <value>Elige un diagrama y pulsa Generar.
+Pulsa Deshacer para volver al texto anterior.
+Copia el texto o expórtalo al repositorio.
+Nada se escribe en tu repositorio si no lo pides.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Docs_Discrepancies_Title" xml:space="preserve">
+    <value>Discrepancias</value>
+    <comment>Information button and title of the section.</comment>
+  </data>
+  <data name="Info_Docs_Discrepancies_What" xml:space="preserve">
+    <value>Aquí salen las cosas del proyecto que no encajan. Por ejemplo, un enlace roto o un requisito sin tarea. Se buscan sin usar IA.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Docs_Discrepancies_Actions" xml:space="preserve">
+    <value>Pulsa Calcular para mirar la última versión guardada.
+Abre el fichero de cada aviso.
+Regenera un diagrama desactualizado.
+Ve a Trabajo si falta una tarea para un requisito.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Doctor_Check_project_discrepancies_Title" xml:space="preserve">
+    <value>Discrepancias del proyecto</value>
+    <comment>Title of the line of Auto Doctor that counts the discrepancies saved for the latest saved version.</comment>
+  </data>
+  <data name="Doctor_Check_project_discrepancies_Ok" xml:space="preserve">
+    <value>No hay ninguna discrepancia en la última versión guardada.</value>
+    <comment>Auto Doctor, state correct.</comment>
+  </data>
+  <data name="Doctor_Check_project_discrepancies_Warning" xml:space="preserve">
+    <value>Hay {0} discrepancias en la última versión guardada. Míralas en Auto Graph.</value>
+    <comment>{0}: how many. Auto Doctor, state warning.</comment>
+  </data>
+  <data name="Doctor_Check_project_discrepancies_Unknown" xml:space="preserve">
+    <value>Todavía no se han calculado para esta versión guardada. Pulsa Calcular en Auto Graph.</value>
+    <comment>Auto Doctor, state not checked.</comment>
+  </data>
+  <data name="Doctor_Fix_open_graph" xml:space="preserve">
+    <value>Abre Auto Graph para ver las discrepancias del proyecto</value>
+    <comment>Sentence of the fix of Auto Doctor that goes to Auto Graph.</comment>
+  </data>
+  <data name="Docs_State_Unavailable" xml:space="preserve">
+    <value>No se pudo generar</value>
+    <comment>State of a diagram that cannot be built from what there is now.</comment>
+  </data>
+  <data name="Docs_Failure_Busy" xml:space="preserve">
+    <value>Hay una ejecución en marcha. Exporta cuando termine.</value>
+    <comment>Why something failed: a run has the project.</comment>
+  </data>
+  <data name="Docs_Failure_Log" xml:space="preserve">
+    <value>El historial del proyecto no se puede verificar.</value>
+    <comment>Why something failed: the log does not verify.</comment>
+  </data>
+  <data name="Docs_Failure_Index" xml:space="preserve">
+    <value>No se pudo leer la lista guardada de diagramas. Inténtalo otra vez.</value>
+    <comment>Why something failed: the index of the cache is not readable.</comment>
+  </data>
+  <data name="Docs_Failure_Io" xml:space="preserve">
+    <value>No se pudo leer o escribir un fichero.</value>
+    <comment>Why something failed: a file.</comment>
+  </data>
+  <data name="Docs_Failure_Access" xml:space="preserve">
+    <value>Windows no deja usar un fichero o una carpeta.</value>
+    <comment>Why something failed: access denied.</comment>
+  </data>
+  <data name="Docs_Failure_Model" xml:space="preserve">
+    <value>Los datos de este diagrama no están disponibles.</value>
+    <comment>Why something failed: the model of the diagram.</comment>
+  </data>
+</root>

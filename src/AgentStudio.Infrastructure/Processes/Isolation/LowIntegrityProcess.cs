@@ -101,7 +101,7 @@ internal sealed class LowIntegrityProcess : IStartedProcess
         var environment = WindowsCommandLine.EnvironmentBlock(search.EnvironmentFor(spec));
 
         using var token = LowIntegrityToken.Create();
-        var job = CreateJob();
+        var job = CreateJob(spec.MemoryLimitBytes);
         AnonymousPipeServerStream? stdin = null, stdout = null, stderr = null;
         try
         {
@@ -221,7 +221,7 @@ internal sealed class LowIntegrityProcess : IStartedProcess
         return search.ResolveBareName(name);
     }
 
-    private static SafeJobHandle CreateJob()
+    private static SafeJobHandle CreateJob(long? memoryLimitBytes)
     {
         var job = IsolationNativeMethods.CreateJobObject(0, 0);
         if (job.IsInvalid)
@@ -234,6 +234,13 @@ internal sealed class LowIntegrityProcess : IStartedProcess
         // Kill on close contains the tree; no crash dialog of Windows Error Reporting ever waits on the desktop.
         var info = default(JobObjectExtendedLimitInformation);
         info.BasicLimitInformation.LimitFlags = JobObjectLimitKillOnJobClose | JobObjectLimitDieOnUnhandledException;
+        if (memoryLimitBytes is > 0)
+        {
+            // Only a process that asks (Auto Graph reads files that are not trusted): the memory one process may commit, so a hostile file cannot eat the RAM of the person.
+            info.BasicLimitInformation.LimitFlags |= JobObjectLimitProcessMemory;
+            info.ProcessMemoryLimit = (nuint)memoryLimitBytes.Value;
+        }
+
         if (!SetInformationJobObject(job, JobObjectExtendedLimitInformationClass, ref info, (uint)Marshal.SizeOf<JobObjectExtendedLimitInformation>()))
         {
             var error = new Win32Exception(Marshal.GetLastPInvokeError());

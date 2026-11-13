@@ -1,0 +1,23 @@
+%% Generado por Agent Studio. Editarlo no cambia nada: se regenera.
+%% diagrama: secuencia · generador: 1
+%% ejecución: run-golden · modelo: sha256:e4c359d2ba2c79b5f31335f7b21d67db2525193578a66e89c66d04e8a532632f · fecha: 2026-11-12T10:00:00Z
+sequenceDiagram
+  participant p1 as "Persona"
+  participant p2 as "Orquestador"
+  participant p3 as "Sistema"
+  participant p4 as "Juez"
+  participant p5 as "bob#58; #34;B#34;#59; ana"
+  p1->>p2: inicia la ejecución
+  p2->>p5: lanza la tarea
+  Note over p5: Preparar
+  p5-->>p2: entrega el informe
+  p3->>p2: verifica
+  p2->>p5: lanza la tarea
+  Note over p5: Implementar
+  p5-->>p2: falla
+  p2->>p4: pide el veredicto
+  p4-->>p2: veredicto aprobado
+  p2->>p3: integra
+  p2->>p1: pide aprobación
+  p1->>p2: aprueba
+  p2->>p1: termina la ejecución

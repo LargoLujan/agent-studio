@@ -1,0 +1,13 @@
+%% Generado por Agent Studio. Editarlo no cambia nada: se regenera.
+%% diagrama: plan · generador: 1
+%% ejecución: run-golden · modelo: sha256:ab22bf799833f1c5432acf44f527c701b55d952dd1177e1fd17695c2bf496fe7 · fecha: 2026-11-12T10:00:00Z
+flowchart TD
+  n1["T1 · Preparar #34;x#34;#59; #37;#37; y"]
+  n2["T2 · Implementar"]
+  n3{"T3 · Comprobar"}
+  n4(["T4 · Aprobar"])
+  n5["T5 · Integrar"]
+  n1 --> n2
+  n2 --> n3
+  n3 -->|"sí --#62;#124;z"| n4
+  n4 --> n5

@@ -1,6 +1,8 @@
 using AgentStudio.Application.Help;
 using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Doctor;
+using AgentStudio.Desktop.Graph;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
@@ -10,6 +12,7 @@ using AgentStudio.Desktop.Settings;
 using AgentStudio.Desktop.Setup;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Desktop.Tools;
+using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Desktop.Work;
 
 namespace AgentStudio.Desktop.Help;
@@ -34,6 +37,11 @@ public static class HelpScreens
     public const string Repository = "repository";
     public const string Work = "work";
 
+    // Phase 6 (docs/20 section 6): the panel of Auto Doctor and the document of Auto Graph. The P0 adds the codes with the first version of both
+    // articles; each package completes its article with the keys of the ⓘ of its views.
+    public const string Doctor = "doctor";
+    public const string Graph = "graph";
+
     /// <summary>The screen shown by the content of the dock (a document, or a panel's view); null when it is none of the screens that have help (the welcome tab, a file).</summary>
     public static string? Of(object? content) => content switch
     {
@@ -48,6 +56,8 @@ public static class HelpScreens
         RepositoryViewModel => Repository,
         SettingsDocumentViewModel => Settings,
         WorkDocumentViewModel => Work,
+        ProviderDiagnosticsViewModel or DoctorViewModel => Doctor,
+        GraphDocumentViewModel => Graph,
         _ => null,
     };
 
@@ -74,5 +84,5 @@ public static class HelpScreens
     }
 
     /// <summary>Every screen code that has an article, for the tests of the corpus.</summary>
-    public static IReadOnlyList<string> All { get; } = [Preparation, Canvas, Monitor, Debates, Audit, Memory, Skills, Consumption, Settings, Lock, Repository, Work];
+    public static IReadOnlyList<string> All { get; } = [Preparation, Canvas, Monitor, Debates, Audit, Memory, Skills, Consumption, Settings, Lock, Repository, Work, Doctor, Graph];
 }

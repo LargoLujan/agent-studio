@@ -41,6 +41,24 @@
          System.IO.Packaging stop at 6.0.0, 8.0.0 and 9.0.0-rc.1). Only the version is pinned here: the project that writes the
          .docx (Infrastructure, WP-14D) references it. -->
     <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <!-- Auto Graph (Phase 6, docs/20 D-17; ADR-0062): the syntax parser of C#, and only it. Verified on nuget.org on 2026-11-12:
+         5.6.0 is the version of the compiler of the SDK pinned in global.json (10.0.303 ships Roslyn 5.6.0-2.26377.103) and its
+         nuspec points to the release/stable branch of dotnet/roslyn (the later 5.9.0 points to release/insiders). Listed,
+         published 2026-07-02, no deprecation; license MIT (nuspec expression), by Microsoft. On net10.0 it only brings
+         Microsoft.CodeAnalysis.Common 5.6.0 (MIT) and Microsoft.CodeAnalysis.Analyzers 5.3.0 (MIT). The vulnerability feed of
+         nuget.org of 2026-11-11 has no advisory for any of the three. Only AgentStudio.GraphWorker references it, with its compile
+         assets private: no other project sees a type of Roslyn. Microsoft.CodeAnalysis.Workspaces.* and Microsoft.Build.* never enter. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+    <!-- The version Microsoft.CodeAnalysis.Common 5.6.0 depends on (verified on nuget.org on 2026-11-12: listed, published 2026-03-10, MIT, no advisory).
+         It is a build-time package of rules for analyzer authors and it flows as a build asset through Common to every project that references
+         the analysis process: AgentStudio.GraphWorker references it directly and private, with no assets, so it does not. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" />
+    <!-- DPAPI of the token of GitHub (Phase 6, docs/20 D-15; ADR-0063). Verified on nuget.org on 2026-11-12: 10.0.13 is pinned to
+         match the Microsoft.Extensions.* pins above (the latest 10.x is 10.0.15, published 2026-11-10); listed, published
+         2026-10-13, no deprecation; license MIT (nuspec expression), by Microsoft (dotnet/dotnet); net10.0 asset group with no
+         dependency. No advisory in the vulnerability feed of nuget.org of 2026-11-11. Infrastructure references it (the vault of
+         WP-S). -->
+    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.13" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

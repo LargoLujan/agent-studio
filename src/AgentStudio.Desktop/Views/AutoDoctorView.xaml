@@ -5,8 +5,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
+             xmlns:doc="clr-namespace:AgentStudio.Desktop.Doctor"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:ProviderDiagnosticsViewModel}">
+             d:DataContext="{d:DesignInstance Type=doc:DoctorViewModel}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
 
@@ -15,6 +17,31 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="Parked">
                     <Setter Property="Fill" Value="{StaticResource BorderStrongBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- The state of a check or a section: a shape (✓ ! ✕ ? –) as well as a colour, so it is not told by colour alone. -->
+        <Style x:Key="DoctorGlyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Ok">
+                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Warning">
+                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Error">
+                    <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Unknown">
+                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -48,6 +75,75 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- One check of a section: its state, its title and sentence, its fix, its details and, for a guide, the card with the command to copy. -->
+        <DataTemplate x:Key="CheckTemplate" DataType="{x:Type doc:DoctorCheckViewModel}">
+            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource DoctorGlyph}" Text="{Binding Glyph}" Margin="0,0,8,0" VerticalAlignment="Top"
+                                   ToolTip="{Binding StatusName}"/>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding Explanation}"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" Style="{StaticResource GhostButton}" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Top"
+                                Content="{Binding FixLabel}" Command="{Binding RunFixCommand}"
+                                Visibility="{Binding HasFix, Converter={StaticResource BoolToVisibility}}"/>
+                        <ToggleButton x:Name="DetailsButton" Grid.Column="3" Style="{StaticResource DetailsToggle}" VerticalAlignment="Top"
+                                      ToolTip="{l:T Doctor_Details_Hint}"
+                                      AutomationProperties.Name="{Binding Title, StringFormat={l:T Doctor_Details_Name}}"
+                                      Visibility="{Binding HasFacts, Converter={StaticResource BoolToVisibility}}"/>
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding Facts}" Margin="26,6,0,2" Focusable="False"
+                                  Visibility="{Binding IsChecked, ElementName=DetailsButton, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type doc:DoctorFactItem}">
+                                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
+                                    <Run Text="{Binding Label, Mode=OneWay}"/><Run Text=": "/><Run FontFamily="{StaticResource MonoFont}" Text="{Binding Value, Mode=OneWay}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- The card of a guide: what to do, the command to copy (the app never runs it) and the official page. -->
+                    <Border Margin="26,6,0,2" Padding="10,8" CornerRadius="4" Background="{StaticResource SurfaceRaisedBrush}"
+                            Visibility="{Binding IsGuideOpen, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding FixSentence}"/>
+                            <Grid Margin="0,6,0,0" Visibility="{Binding HasGuideCommand, Converter={StaticResource BoolToVisibility}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox IsReadOnly="True" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" Text="{Binding GuideCommand, Mode=OneWay}"
+                                         AutomationProperties.Name="{l:T Doctor_Guide_Command_Name}"/>
+                                <Button Grid.Column="1" Style="{StaticResource GhostButton}" Padding="8,3" Margin="8,0,0,0"
+                                        Content="{l:T Doctor_Guide_Copy}" Command="{Binding CopyCommandCommand}"/>
+                            </Grid>
+                            <Button Style="{StaticResource GhostButton}" Padding="8,3" Margin="0,6,0,0" HorizontalAlignment="Left"
+                                    Content="{l:T Doctor_Guide_OpenPage}" Command="{Binding OpenPageCommand}"
+                                    Visibility="{Binding HasGuidePage, Converter={StaticResource BoolToVisibility}}"/>
+                            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,6,0,0" Text="{l:T Doctor_Guide_NotRun}"
+                                       Visibility="{Binding HasGuideCommand, Converter={StaticResource BoolToVisibility}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="26,4,0,0">
+                        <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding FixMessage}" AutomationProperties.LiveSetting="Polite"/>
+                        <Button Style="{StaticResource GhostButton}" Padding="8,3" Margin="8,0,0,0" Content="{l:T Doctor_Fix_Undo}" Command="{Binding UndoCommand}"
+                                Visibility="{Binding CanUndo, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource SurfaceBrush}">
@@ -63,8 +159,11 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Providers_Title}"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Doctor_Title}"/>
+                    <info:InfoButton InfoKey="Info_Doctor" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap"
                            Text="{Binding LastCheckedAt, StringFormat={l:T Providers_LastChecked}, TargetNullValue={l:T Providers_NeverChecked}}"/>
             </StackPanel>
             <Button Grid.Column="1" Style="{StaticResource GhostButton}" Padding="10,4"
@@ -72,62 +171,200 @@
                     ToolTip="{l:T Providers_Recheck_Hint}"/>
         </Grid>
 
-        <ProgressBar Grid.Row="1" Style="{StaticResource AccentProgress}" Margin="12,8,12,0"
-                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+        <StackPanel Grid.Row="1" Margin="12,8,12,0" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <ProgressBar Style="{StaticResource AccentProgress}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{l:T Doctor_Checking}" AutomationProperties.LiveSetting="Polite"/>
+        </StackPanel>
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0" Focusable="False">
             <StackPanel Margin="12,0,12,12">
-                <TextBlock Style="{StaticResource ErrorText}" Margin="0,0,0,8" Text="{Binding ErrorMessage}"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Providers_None}"
+                <TextBlock Style="{StaticResource ErrorText}" Margin="0,0,0,8" TextWrapping="Wrap" Text="{Binding ErrorMessage}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,8" TextWrapping="Wrap" Text="{Binding Notice}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Doctor_None}"
                            Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}"/>
 
-                <!-- One row per provider: its dot, its name, and its version and session (or «Aparcado») on one line; what else
-                     the check found (installation, method, path, notes) is folded under «Detalles». -->
-                <ItemsControl x:Name="ProviderList" ItemsSource="{Binding Providers}" Focusable="False">
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
+                <!-- One folded row per section with its worst state and how many checks are correct; it opens by itself when something needs a look. -->
+                <ItemsControl x:Name="SectionList" ItemsSource="{Binding Sections}" Focusable="False">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:ProviderStatusItem}">
+                        <DataTemplate DataType="{x:Type doc:DoctorSectionViewModel}">
                             <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
                                 <StackPanel>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Ellipse Style="{StaticResource ProviderDot}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Grid.Column="1" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center"
-                                                   Text="{Binding Name}"/>
-                                        <TextBlock Grid.Column="2" Style="{StaticResource SecondaryText}" Margin="10,0,4,0" VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" Text="{Binding Summary}" ToolTip="{Binding Summary}"/>
-                                        <ToggleButton x:Name="DetailsButton" Grid.Column="3" Style="{StaticResource DetailsToggle}"
-                                                      ToolTip="{l:T Providers_Details_Hint}"
-                                                      AutomationProperties.Name="{Binding Name, StringFormat={l:T Providers_Details_Name}}"/>
+                                        <TextBlock Style="{StaticResource DoctorGlyph}" Text="{Binding Glyph}" Margin="0,0,8,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
+                                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Summary}"/>
+                                        </StackPanel>
+                                        <!-- The ⓘ of the section: one button for each, with its key written out (the corpus of the help links the articles by those keys). -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
+                                            <info:InfoButton InfoKey="Info_Doctor_Providers" Visibility="{Binding IsProviders, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_Tools" Visibility="{Binding IsTools, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_Project" Visibility="{Binding IsProject, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_DeclaredEnvironment" Visibility="{Binding IsTable, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_Containers" Visibility="{Binding IsContainers, Converter={StaticResource BoolToVisibility}}"/>
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="3" Style="{StaticResource DetailsToggle}" IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                      ToolTip="{l:T Doctor_Section_Hint}" AutomationProperties.Name="{Binding AutomationName}"/>
                                     </Grid>
-                                    <StackPanel Margin="18,6,0,2"
-                                                Visibility="{Binding IsChecked, ElementName=DetailsButton, Converter={StaticResource BoolToVisibility}}">
-                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,0,0,4"
-                                                   Text="{Binding ParkedNote, TargetNullValue=''}"/>
-                                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
-                                            <Run Text="{Binding Installation, Mode=OneWay, StringFormat={l:T Providers_Installation}}"/>
-                                            <Run Text="·"/>
-                                            <Run Text="{Binding Version, Mode=OneWay, StringFormat={l:T Providers_Version}}"/>
-                                            <Run Text="·"/>
-                                            <Run Text="{Binding Authentication, Mode=OneWay, StringFormat={l:T Providers_Session}}"/>
-                                            <Run Text="·"/>
-                                            <Run Text="{Binding Method, Mode=OneWay, StringFormat={l:T Providers_Method}}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
-                                                   FontFamily="{StaticResource MonoFont}" Text="{Binding ExecutablePath}" ToolTip="{Binding ExecutablePath}"/>
-                                        <ItemsControl ItemsSource="{Binding Notes}" Margin="0,2,0,0" Focusable="False">
+
+                                    <!-- The providers, as before Phase 6: one row each, with its version and session on a line. -->
+                                    <ItemsControl ItemsSource="{Binding DataContext.Providers.Providers, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  Margin="26,4,0,0" Focusable="False">
+                                        <ItemsControl.Style>
+                                            <Style TargetType="ItemsControl">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsExpanded}" Value="True"/>
+                                                            <Condition Binding="{Binding IsProviders}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ItemsControl.Style>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:ProviderStatusItem}">
+                                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                                                    <StackPanel>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Ellipse Style="{StaticResource ProviderDot}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Grid.Column="1" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                                       Text="{Binding Name}"/>
+                                                            <TextBlock Grid.Column="2" Style="{StaticResource SecondaryText}" Margin="10,0,4,0" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" Text="{Binding Summary}" ToolTip="{Binding Summary}"/>
+                                                            <ToggleButton x:Name="DetailsButton" Grid.Column="3" Style="{StaticResource DetailsToggle}"
+                                                                          ToolTip="{l:T Providers_Details_Hint}"
+                                                                          AutomationProperties.Name="{Binding Name, StringFormat={l:T Providers_Details_Name}}"/>
+                                                        </Grid>
+                                                        <StackPanel Margin="18,6,0,2"
+                                                                    Visibility="{Binding IsChecked, ElementName=DetailsButton, Converter={StaticResource BoolToVisibility}}">
+                                                            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,0,0,4"
+                                                                       Text="{Binding ParkedNote, TargetNullValue=''}"/>
+                                                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
+                                                                <Run Text="{Binding Installation, Mode=OneWay, StringFormat={l:T Providers_Installation}}"/>
+                                                                <Run Text="·"/>
+                                                                <Run Text="{Binding Version, Mode=OneWay, StringFormat={l:T Providers_Version}}"/>
+                                                                <Run Text="·"/>
+                                                                <Run Text="{Binding Authentication, Mode=OneWay, StringFormat={l:T Providers_Session}}"/>
+                                                                <Run Text="·"/>
+                                                                <Run Text="{Binding Method, Mode=OneWay, StringFormat={l:T Providers_Method}}"/>
+                                                            </TextBlock>
+                                                            <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                                                       FontFamily="{StaticResource MonoFont}" Text="{Binding ExecutablePath}" ToolTip="{Binding ExecutablePath}"/>
+                                                            <ItemsControl ItemsSource="{Binding Notes}" Margin="0,2,0,0" Focusable="False">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding}"/>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Under the rows of the providers: the fixes of a program that is missing or a session that is not open. -->
+                                    <ItemsControl ItemsSource="{Binding ActionChecks}" Margin="26,4,0,0" Focusable="False" ItemTemplate="{StaticResource CheckTemplate}">
+                                        <ItemsControl.Style>
+                                            <Style TargetType="ItemsControl">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsExpanded}" Value="True"/>
+                                                            <Condition Binding="{Binding IsProviders}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ItemsControl.Style>
+                                    </ItemsControl>
+
+                                    <!-- The checks of the other sections, and, for the declared environment, a table of four columns (what is asked, where, what there is, the result). -->
+                                    <ItemsControl ItemsSource="{Binding Checks}" Margin="26,4,0,0" Focusable="False" ItemTemplate="{StaticResource CheckTemplate}">
+                                        <ItemsControl.Style>
+                                            <Style TargetType="ItemsControl">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsExpanded}" Value="True"/>
+                                                            <Condition Binding="{Binding IsList}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ItemsControl.Style>
+                                    </ItemsControl>
+
+                                    <StackPanel Margin="26,4,0,0">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsExpanded}" Value="True"/>
+                                                            <Condition Binding="{Binding IsTable}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource OptionalSecondaryText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{l:T Doctor_Table_Declared}"/>
+                                            <TextBlock Grid.Column="1" Style="{StaticResource OptionalSecondaryText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{l:T Doctor_Table_Source}"/>
+                                            <TextBlock Grid.Column="2" Style="{StaticResource OptionalSecondaryText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{l:T Doctor_Table_Installed}"/>
+                                            <TextBlock Grid.Column="3" Style="{StaticResource OptionalSecondaryText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{l:T Doctor_Table_Result}"/>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding Checks}" Focusable="False">
                                             <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding}"/>
+                                                <DataTemplate DataType="{x:Type doc:DoctorCheckViewModel}">
+                                                    <Grid Margin="0,4,0,0" AutomationProperties.Name="{Binding AutomationName}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Declared}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Source}"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Installed}"/>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                                            <TextBlock Style="{StaticResource DoctorGlyph}" Text="{Binding Glyph}" Margin="0,0,6,0"/>
+                                                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding StatusName}"/>
+                                                        </StackPanel>
+                                                    </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

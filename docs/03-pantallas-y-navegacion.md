@@ -60,8 +60,8 @@ debajo.
     usar cada agente de la plantilla del proyecto abierto, y su «Dar a un agente…» lleva a esa capa con el inspector.
     **Pruebas** muestra u oculta el panel de abajo del mismo nombre. Sus títulos salen de los recursos
     (`IntegrationStrings`, castellano de España e inglés).
-  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Git y Auto Graph tendrán entrada
-    cuando llegue la suya.
+  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Auto Graph tiene la suya (entre
+    «Trabajo» y «Debates», [sección 8.3](#83-auto-graph-fase-6-wp-g)); Git tendrá entrada cuando llegue la suya.
   - El anillo de foco va en el botón que tiene el teclado, nunca alrededor de toda la barra.
 - **Pestañas de abajo.** Junto a «Terminal», en el mismo grupo, «Problemas», «Salida» y «Pruebas» (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)):
   siguen al monitor de la ejecución del proyecto abierto (con otro proyecto, o sin ejecución, quedan vacíos, nunca con lo del
@@ -1100,37 +1100,44 @@ plegada mientras no hay nada que enseñar:
 
 ## 7. Auto Doctor
 
-```text
-┌ Auto Doctor ─────────────────────────────────────────────────────────── [Volver a comprobar] ┐
-│ ● Claude Code   2.1.290   Sesión iniciada · claude.ai (suscripción)     C:\…\claude.exe       │
-│ ● Codex CLI     0.160.0   Sesión iniciada · ChatGPT                     C:\…\npm\codex.cmd    │
-│ ● Gemini CLI    —         No instalado                    [Cómo instalarlo]                   │
-│ ● .NET SDK      10.0.303  ● Git 2.45.2  ● Node 24.14  ● WebView2 Runtime (Fase 1)              │
-└──────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-El boceto es el Auto Doctor completo (Fase 6). Hoy el panel solo comprueba los proveedores, y desde la tanda 1
-(2026-10-30) es compacto:
+Auto Doctor (Fase 6, [20](20-fase-6-auto-doctor-y-auto-graph.md) D-04 y §6.1, [ADR-0061](adr/0061-auto-doctor.md)) es el panel plegado a la derecha que mira si tu equipo está listo
+para trabajar en el proyecto. **Contiene** el panel de proveedores de antes: sus filas siguen como estaban, dentro del primer apartado.
 
 ```text
-┌ Proveedores                          [Volver a comprobar] ┐
-│ Última comprobación: 14:05:12                             │
-│ ● Claude Code  2.1.290 · Sesión iniciada              ›   │
-│ ● Codex CLI    0.160.0 · Sesión iniciada              ›   │
-│ ● Gemini CLI   Aparcado                               ⌄   │
-│   Aparcado (ADR-0009): sin una clave de API (GEMINI_…     │
-│   Instalación: … · Versión: … · Sesión: … · Método: …     │
-│   C:\…\npm\gemini.cmd · notas de la comprobación          │
-└───────────────────────────────────────────────────────────┘
+┌ Auto Doctor ⓘ ─────────────────────────────────────────────────────── [Volver a comprobar] ┐
+│ Última comprobación: 14:05:12                                                              │
+│ ! Programas de los agentes ⓘ                                                         ⌄     │
+│   2 de 3 correctas                                                                         │
+│   ● Claude Code  2.1.290 · Sesión iniciada                                           ›     │
+│   ● Codex CLI    0.160.0 · Sesión iniciada                                           ›     │
+│   ● Gemini CLI   Aparcado                                                            ›     │
+│   ! Instalación de Gemini CLI — no está instalado        [Cómo arreglarlo]                 │
+│ ✓ Herramientas del equipo ⓘ                                                          ›     │
+│   7 de 7 correctas                                                                         │
+│ ! Proyecto ⓘ                                                                         ⌄     │
+│   ! Configuración del proyecto — aún no usaste el configurador   [Ir a…]                   │
+│ ! Contenedores ⓘ                                                                     ⌄     │
+│   ! Docker — está instalado, pero su motor está parado          [Cómo arreglarlo]          │
+│     Abre Docker Desktop y espera a que su motor arranque.                                  │
+│ ✓ Entorno que pide el proyecto ⓘ                                                      ›     │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Una fila por proveedor: su punto, su nombre y una línea con la versión y la sesión (o lo que falló). Lo demás
-  (instalación, método, ruta y notas) va plegado en «Detalles», el botón de la derecha de cada fila.
-- Gemini sale **«Aparcado»**, con un punto neutro, salvo que la comprobación vea una clave de API o una sesión
-  ([ADR-0009](adr/0009-google-aparcado.md)). Un proveedor aparcado no cuenta en el resumen de la barra superior.
-- El panel está plegado a la derecha por defecto. Se abre desde su pestaña, desde «Auto Doctor» en la barra lateral o
-  desde el resumen de proveedores de la barra superior («Proveedores: 2 de 2 listos»).
-
+- **Cinco apartados plegables** (programas de los agentes, herramientas del equipo, proyecto, entorno que pide el proyecto y contenedores): una fila por apartado con el peor
+  estado, su forma (✓ correcto, ! aviso, ✕ error, ? sin comprobar, – no aplica: no se dice solo con el color) y «n de m correctas». Se abre solo el que necesita una mirada. Un apartado
+  sin ninguna comprobación no sale (sin proyecto abierto no salen «Proyecto» ni «Entorno»). Cada apartado tiene su ⓘ, que enlaza con el artículo de ayuda `doctor`.
+- **Cada comprobación:** su estado, su título, una frase, un botón de arreglo si lo tiene y «Detalles» plegados con sus datos (versión, ruta…). «Sin comprobar» no es «correcto»: es que
+  la herramienta no contestó, tardó más de 10 s o dijo algo que no se entiende.
+- **Los arreglos son de tres clases y ninguno toca el sistema.** «Ir a…» abre una pantalla de la app (el configurador, Auto Graph o Skills); solo se ofrece si la app puede abrirla. La línea «Discrepancias del proyecto» de «Proyecto» lleva a Auto Graph (es el único arreglo que cruza paquetes: «Regenerar» está en «Diagramas», que ya es esa pantalla).
+  «Cómo arreglarlo» abre una tarjeta con una frase, una **orden para copiar** (Agent Studio no la ejecuta) y un botón a la página oficial. «Aplicar» y «Deshacer» existen para un cambio de
+  Agent Studio que se pueda deshacer, y no hay ninguno registrado en la Fase 6.
+- **Cuándo comprueba:** al abrir el panel (y otra vez solo si pasó más de un minuto) y al pulsar «Volver a comprobar». Las sondas de los proveedores se lanzan **una vez** por comprobación y sus
+  resultados alimentan las filas de siempre. No hay sondeo periódico y el resultado no se guarda.
+- **La tabla del entorno que pide el proyecto** (cuatro columnas: qué pide, dónde lo dice, qué hay y el resultado) está en el apartado «Entorno que pide el proyecto» (lo lee de `global.json`, `.nvmrc`, `package.json`, `pyproject.toml` y ficheros parecidos, sin ejecutar nada del repositorio).
+- Las filas de los proveedores se conservan: una fila por proveedor con su punto, su nombre y una línea con la versión y la sesión; lo demás va en «Detalles». Gemini sale **«Aparcado»**, con
+  un punto neutro, salvo que la comprobación vea una clave de API o una sesión ([ADR-0009](adr/0009-google-aparcado.md)), y no cuenta en el resumen de la barra superior ni en el apartado.
+- El panel está plegado a la derecha por defecto. Se abre desde su pestaña, desde «Auto Doctor» en la barra lateral o desde el resumen de proveedores de la barra superior
+  («Proveedores: 2 de 2 listos»).
 ## 8. Navegación
 
 ```mermaid
@@ -1331,6 +1338,107 @@ Lo que no hace esta pantalla, y por qué: no revisa los requisitos de un hito de
 pantalla todavía), no reordena el backlog (`ReorderAsync` tampoco) y no enseña el consumo por hito y por actividad: eso es de «Consumo»
 (`UsageDashboardViewModel`, fuera de este paquete).
 
+### 8.3 Auto Graph (Fase 6, WP-G)
+
+El documento «Auto Graph» del proyecto abierto: [20 §6.4](20-fase-6-auto-doctor-y-auto-graph.md#64-auto-graph-documento-nuevo-con-tres-secciones) (F6-3 a F6-5),
+[04 §25](04-contratos.md#25-fase-6-auto-doctor-auto-graph-entorno-declarado-y-diagramas) y [ADR-0062](adr/0062-auto-graph-sin-msbuild.md). Es una pestaña
+por sesión, con su entrada «Auto Graph» en la barra lateral (entre «Trabajo» y «Debates»), que sigue al proyecto abierto. Como «Trabajo», tiene a la izquierda
+la lista de apartados y a la derecha el elegido; WP-G aporta «Grafo», y «Diagramas» y «Discrepancias» las aporta WP-D. Cada apartado y cada parte compleja lleva su
+ⓘ en castellano y en inglés, y el artículo de ayuda `graph` los recoge. Si falta un servicio, el apartado lo dice y no ofrece nada que lo necesite.
+
+```text
+┌ Auto Graph ⓘ ──────────────────────────────────────────────────────────────────────────────────────────┐
+│ ┌ Apartados ───────┐  Grafo ⓘ                                                                           │
+│ │ Grafo            │  [Actualizar] [Proponer relaciones ⓘ]  ☐ Mostrar los paquetes  ☑ Mostrar las de la IA│
+│ └──────────────────┘  Describe la versión guardada (commit) a1b2c3d. Tu carpeta tiene cambios…          │
+│                       ┌ lienzo, solo para mirar ──────────────────────────────────────────────────┐   │
+│                       │  [Core] ──▶ [App ◐ Parcial] ──▶ [Web]     - - IA - -▶ (propuesta por una IA)│   │
+│                       └────────────────────────────────────────────────────────────────────────────┘   │
+│                       Leída de los ficheros · ◐ Parcial · - - Propuesta por una IA                     │
+│                       Proyecto elegido: App · [Desplegar] [Abrir su fichero de proyecto] · tareas ·…   │
+│                       Lo que no se pudo leer (ⓘ): 3 proyectos: 2 completos y 1 parcial · huecos…       │
+│                       El grafo en una lista (teclado y lector de pantalla)                             │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **El grafo (F6-3).** Describe una versión guardada concreta, no tu carpeta (D-19): la pantalla dice cuál y avisa si tu carpeta tiene cambios. Se
+  calcula al abrir si no hay nada guardado para esa versión, o con «Actualizar», y se guarda en `%LOCALAPPDATA%\AgentStudio\graph` (derivado: se
+  puede borrar). Lo lee un proceso aparte a integridad baja sobre una copia de esa versión, sin compilar ni ejecutar nada del repositorio
+  ([ADR-0062](adr/0062-auto-graph-sin-msbuild.md)). Con una verificación en marcha espera (comparte su cerrojo) y lo dice.
+- **El lienzo (D-22).** Nodify en solo lectura (los nodos no se arrastran). Por defecto, los proyectos; «Desplegar» enseña los espacios de nombres de
+  uno, y los paquetes salen con su interruptor. La disposición es la de la app, sin librería: cada nodo en la capa de la profundidad de sus
+  dependencias (lo usado, a la izquierda de quien lo usa) y, dentro de la capa, por nombre; el mismo grafo se dibuja siempre igual. Con más de 200
+  nodos a la vista, no se despliega otro proyecto y se dice. Un proyecto **parcial** lleva la palabra «Parcial» y un signo (◐), no solo el color.
+- **Lo que propone una IA (F6-4, D-21).** Una relación leída es una línea continua; una que propuso una IA va con línea discontinua, otro color y la
+  etiqueta «IA», tiene su entrada en la leyenda (que solo sale si hay alguna) y su nombre para el lector de pantalla dice «relación propuesta por
+  <agente>». Un interruptor las oculta. **«Proponer relaciones»** gasta el límite de uso de tu plan: abre una tarjeta con lo que se enviaría
+  (los nombres de los nodos y las relaciones ya leídas; ningún fichero ni ruta de tu equipo) y la estimación, y no lanza nada hasta que das tu OK;
+  cada pulsación pide el suyo. Es un solo lanzamiento de solo lectura, en una carpeta vacía, con el propósito propio `GraphRelations` en el
+  consumo. Lo aceptado queda en el almacén aparte y en el registro (`GraphRelationsProposed`, con el texto del agente como prueba guardada); la huella
+  del modelo no se mueve. Sin el servicio, el botón no se ofrece.
+- **Del nodo al fichero y a la tarea (F6-5, D-22).** De un proyecto, «Abrir su fichero de proyecto» abre su `.csproj` en el editor; de un espacio de
+  nombres, la lista de ficheros que lo declaran, y «Abrir» el que elijas. Antes de abrir, la ruta se vuelve a comprobar contra tu carpeta
+  (relativa, sin salir de ella, sin enlaces en el camino y que exista): la copia de la que salió ya no está y la carpeta pudo cambiar; si el
+  fichero ya no está, lo dice y no abre nada. De un proyecto, las tareas cuyos intentos cambiaron ficheros bajo su carpeta (de los registros
+  anclados de cada intento), y «Ir a la tarea» abre «Trabajo» en la cadena de esa tarea (F9-4).
+- **Lo que no se pudo leer.** La cobertura (proyectos completos y parciales, huecos) y la lista de huecos con su motivo, su fichero y su línea. Lo que
+  MSBuild resolvería (condiciones, importaciones, comodines, `Directory.Build.props`) sale parcial, nunca se evalúa; un fichero que falla (grande, lento,
+  muy anidado, mal formado) o que mató al proceso sale como hueco, y el resto del grafo se enseña entero.
+- **Teclado y lector de pantalla.** Debajo del lienzo, una lista con lo mismo en palabras (cada nodo y lo que usa; las propuestas por una IA, marcadas);
+  elegir una fila elige el nodo. El lienzo y los nodos llevan su nombre accesible.
+
+#### 8.3.1 «Diagramas» y «Discrepancias» (Fase 6, WP-D)
+
+Los dos apartados que faltaban del documento: [20 D-23 a D-30](20-fase-6-auto-doctor-y-auto-graph.md#38-diagramas-f6-10) (F6-10 y F6-11),
+[04 §25.8](04-contratos.md#258-diagramas-y-discrepancias-wp-d) y [ADR-0045](adr/0045-diagramas-generados-con-su-version.md). Sus textos son `DocsStrings`
+(castellano e inglés), cada uno lleva su ⓘ (`Info_Docs_Diagrams`, `Info_Docs_Discrepancies`) y el artículo de ayuda `graph` los recoge.
+
+```text
+┌ Auto Graph ⓘ ──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ┌ Apartados ───────┐  Diagramas ⓘ                                                                           │
+│ │ Grafo            │  Aquí ves los diagramas del proyecto como texto. Se guardan en este equipo…            │
+│ │ Diagramas        │  ┌ Diagramas del proyecto ───────────────────────────────────────────────────────┐   │
+│ │ Discrepancias    │  │ La solución            ⚠ Desactualizado: describe la versión guardada a1b2c3d  │   │
+│ └──────────────────┘  │                          Sin exportar al repositorio                           │   │
+│                       │ Plan de la ejecución R ✓ Al día · Exportado y al día                           │   │
+│                       └────────────────────────────────────────────────────────────────────────────────┘   │
+│                       [Regenerar] [Deshacer] [Copiar] [Exportar al repositorio] [Actualizar la lista]      │
+│                       Texto del diagrama   ┌ solo lectura ──────────────────────────────────────────┐      │
+│                                            │ %% Generado por Agent Studio. Editarlo no cambia nada… │      │
+│                                            └────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Diagramas (F6-10, D-25 y D-26).** La lista trae la solución, los espacios de nombres de cada proyecto, y el plan y la secuencia de las últimas 50 ejecuciones,
+  cada uno con su estado en palabras y con un signo (✓ al día, ⚠ desactualizado, ○ sin generar) y el de su copia en el repositorio (sin exportar, exportado y al
+  día, exportado pero anterior, exportado pero cambiado fuera, o «hay un fichero que no escribió este equipo»). Abrir el apartado **no genera nada ni lanza el
+  análisis**: «Generar» crea el texto en la caché de este equipo (`%LOCALAPPDATA%\AgentStudio\diagrams`; para la solución puede calcular el análisis de la versión
+  guardada), y sobre uno que ya está al día no cambia nada y lo dice. «Regenerar» guarda el texto anterior y **«Deshacer»** lo devuelve byte a byte. «Copiar» pone
+  el texto en el portapapeles. «Exportar al repositorio» es una orden tuya: escribe un Markdown con un bloque `mermaid` en `docs/generado/diagramas/` (nombres de
+  una lista cerrada, sin seguir enlaces, nunca con una ejecución en marcha) y, si el fichero ya existe y no es el que escribió esta aplicación, **pregunta**:
+  sobrescribir, guardar con otro nombre o dejarlo. El texto se enseña en solo lectura: el dibujo es de la Fase 16 (la solución ya se dibuja en «Grafo»).
+- **Discrepancias (F6-11, D-27 a D-30).** Cuatro clases, agrupadas y con su acción: enlaces rotos (abrir el fichero), decisiones que citan ficheros que ya no existen
+  (abrir el fichero), diagramas desactualizados (**Regenerar**) y requisitos sin ninguna tarea (**Ir a Trabajo**, que abre el tablero). Una quinta clase solo sale cuando una
+  comprobación no pudo hacerse («Comprobaciones que no se pudieron hacer»): un fallo nunca se enseña como «no hay nada». El apartado lee lo guardado para la versión en
+  la que está el proyecto y **nunca lanza la copia ni el análisis por sí solo**: sin resultado, dice «sin calcular» y ofrece **Calcular**. Los diagramas desactualizados se leen
+  de la caché cada vez, porque regenerar uno lo cambia sin un análisis nuevo. La línea «Discrepancias del proyecto» de la sección «Proyecto» de Auto Doctor cuenta lo
+  guardado para esa versión y lleva a este documento.
+- **Teclado y lector de pantalla.** Cada fila de la lista de diagramas lleva su nombre (diagrama, estado y copia), cada botón de una discrepancia nombra el fichero o la
+  discrepancia sobre la que actúa, y el estado nunca se dice solo con el color.
+
+#### 8.3.2 Doctor de skills (Fase 6, WP-S): dentro de la pantalla de Skills
+
+El doctor de skills ([20 §6.2 y §6.3](20-fase-6-auto-doctor-y-auto-graph.md#62-skills-pantalla-ampliada), [10 §6](10-catalogo-de-skills.md#6-salud-doctor), [ADR-0063](adr/0063-doctor-de-skills-con-red.md))
+**no es un apartado de Auto Doctor** (D-01 fija cinco apartados, sin skills) ni está repetido en Ajustes: vive en la pantalla de Skills, que es donde se ve su resultado.
+
+- **«Comprobar en GitHub»:** un botón con su permiso, apagado de partida («Permitir que Agent Studio pregunte a GitHub por las skills»). Apagado, el botón está desactivado y la pantalla dice por qué.
+  Un texto explica qué se envía (el propietario, el repositorio, la rama, la carpeta y la versión fijada de cada skill, solo a `api.github.com`) y el estado de la última comprobación
+  (cuántas sin novedades, por revisar y sin comprobar) y el límite de consultas de GitHub. Nunca se comprueba al abrir la pantalla ni en segundo plano.
+- **«Clave de acceso de GitHub (opcional)»:** guardar o cambiar y borrar, cada una con Windows Hello; con clave, cada comprobación pide Hello. La clave no se vuelve a mostrar:
+  solo «hay una clave de acceso guardada».
+- **«Marcar los scripts como revisados»,** en la skill, con la lista de scripts y un enlace para abrir cada uno. Ningún script se ejecuta.
+- **Sin arreglos desde Auto Doctor:** «Ver la skill» y «Desactivar la skill archivada» no se ofrecen en el panel de Auto Doctor porque ninguna comprobación suya habla de skills; la persona hace
+  lo mismo desde esta pantalla (ver la skill y desactivarla).
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 
 Para tu demostración, con la composición real (cada paso que gasta cuota pide tu aprobación antes):

@@ -90,3 +90,12 @@ public interface ICredentialVault
 
     Task DeleteAsync(string name, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Whether a secret exists, without decrypting it (docs/20 D-15): what lets the screen say «hay un token guardado», and lets the checker skip the
+/// presence when there is none, without reading the vault. Separate from <see cref="ICredentialVault"/> so that contract does not change.
+/// </summary>
+public interface ICredentialVaultProbe
+{
+    Task<bool> ContainsAsync(string name, CancellationToken cancellationToken);
+}

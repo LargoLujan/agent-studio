@@ -1,0 +1,2 @@
+Distribución predeterminada: docker-desktop
+Versión predeterminada: 2

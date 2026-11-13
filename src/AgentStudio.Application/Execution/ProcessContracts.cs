@@ -14,6 +14,10 @@ namespace AgentStudio.Application.Execution;
 /// for a server that ends at the end of its input before it answers (the Codex app-server, docs/14 D-15). Disposing the
 /// session ends the tree. The batch runner refuses it: it would wait for the timeout.
 /// </param>
+/// <param name="MemoryLimitBytes">
+/// Only with <see cref="ProcessIsolation.LowIntegrity"/>: the most memory the process may commit (its Job Object limit); past it the allocation fails. Null (the
+/// default) sets none, as for every verification step. Auto Graph sets one for the process that reads files that are not trusted.
+/// </param>
 /// <param name="MaxOutputCharacters">
 /// Optional cap on the characters the process may write to EACH of its standard output and error. Past it the tree is killed and
 /// the result says <see cref="ProcessResult.OutputLimitExceeded"/>. Null (the default) keeps the output unbounded, as before.
@@ -27,7 +31,8 @@ public sealed record ProcessSpec(
     string? StandardInput = null,
     ProcessIsolation Isolation = ProcessIsolation.None,
     bool KeepStandardInputOpen = false,
-    int? MaxOutputCharacters = null);
+    int? MaxOutputCharacters = null,
+    long? MemoryLimitBytes = null);
 
 /// <summary>How a process is kept from writing the user's files (ADR-0017).</summary>
 public enum ProcessIsolation

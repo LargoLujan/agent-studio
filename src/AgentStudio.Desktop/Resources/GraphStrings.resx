@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Auto Graph area (docs/20 section 6.4, ADR-0054) in Spanish of Spain, the source language. WP-G brings the section «Grafo»; WP-D adds the keys of «Diagramas» and «Discrepancias» in DocsStrings. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Graph_Title" xml:space="preserve">
+    <value>Auto Graph</value>
+    <comment>Title of the tab and of the entry of the bar.</comment>
+  </data>
+  <data name="Graph_Intro" xml:space="preserve">
+    <value>Cómo está hecho el proyecto: sus proyectos, sus espacios de nombres y lo que usa cada uno.</value>
+    <comment>Subtitle of the document.</comment>
+  </data>
+  <data name="Graph_Sections_Name" xml:space="preserve">
+    <value>Apartados de Auto Graph</value>
+    <comment>Accessible name of the list of sections.</comment>
+  </data>
+  <data name="Graph_NoProject" xml:space="preserve">
+    <value>Abre un proyecto para ver su grafo.</value>
+    <comment>Shown when no project is open.</comment>
+  </data>
+  <data name="Graph_Unavailable" xml:space="preserve">
+    <value>El grafo no está disponible: falta algún servicio de la aplicación.</value>
+    <comment>Shown when the analysis is not composed.</comment>
+  </data>
+  <data name="Graph_Empty" xml:space="preserve">
+    <value>Todavía no hay grafo de este proyecto. Pulsa Actualizar.</value>
+    <comment>Shown when there is no graph yet.</comment>
+  </data>
+  <data name="Graph_Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+    <comment>Button: calculates the graph of the saved version the project is at.</comment>
+  </data>
+  <data name="Graph_Refresh_Hint" xml:space="preserve">
+    <value>Calcula el grafo de la última versión guardada. No gasta límite de uso.</value>
+    <comment>Tooltip of the button Actualizar.</comment>
+  </data>
+  <data name="Graph_Version" xml:space="preserve">
+    <value>Describe la versión guardada (commit) {0}.</value>
+    <comment>{0}: the short id of the saved version the graph describes.</comment>
+  </data>
+  <data name="Graph_Version_WithChanges" xml:space="preserve">
+    <value>Describe la versión guardada (commit) {0}. Tu carpeta tiene cambios que aún no están en ella.</value>
+    <comment>{0}: the short id of the saved version the graph describes. The folder has changes that are not saved.</comment>
+  </data>
+  <data name="Graph_Coverage" xml:space="preserve">
+    <value>{0} proyectos: {1} completos y {2} parciales. Huecos: {3}.</value>
+    <comment>{0}: projects; {1}: complete ones; {2}: partial ones; {3}: gaps.</comment>
+  </data>
+  <data name="Graph_Status_Calculating" xml:space="preserve">
+    <value>Calculando el grafo. Si hay una verificación en marcha, esperará a que termine.</value>
+    <comment>Status while the graph is calculated.</comment>
+  </data>
+  <data name="Graph_Status_Proposing" xml:space="preserve">
+    <value>Preguntando a un agente. Puede tardar un minuto.</value>
+    <comment>Status while the agent answers.</comment>
+  </data>
+  <data name="Graph_Error_Analysis" xml:space="preserve">
+    <value>No se pudo calcular el grafo: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Graph_Error_NoVersion" xml:space="preserve">
+    <value>El proyecto aún no tiene ninguna versión guardada. Guarda una para ver su grafo.</value>
+    <comment>The repository has no commit, or git refused it.</comment>
+  </data>
+  <data name="Graph_Error_Proposal" xml:space="preserve">
+    <value>No se pudieron proponer relaciones: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Graph_Kind_Solution" xml:space="preserve">
+    <value>Solución</value>
+    <comment>GraphNodeKind.Solution.</comment>
+  </data>
+  <data name="Graph_Kind_Project" xml:space="preserve">
+    <value>Proyecto</value>
+    <comment>GraphNodeKind.Project.</comment>
+  </data>
+  <data name="Graph_Kind_Namespace" xml:space="preserve">
+    <value>Espacio de nombres</value>
+    <comment>GraphNodeKind.Namespace.</comment>
+  </data>
+  <data name="Graph_Kind_Package" xml:space="preserve">
+    <value>Paquete</value>
+    <comment>GraphNodeKind.Package.</comment>
+  </data>
+  <data name="Graph_Kind_SolutionFolder" xml:space="preserve">
+    <value>Carpeta de la solución</value>
+    <comment>GraphNodeKind.SolutionFolder.</comment>
+  </data>
+  <data name="Graph_Edge_Contains" xml:space="preserve">
+    <value>contiene a</value>
+    <comment>GraphEdgeKind.Contains, said between two names.</comment>
+  </data>
+  <data name="Graph_Edge_ProjectReference" xml:space="preserve">
+    <value>usa el proyecto</value>
+    <comment>GraphEdgeKind.ProjectReference, said between two names.</comment>
+  </data>
+  <data name="Graph_Edge_PackageReference" xml:space="preserve">
+    <value>usa el paquete</value>
+    <comment>GraphEdgeKind.PackageReference, said between two names.</comment>
+  </data>
+  <data name="Graph_Edge_NamespaceUse" xml:space="preserve">
+    <value>usa el espacio de nombres</value>
+    <comment>GraphEdgeKind.NamespaceUse, said between two names.</comment>
+  </data>
+  <data name="Graph_Node_Partial" xml:space="preserve">
+    <value>Parcial</value>
+    <comment>Marks a node that was not read completely.</comment>
+  </data>
+  <data name="Graph_Node_Name" xml:space="preserve">
+    <value>{0} {1}</value>
+    <comment>Accessible name of a node. {0}: its kind; {1}: its name.</comment>
+  </data>
+  <data name="Graph_Node_NamePartial" xml:space="preserve">
+    <value>{0} {1}, parcial</value>
+    <comment>Accessible name of a node that is partial. {0}: its kind; {1}: its name.</comment>
+  </data>
+  <data name="Graph_Wire_Label_Inferred" xml:space="preserve">
+    <value>IA</value>
+    <comment>The label on the wire of a relation an AI proposed.</comment>
+  </data>
+  <data name="Graph_Wire_Name" xml:space="preserve">
+    <value>{0} {1} {2}</value>
+    <comment>Accessible name of a relation that was read. {0}: who uses; {1}: the kind of relation; {2}: what is used.</comment>
+  </data>
+  <data name="Graph_Wire_NameInferred" xml:space="preserve">
+    <value>{0} {1} {2}, relación propuesta por {3}</value>
+    <comment>Accessible name of a relation an AI proposed. {3}: the agent.</comment>
+  </data>
+  <data name="Graph_Wire_ProposedBy" xml:space="preserve">
+    <value>Propuesta por {0} con el modelo {1}.</value>
+    <comment>{0}: the agent; {1}: the model.</comment>
+  </data>
+  <data name="Graph_Legend_Name" xml:space="preserve">
+    <value>Leyenda del grafo</value>
+    <comment>Accessible name of the legend.</comment>
+  </data>
+  <data name="Graph_Legend_Static" xml:space="preserve">
+    <value>Leída de los ficheros</value>
+    <comment>Legend: a relation that was read.</comment>
+  </data>
+  <data name="Graph_Legend_Partial" xml:space="preserve">
+    <value>Parcial: algo no se pudo leer</value>
+    <comment>Legend: a node that is partial.</comment>
+  </data>
+  <data name="Graph_Legend_Inferred" xml:space="preserve">
+    <value>Propuesta por una IA: línea discontinua y etiqueta IA</value>
+    <comment>Legend: a relation an AI proposed. Shown only when there is one.</comment>
+  </data>
+  <data name="Graph_Show_Packages" xml:space="preserve">
+    <value>Mostrar los paquetes</value>
+    <comment>Switch.</comment>
+  </data>
+  <data name="Graph_Show_Inferred" xml:space="preserve">
+    <value>Mostrar las relaciones propuestas por una IA</value>
+    <comment>Switch.</comment>
+  </data>
+  <data name="Graph_Canvas_Name" xml:space="preserve">
+    <value>Lienzo del grafo, solo para mirar</value>
+    <comment>Accessible name of the canvas.</comment>
+  </data>
+  <data name="Graph_List_Name" xml:space="preserve">
+    <value>Lista del grafo, con lo mismo que el lienzo</value>
+    <comment>Accessible name of the list that stands for the canvas.</comment>
+  </data>
+  <data name="Graph_List_Heading" xml:space="preserve">
+    <value>El grafo en una lista</value>
+    <comment>Heading of the list that stands for the canvas.</comment>
+  </data>
+  <data name="Graph_Row_Uses" xml:space="preserve">
+    <value>{0} {1} {2} usa: {3}</value>
+    <comment>A line of the list. {0}: kind; {1}: name; {2}: partial or empty; {3}: what it uses.</comment>
+  </data>
+  <data name="Graph_Row_NoUses" xml:space="preserve">
+    <value>{0} {1} {2}</value>
+    <comment>A line of the list of a node that uses nothing visible. {2}: partial or empty.</comment>
+  </data>
+  <data name="Graph_Selected_Title" xml:space="preserve">
+    <value>{0} elegido: {1}</value>
+    <comment>{0}: kind; {1}: name.</comment>
+  </data>
+  <data name="Graph_Selected_None" xml:space="preserve">
+    <value>Elige un nodo para ver sus ficheros y sus tareas.</value>
+    <comment>Shown when no node is chosen.</comment>
+  </data>
+  <data name="Graph_Expand" xml:space="preserve">
+    <value>Desplegar o plegar sus espacios de nombres</value>
+    <comment>Button of a project.</comment>
+  </data>
+  <data name="Graph_OpenProjectFile" xml:space="preserve">
+    <value>Abrir su fichero de proyecto</value>
+    <comment>Button of a project: opens its .csproj in the editor.</comment>
+  </data>
+  <data name="Graph_Files_Heading" xml:space="preserve">
+    <value>Ficheros que lo declaran</value>
+    <comment>Heading of the files of a namespace.</comment>
+  </data>
+  <data name="Graph_Files_Open" xml:space="preserve">
+    <value>Abrir</value>
+    <comment>Button that opens a file.</comment>
+  </data>
+  <data name="Graph_Tasks_Heading" xml:space="preserve">
+    <value>Tareas que cambiaron ficheros de este proyecto</value>
+    <comment>Heading of the tasks of a project.</comment>
+  </data>
+  <data name="Graph_Tasks_None" xml:space="preserve">
+    <value>Ninguna tarea cambió ficheros de este proyecto.</value>
+    <comment>Shown when no task touched the project.</comment>
+  </data>
+  <data name="Graph_Task_Line" xml:space="preserve">
+    <value>{0}, {1} ficheros</value>
+    <comment>{0}: title of the task; {1}: how many files it changed there.</comment>
+  </data>
+  <data name="Graph_Task_Open" xml:space="preserve">
+    <value>Ir a la tarea {0}</value>
+    <comment>Accessible name of the button of a task. {0}: title of the task.</comment>
+  </data>
+  <data name="Graph_NoWork" xml:space="preserve">
+    <value>La pantalla Trabajo no está disponible en esta sesión.</value>
+    <comment>Status bar: the person asked to go to the work of a task and «Trabajo» is not composed.</comment>
+  </data>
+  <data name="Graph_Task_Button" xml:space="preserve">
+    <value>Ir a la tarea</value>
+    <comment>Button of a task.</comment>
+  </data>
+  <data name="Graph_Message_TooMany" xml:space="preserve">
+    <value>Hay demasiados nodos a la vista, más de {0}. Pliega algún proyecto antes de desplegar otro.</value>
+    <comment>{0}: the cap.</comment>
+  </data>
+  <data name="Graph_Message_FileGone" xml:space="preserve">
+    <value>El fichero {0} ya no está en tu carpeta.</value>
+    <comment>{0}: the relative path.</comment>
+  </data>
+  <data name="Graph_Message_TasksFailed" xml:space="preserve">
+    <value>No se pudieron leer las tareas: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Graph_Message_NothingToRelate" xml:space="preserve">
+    <value>No hay proyectos ni espacios de nombres que relacionar.</value>
+    <comment>Proponer relaciones on a graph with fewer than two nodes.</comment>
+  </data>
+  <data name="Graph_Message_Proposed" xml:space="preserve">
+    <value>Relaciones nuevas: {0}. Descartadas: {1}.</value>
+    <comment>{0}: kept; {1}: discarded.</comment>
+  </data>
+  <data name="Graph_Propose" xml:space="preserve">
+    <value>Proponer relaciones</value>
+    <comment>Button: asks an agent for relations that are missing.</comment>
+  </data>
+  <data name="Graph_Propose_Hint" xml:space="preserve">
+    <value>Pregunta a un agente qué relaciones faltan. Gasta límite de uso de tu plan y pide tu OK.</value>
+    <comment>Tooltip of the button Proponer relaciones.</comment>
+  </data>
+  <data name="Graph_Card_Heading" xml:space="preserve">
+    <value>Qué se enviará</value>
+    <comment>Heading of the card of the OK.</comment>
+  </data>
+  <data name="Graph_Card_Nodes" xml:space="preserve">
+    <value>Los nombres de {0} proyectos y espacios de nombres.</value>
+    <comment>{0}: how many nodes go.</comment>
+  </data>
+  <data name="Graph_Card_Known" xml:space="preserve">
+    <value>Las {0} relaciones que ya se han leído de los ficheros.</value>
+    <comment>{0}: how many relations go.</comment>
+  </data>
+  <data name="Graph_Card_Agent" xml:space="preserve">
+    <value>Lo hará Claude Code con un modelo ligero, solo para leer.</value>
+    <comment>Who answers.</comment>
+  </data>
+  <data name="Graph_Card_Never" xml:space="preserve">
+    <value>No se envía ningún fichero ni ninguna ruta de tu equipo.</value>
+    <comment>What never goes.</comment>
+  </data>
+  <data name="Graph_Card_ConsentDescription" xml:space="preserve">
+    <value>Proponer relaciones del grafo</value>
+    <comment>What the OK is for, as the service records it.</comment>
+  </data>
+  <data name="Graph_Card_Send" xml:space="preserve">
+    <value>Dar mi OK y enviar</value>
+    <comment>Button that gives the OK.</comment>
+  </data>
+  <data name="Graph_Card_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+    <comment>Button that closes the card.</comment>
+  </data>
+  <data name="Graph_Gaps_Heading" xml:space="preserve">
+    <value>Lo que no se pudo leer</value>
+    <comment>Heading of the list of gaps.</comment>
+  </data>
+  <data name="Graph_Gaps_None" xml:space="preserve">
+    <value>Todo se pudo leer.</value>
+    <comment>Shown when there is no gap.</comment>
+  </data>
+  <data name="Graph_Gap_Where" xml:space="preserve">
+    <value>{0}, línea {1}</value>
+    <comment>{0}: the file; {1}: the line.</comment>
+  </data>
+  <data name="Text_graph_unevaluated" xml:space="preserve">
+    <value>Algo del fichero de proyecto depende de reglas que solo la herramienta de compilación resuelve. No se ha adivinado.</value>
+    <comment>graph.unevaluated.</comment>
+  </data>
+  <data name="Text_graph_build_props" xml:space="preserve">
+    <value>Hay un fichero de reglas comunes sobre este proyecto. Se anota, pero no se aplica.</value>
+    <comment>graph.build-props.</comment>
+  </data>
+  <data name="Text_graph_outside_root" xml:space="preserve">
+    <value>Una ruta salía de la copia o era absoluta. No se abrió.</value>
+    <comment>graph.outside-root.</comment>
+  </data>
+  <data name="Text_graph_invalid_path" xml:space="preserve">
+    <value>Una ruta no se puede leer con seguridad. No se abrió.</value>
+    <comment>graph.invalid-path.</comment>
+  </data>
+  <data name="Text_graph_link" xml:space="preserve">
+    <value>Había un enlace en el camino. No se siguió.</value>
+    <comment>graph.link.</comment>
+  </data>
+  <data name="Text_graph_missing" xml:space="preserve">
+    <value>Un fichero que se nombraba no está en la copia.</value>
+    <comment>graph.missing.</comment>
+  </data>
+  <data name="Text_graph_file_skipped" xml:space="preserve">
+    <value>Un fichero no se pudo leer: era muy grande, muy lento, muy profundo o falló.</value>
+    <comment>graph.file-skipped.</comment>
+  </data>
+  <data name="Text_graph_limit" xml:space="preserve">
+    <value>Se llegó a un tope del análisis. Lo que viene después no se leyó.</value>
+    <comment>graph.limit.</comment>
+  </data>
+  <data name="Text_graph_duplicate" xml:space="preserve">
+    <value>El mismo proyecto estaba dos veces en la solución. Solo cuenta el primero.</value>
+    <comment>graph.duplicate.</comment>
+  </data>
+  <data name="Text_graph_ignored_solution" xml:space="preserve">
+    <value>Hay más de una solución en la raíz. Solo se leyó la primera.</value>
+    <comment>graph.ignored-solution.</comment>
+  </data>
+  <data name="Info_Graph_Title" xml:space="preserve">
+    <value>Auto Graph</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_What" xml:space="preserve">
+    <value>Auto Graph dibuja cómo está hecho tu proyecto de C#. Lee los ficheros como texto. No compila ni ejecuta nada de tu código.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Actions" xml:space="preserve">
+    <value>Mira el grafo de la última versión guardada.
+Pulsa Actualizar para calcularlo otra vez.
+Abre los ficheros y las tareas desde cada nodo.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Map_Title" xml:space="preserve">
+    <value>Grafo</value>
+    <comment>Information button and title of the section.</comment>
+  </data>
+  <data name="Info_Graph_Map_What" xml:space="preserve">
+    <value>Cada caja es un proyecto. Las flechas dicen qué proyecto usa a cuál. Puedes ver dentro de un proyecto sus espacios de nombres.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Map_Actions" xml:space="preserve">
+    <value>Elige una caja para ver sus ficheros y sus tareas.
+Despliega un proyecto para ver sus espacios de nombres.
+Oculta los paquetes o las relaciones de una IA con los interruptores.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Coverage_Title" xml:space="preserve">
+    <value>Qué se pudo leer</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Coverage_What" xml:space="preserve">
+    <value>Dice cuánto del proyecto se leyó entero. Lo que no se puede saber sin ejecutar nada sale como parcial. Cada hueco dice su motivo y su línea.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Coverage_Actions" xml:space="preserve">
+    <value>Mira qué proyectos son parciales.
+Lee el motivo de cada hueco.
+Mira qué versión guardada describe el grafo.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Propose_Title" xml:space="preserve">
+    <value>Relaciones propuestas</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Propose_What" xml:space="preserve">
+    <value>Un agente puede sugerir relaciones que faltan. Gasta límite de uso de tu plan, así que pide tu OK cada vez. Lo que sugiere se dibuja distinto y nunca cuenta como leído.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Graph_Propose_Actions" xml:space="preserve">
+    <value>Pulsa Proponer relaciones y mira qué se enviará.
+Da tu OK solo si quieres seguir.
+Oculta lo que propone con el interruptor.</value>
+    <comment>Information button.</comment>
+  </data>
+</root>

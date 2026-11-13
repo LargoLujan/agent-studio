@@ -34,7 +34,7 @@ internal static partial class TextGuide
         "HelloStrings", "IntegrationStrings", "MontageStrings", "PanelsStrings", "OrchestratorStrings", "DebateStrings", "AuditStrings",
         "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
         "ControlsStrings", "ServicesStrings", "UsageStrings", "RepositoryStrings", "WorkStrings",
-        "HelpStrings", "DocumentsStrings",
+        "HelpStrings", "DocumentsStrings", "DoctorStrings", "GraphStrings", "DocsStrings",
     ];
 
     /// <summary>

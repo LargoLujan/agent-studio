@@ -180,6 +180,11 @@ public enum AgentRunPurpose
 
     /// <summary>The part of a document for clients written by an agent (D-59): the summary or an explanation of use, read-only, marked in the document.</summary>
     ClientDocumentDraft,
+
+    // Phase 6 (docs/20 D-21), appended: the action «Proponer relaciones» of Auto Graph, with the person's OK and the estimate in front.
+
+    /// <summary>The relations between the nodes of Auto Graph proposed by an agent (D-21): read-only, in an empty folder, one launch each time the person asks.</summary>
+    GraphRelations,
 }
 
 /// <summary>

@@ -151,10 +151,14 @@ public sealed class ShellRenderTests
             OrchestratorTheme.EnsureLoaded();
             var diagnostics = new ProviderDiagnosticsViewModel(new ProviderDiagnostics(Providers()), TimeProvider.System);
             await diagnostics.RefreshCommand.ExecuteAsync(null);
-            var view = new AutoDoctorView { DataContext = diagnostics };
+            // The panel contains the rows of the providers (docs/20 D-04): with no service of checks it shows them alone, in their section, which opens here.
+            var doctor = new AgentStudio.Desktop.Doctor.DoctorViewModel(null, diagnostics, null, null, TimeProvider.System);
+            await doctor.RefreshCommand.ExecuteAsync(null);
+            doctor.Sections[0].IsExpanded = true;
+            var view = new AutoDoctorView { DataContext = doctor };
             var bitmap = OffscreenRender.Render(view, 340, 400);
             OffscreenRender.SaveIfRequested(bitmap, "ux-auto-doctor.png");
-            var list = (ItemsControl)view.FindName("ProviderList");
+            var list = Descendants<ItemsControl>(view).First(i => ReferenceEquals(i.ItemsSource, diagnostics.Providers));
 
             // What is laid out: the details of each row are folded, so their texts are not.
             return (

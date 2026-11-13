@@ -18,7 +18,7 @@ namespace AgentStudio.Infrastructure.Skills;
 /// </list>
 /// The messages are in Spanish: the catalog screen shows them as they are.
 /// </summary>
-public sealed class SkillHealthReader : ISkillHealthReader
+public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, ISkillScriptReviews? reviews = null) : ISkillHealthReader
 {
     /// <summary>The largest <c>SKILL.md</c> read: far above any real skill (the specification recommends under 500 lines).</summary>
     public const long MaxSkillFileBytes = 1024 * 1024;
@@ -35,11 +35,52 @@ public sealed class SkillHealthReader : ISkillHealthReader
         {
             SkillHealthChecks.CheckLicense(entry.Source.License),
             SkillHealthChecks.CheckPinned(entry.Source.PinnedCommit),
-            new(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, "Sin comprobar (Fase 6): si el repositorio de origen cambió desde el commit fijado."),
-            new(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, "Sin comprobar (Fase 6): si el repositorio de origen está archivado o borrado."),
-            new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar (Fase 6): si trae scripts sin revisar."),
+            SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderUpstreamUnchecked),
+            SkillHealthCheck.Coded(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderArchivedUnchecked),
+            await ReadScriptsAsync(skill, ct).ConfigureAwait(false),
         };
         return new SkillHealthReport(checks);
+    }
+
+    /// <summary>
+    /// The <c>scripts</c> check, local (docs/20 D-14): a skill without a <c>scripts/</c> folder is healthy; one with it is a warning until the person reviews
+    /// those scripts, and again whenever their fingerprint changes. Nothing is ever run.
+    /// </summary>
+    private async Task<SkillHealthCheck> ReadScriptsAsync(CatalogSkill skill, CancellationToken ct)
+    {
+        if (skill.LocalPath is null)
+        {
+            return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderScriptsNoCopy);
+        }
+
+        if (scripts is null)
+        {
+            return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderScriptsNoReader);
+        }
+
+        try
+        {
+            var info = await scripts.InspectAsync(skill.LocalPath, ct).ConfigureAwait(false);
+            if (info is null)
+            {
+                return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, SkillsUserTexts.ReaderScriptsNone);
+            }
+
+            var count = info.RelativePaths.Count;
+            var reviewed = reviews is null ? null : await reviews.ReviewedSha256Async(skill.Entry.Id, ct).ConfigureAwait(false);
+            if (string.Equals(reviewed, info.Sha256, StringComparison.Ordinal))
+            {
+                return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, SkillsUserTexts.ReaderScriptsReviewed, count);
+            }
+
+            return reviewed is null
+                ? SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, SkillsUserTexts.ReaderScriptsUnreviewed, count)
+                : SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, SkillsUserTexts.ReaderScriptsChanged, count);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderScriptsUnreadable);
+        }
     }
 
     /// <summary>The frontmatter and size checks of the local copy, or both unknown with the reason.</summary>
@@ -47,7 +88,7 @@ public sealed class SkillHealthReader : ISkillHealthReader
     {
         if (localPath is null)
         {
-            return Unread("Sin copia local que comprobar: la skill está enlazada o su copia no se puede usar.");
+            return Unread(SkillsUserTexts.ReaderUnreadNoCopy);
         }
 
         try
@@ -55,32 +96,32 @@ public sealed class SkillHealthReader : ISkillHealthReader
             var folder = new DirectoryInfo(localPath);
             if (!folder.Exists)
             {
-                return Unread($"No existe la carpeta de la skill, así que no se pudo leer su {SkillFile}.");
+                return Unread(SkillsUserTexts.ReaderUnreadNoFolder);
             }
 
             if (IsLink(folder))
             {
-                return Unread($"La carpeta de la skill es un enlace: no se sigue y su {SkillFile} queda sin comprobar.");
+                return Unread(SkillsUserTexts.ReaderUnreadFolderLink);
             }
 
             var file = new FileInfo(Path.Combine(folder.FullName, SkillFile));
             if (!file.Exists)
             {
-                return Unread($"No se encuentra su {SkillFile}: quizá se borró después de leer el catálogo.");
+                return Unread(SkillsUserTexts.ReaderUnreadFileMissing);
             }
 
             if (IsLink(file))
             {
-                return Unread($"Su {SkillFile} es un enlace: no se sigue y queda sin comprobar.");
+                return Unread(SkillsUserTexts.ReaderUnreadFileLink);
             }
 
             if (file.Length > MaxSkillFileBytes)
             {
-                var size = (file.Length / 1024).ToString(CultureInfo.InvariantCulture);
+                var size = file.Length / 1024;
                 return
                 [
-                    new(SkillHealthCodes.Frontmatter, SkillHealthStatus.Warning, $"Su {SkillFile} es demasiado grande para una skill ({size} KiB): no se lee."),
-                    new(SkillHealthCodes.Size, SkillHealthStatus.Warning, $"Su {SkillFile} ocupa {size} KiB."),
+                    SkillHealthCheck.Coded(SkillHealthCodes.Frontmatter, SkillHealthStatus.Warning, SkillsUserTexts.ReaderTooLargeFrontmatter, size),
+                    SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Warning, SkillsUserTexts.ReaderTooLargeSize, size),
                 ];
             }
 
@@ -96,14 +137,14 @@ public sealed class SkillHealthReader : ISkillHealthReader
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return Unread($"No se pudo leer su {SkillFile}: {ex.Message}");
+            return Unread(SkillsUserTexts.ReaderUnreadFailed);
         }
     }
 
     private static SkillHealthCheck[] Unread(string reason) =>
     [
-        new(SkillHealthCodes.Frontmatter, SkillHealthStatus.Unknown, reason),
-        new(SkillHealthCodes.Size, SkillHealthStatus.Unknown, $"Sin comprobar: no se leyó su {SkillFile}."),
+        SkillHealthCheck.Coded(SkillHealthCodes.Frontmatter, SkillHealthStatus.Unknown, reason),
+        SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderSizeUnread),
     ];
 
     private static bool IsLink(FileSystemInfo info) =>

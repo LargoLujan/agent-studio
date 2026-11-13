@@ -1,0 +1,2 @@
+Distribución predeterminada: Ubuntu-24.04
+Versión predeterminada: 2

@@ -1,0 +1,59 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Graph.GraphView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:graph="clr-namespace:AgentStudio.Desktop.Graph"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Graph"
+             xmlns:docs="clr-namespace:AgentStudio.Desktop.Docs"
+             xmlns:docsViews="clr-namespace:AgentStudio.Desktop.Views.Docs"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=graph:GraphDocumentViewModel}">
+    <!-- «Auto Graph» (docs/20 section 6.4): a document with sections, as «Trabajo». WP-G brings «Grafo»; WP-D brings «Diagramas» and
+         «Discrepancias» and their templates. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Graph.BoolToVisibility"/>
+        <orchestratorViews:FalseToVisibilityConverter x:Key="Graph.InverseBoolToVisibility"/>
+        <DataTemplate DataType="{x:Type graph:GraphMapSection}"><views:GraphMapView/></DataTemplate>
+        <DataTemplate DataType="{x:Type docs:DocsDiagramsSection}"><docsViews:DocsDiagramsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type docs:DocsDiscrepanciesSection}"><docsViews:DocsDiscrepanciesView/></DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource TitleText}" VerticalAlignment="Center" Text="{l:T Graph_Title}"/>
+                    <info:InfoButton InfoKey="Info_Graph" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{l:T Graph_Intro}"/>
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{l:T Graph_NoProject}"
+                           Visibility="{Binding HasProject, Converter={StaticResource Graph.InverseBoolToVisibility}}"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <ListBox Grid.Column="0" ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" Margin="8"
+                     AutomationProperties.Name="{l:T Graph_Sections_Name}" Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type graph:GraphSection}">
+                        <TextBlock Style="{StaticResource BodyText}" Margin="4,3" Text="{Binding Title}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ContentControl Grid.Column="1" Margin="12" Content="{Binding SelectedSection}" IsTabStop="False"/>
+        </Grid>
+    </Grid>
+</UserControl>

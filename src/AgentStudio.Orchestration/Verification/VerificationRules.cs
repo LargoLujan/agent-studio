@@ -133,6 +133,10 @@ public static partial class VerificationRules
         {
             problems.Add($"Step '{id}' has no title.");
         }
+        else if (HasControlCharacter(step.Title) || AgentStudio.Domain.Common.UntrustedText.HasHidden(step.Title))
+        {
+            problems.Add($"Step '{id}': the title contains a control character (it is written in the header of the evidence).");
+        }
 
         if (string.IsNullOrWhiteSpace(step.Executable))
         {

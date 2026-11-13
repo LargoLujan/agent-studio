@@ -4,6 +4,8 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Skills;
+using AgentStudio.Desktop.Orchestrator.Approvals;
+using AgentStudio.Desktop.Services;
 using AgentStudio.Infrastructure.Skills;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -29,6 +31,16 @@ public static class SkillsScreenServices
     public static IServiceCollection AddAgentStudioSkillsScreen(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+
+        // The doctor of skills (docs/20 D-13 to D-15): the permission lives in the settings of the app, and Windows Hello is the barrier the approvals use.
+        // They replace the safe defaults of AddAgentStudioSkillsDoctor (never allowed, every confirmation a no), whichever of the two is called first.
+        services.TryAddSingleton<ISkillsDoctorNetworkSetting>(provider =>
+            provider.GetService<IAppSettingsStore>() is { } store ? new AppSettingsSkillsDoctorSetting(store) : new NoSkillsDoctorNetworkSetting());
+        services.Replace(ServiceDescriptor.Singleton<ISkillsDoctorPolicy>(provider => provider.GetRequiredService<ISkillsDoctorNetworkSetting>()));
+        services.Replace(ServiceDescriptor.Singleton<ISkillsDoctorPresence>(provider =>
+            provider.GetService<ReinforcedConfirmation>() is { } confirmation
+                ? new HelloSkillsDoctorPresence(confirmation)
+                : new NoSkillsDoctorPresence()));
         services.TryAddSingleton(provider => new SkillsBackend(
             provider.GetService<SkillCatalog>() is { } catalog ? catalog.ListWithReportAsync : null,
             provider.GetService<ISkillActivationStore>(),
@@ -36,7 +48,12 @@ public static class SkillsScreenServices
             provider.GetService<ISkillHealthReader>(),
             provider.GetService<ISkillRecommendationService>(),
             provider.GetService<IProjectWorkspace>(),
-            provider.GetService<IApprovalGate>()));
+            provider.GetService<IApprovalGate>(),
+            provider.GetService<ISkillHealthBatchChecker>(),
+            provider.GetService<ISkillsDoctorTokenManager>(),
+            provider.GetService<ISkillsDoctorNetworkSetting>() is { } setting and not NoSkillsDoctorNetworkSetting ? setting : null,
+            provider.GetService<ISkillScriptReviews>(),
+            provider.GetService<ISkillScriptsInspector>()));
         services.TryAddSingleton<ISkillsDocumentFactory>(provider => new SkillsDocumentFactory(
             provider.GetRequiredService<SkillsBackend>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System));
@@ -77,5 +94,5 @@ public sealed class SkillsDocumentFactory : ISkillsDocumentFactory
         _time = time;
     }
 
-    public SkillsDocumentViewModel Create(string? projectRoot) => new(projectRoot, _backend, _time);
+    public SkillsDocumentViewModel Create(string? projectRoot, Func<string, Task>? openFile = null) => new(projectRoot, _backend, _time, openFile: openFile);
 }

@@ -94,6 +94,70 @@ public static class DependencyInjection
     }
 
     /// <summary>
+    /// Registers the generated diagrams and the discrepancies of Phase 6 (docs/20 D-23 to D-29, ADR-0045): the cache of the diagrams with its index
+    /// (<see cref="IDiagramCatalog"/>, <see cref="IDiagramTextReader"/>), the four generators, the four checks and the service that runs them
+    /// (<see cref="Application.Consistency.IConsistencyService"/>, which <c>CommitAnalysisService</c> takes if it is registered). The diagrams of a project live in
+    /// <paramref name="diagramsFolder"/> (<c>%LOCALAPPDATA%\AgentStudio\diagrams</c>; a test gives a temporary one) and go to the repository only when the person asks. They need the
+    /// <see cref="Application.Orchestration.IRunActivity"/>, the decision recorder, the plan store, the board projector and the milestone service, and use the analysis
+    /// of a commit and the history of the repository when they are registered: without them a diagram of the solution says it has no model.
+    /// </summary>
+    public static IServiceCollection AddAgentStudioDiagrams(this IServiceCollection services, string diagramsFolder)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrWhiteSpace(diagramsFolder);
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(new Diagrams.DiagramCacheStore(diagramsFolder));
+        services.TryAddSingleton(provider => new Diagrams.GraphModels(
+            provider.GetService<Application.Graph.ICommitAnalysisService>(),
+            provider.GetService<Application.Git.IRepositoryHistoryReader>()));
+        services.TryAddSingleton(provider => new Diagrams.RunModels(
+            provider.GetService<Application.Decisions.IDecisionRecorder>(),
+            provider.GetService<Application.Persistence.IPlanStore>()));
+        services.TryAddSingleton(provider => new Diagrams.DiagramCatalog(
+            provider.GetRequiredService<Diagrams.DiagramCacheStore>(),
+            provider.GetRequiredService<Diagrams.GraphModels>(),
+            provider.GetRequiredService<Diagrams.RunModels>(),
+            provider.GetService<Application.Orchestration.IRunActivity>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<Application.Diagrams.IDiagramCatalog>(provider => provider.GetRequiredService<Diagrams.DiagramCatalog>());
+        services.TryAddSingleton<Application.Diagrams.IDiagramTextReader>(provider => provider.GetRequiredService<Diagrams.DiagramCatalog>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Application.Diagrams.IDiagramGenerator, Diagrams.SolutionDiagramGenerator>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Application.Diagrams.IDiagramGenerator, Diagrams.ProjectNamespacesDiagramGenerator>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Application.Diagrams.IDiagramGenerator, Diagrams.RunPlanDiagramGenerator>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Application.Diagrams.IDiagramGenerator, Diagrams.RunSequenceDiagramGenerator>());
+
+        // The checks. The one of the diagrams reads the index and the log, never the analysis service, so no cycle closes through the service of the checks.
+        services.TryAddSingleton(provider => new Diagrams.DiagramStaleness(
+            provider.GetRequiredService<Diagrams.DiagramCacheStore>(),
+            provider.GetRequiredService<Diagrams.RunModels>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<Application.Consistency.IConsistencyCheck>(provider =>
+            new Consistency.LinkBrokenCheck(provider.GetRequiredService<Diagrams.DiagramCacheStore>()));
+        services.AddSingleton<Application.Consistency.IConsistencyCheck>(provider =>
+            new Consistency.AdrCitesMissingCheck(provider.GetRequiredService<Diagrams.DiagramCacheStore>()));
+        services.AddSingleton<Application.Consistency.IConsistencyCheck>(provider =>
+            new Consistency.DiagramStaleCheck(provider.GetRequiredService<Diagrams.DiagramStaleness>()));
+        services.AddSingleton<Application.Consistency.IConsistencyCheck>(provider =>
+            new Consistency.RequirementUncoveredCheck(
+                provider.GetRequiredService<Application.Work.IMilestoneService>(),
+                provider.GetRequiredService<Application.Work.IBoardProjector>()));
+        services.TryAddSingleton<Application.Consistency.IConsistencyService>(provider => new Consistency.ConsistencyService(provider.GetServices<Application.Consistency.IConsistencyCheck>()));
+
+        // The line of the discrepancies of Auto Doctor (D-30): it reads what the analysis saved and never starts it.
+        services.TryAddSingleton(provider => new Consistency.LiveConsistency(
+            provider.GetRequiredService<Diagrams.DiagramStaleness>(),
+            provider.GetService<Application.Work.IMilestoneService>() is { } milestones && provider.GetService<Application.Work.IBoardProjector>() is { } board
+                ? new Consistency.RequirementUncoveredCheck(milestones, board)
+                : null));
+        services.AddSingleton<Application.Diagnostics.IDoctorCheckSource>(provider => new Consistency.DiscrepanciesCheckSource(
+            provider.GetService<Application.Graph.ICommitAnalysisService>(),
+            provider.GetService<Application.Git.IRepositoryHistoryReader>(),
+            provider.GetRequiredService<Consistency.LiveConsistency>()));
+        return services;
+    }
+
+    /// <summary>
     /// Registers the Markdown daily prompt journal for the project rooted at <paramref name="projectRoot"/>, written
     /// through the registered <see cref="IProjectStorageFiles"/>.
     /// </summary>

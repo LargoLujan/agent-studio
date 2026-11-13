@@ -386,6 +386,32 @@ public sealed class AppCompositionTests
     }
 
     [Fact]
+    public void The_doctor_of_skills_is_composed_off_by_default_with_windows_hello_and_writes_nothing_until_used()
+    {
+        using var temp = new TempDirectory();
+        var folders = FoldersIn(temp);
+        using var provider = Build(folders);
+
+        // The permission is the one of the settings of the app, off by default, and the confirmation is the barrier of the approvals.
+        Assert.False(provider.GetRequiredService<ISkillsDoctorPolicy>().NetworkAllowed);
+        Assert.IsType<AgentStudio.Desktop.Skills.AppSettingsSkillsDoctorSetting>(provider.GetRequiredService<ISkillsDoctorPolicy>());
+        Assert.IsType<AgentStudio.Desktop.Skills.HelloSkillsDoctorPresence>(provider.GetRequiredService<ISkillsDoctorPresence>());
+        Assert.NotNull(provider.GetRequiredService<ISkillHealthBatchChecker>());
+        Assert.NotNull(provider.GetRequiredService<ICredentialVault>());
+
+        var backend = provider.GetRequiredService<AgentStudio.Desktop.Skills.SkillsBackend>();
+        Assert.NotNull(backend.Doctor);
+        Assert.NotNull(backend.Tokens);
+        Assert.NotNull(backend.NetworkSetting);
+        Assert.NotNull(backend.ScriptReviews);
+        Assert.NotNull(backend.ScriptsInspector);
+
+        // Building the container neither creates the vault nor the cache nor asks anything of the network.
+        Assert.False(Directory.Exists(Path.Combine(folders.Local.BaseDirectory, "vault")));
+        Assert.False(Directory.Exists(Path.Combine(folders.Local.BaseDirectory, "skills-doctor")));
+    }
+
+    [Fact]
     public void The_project_memory_reaches_the_engine_and_the_judge_never_gets_it()
     {
         using var temp = new TempDirectory();

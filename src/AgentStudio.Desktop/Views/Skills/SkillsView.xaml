@@ -127,6 +127,20 @@
       <Setter Property="FocusVisualStyle" Value="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}"/>
     </Style>
 
+    <!-- The box of the access key of GitHub: it shows dots, and what is typed is read once, by the click of «Guardar», and emptied. -->
+    <Style x:Key="Skills.PasswordField" TargetType="PasswordBox">
+      <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}"/>
+    </Style>
+
     <Style x:Key="Skills.Switch" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
       <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
       <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
@@ -229,6 +243,39 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <!-- The scripts of the skill (docs/20 D-14): the list, and the mark that keeps their fingerprint. None is ever run. -->
+        <StackPanel Visibility="{Binding HasScripts, Converter={StaticResource Skills.BoolToVisibility}}">
+          <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_Scripts_Title}"/>
+          <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Skills_Scripts_Files}"/>
+          <!-- As plain text when the screen cannot open a file; as links «abrir» (the file opens in the editor of the app) when it can. -->
+          <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" Text="{Binding ScriptFilesText}"
+                     AutomationProperties.Name="{l:T Skills_Scripts_FilesName}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasScriptLinks}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding ScriptLinks}" Focusable="False" AutomationProperties.Name="{l:T Skills_Scripts_FilesName}"
+                        Visibility="{Binding HasScriptLinks, Converter={StaticResource Skills.BoolToVisibility}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type skills:SkillScriptLink}">
+                <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,0,0,2" FontFamily="{StaticResource MonoFont}" Content="{Binding Path}"
+                        Command="{Binding OpenCommand}" AutomationProperties.Name="{Binding AutomationName}" ToolTip="{l:T Skills_Scripts_OpenTip}"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Skills_Scripts_Mark}"
+                  Command="{Binding MarkScriptsReviewedCommand}" Visibility="{Binding CanMarkScripts, Converter={StaticResource Skills.BoolToVisibility}}"
+                  AutomationProperties.Name="{l:T Skills_Scripts_MarkName}"/>
+          <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding ScriptsReviewedText}"/>
+          <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Skills_Scripts_Note}"/>
+        </StackPanel>
       </StackPanel>
     </DataTemplate>
   </UserControl.Resources>
@@ -396,6 +443,48 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
               <TextBlock Style="{StaticResource ErrorText}" Margin="0,6,0,0" Text="{Binding ActivationProblem}"/>
+
+              <!-- «Comprobar en GitHub» (docs/20 D-13 to D-15): the only road to the network. Off until the person allows it; it says where it connects and
+                   what it sends before the button is pressed. -->
+              <StackPanel Orientation="Horizontal" Margin="0,14,0,6">
+                <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{l:T Skills_Doctor_Title}"/>
+                <info:InfoButton InfoKey="Info_SkillsDoctor" Margin="6,0,0,0" VerticalAlignment="Center"/>
+              </StackPanel>
+              <CheckBox Style="{StaticResource Skills.Switch}" IsChecked="{Binding IsNetworkAllowed}" IsEnabled="{Binding CanChangeNetwork}"
+                        AutomationProperties.Name="{l:T Skills_Doctor_AllowName}">
+                <TextBlock TextWrapping="Wrap" Text="{l:T Skills_Doctor_Allow}"/>
+              </CheckBox>
+              <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Skills_Doctor_Sends}"/>
+              <WrapPanel Margin="0,8,0,0">
+                <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Content="{l:T Skills_Doctor_Button}"
+                        Command="{Binding CheckOnGitHubCommand}" AutomationProperties.Name="{l:T Skills_Doctor_ButtonName}" ToolTip="{l:T Skills_Doctor_ButtonTip}"/>
+                <Button Style="{StaticResource GhostButton}"
+                        Command="{Binding CancelCheckCommand}" AutomationProperties.Name="{l:T Skills_Doctor_CancelName}" ToolTip="{l:T Skills_Doctor_CancelTip}">
+                  <TextBlock TextWrapping="Wrap" Text="{l:T Skills_Doctor_Cancel}"/>
+                </Button>
+              </WrapPanel>
+              <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding DoctorUnavailable}"/>
+              <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding DoctorStatus}"
+                         AutomationProperties.Name="{l:T Skills_Doctor_StatusName}"/>
+
+              <StackPanel Visibility="{Binding CanManageToken, Converter={StaticResource Skills.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_Token_Title}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Skills_Token_Explain}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Skills_Token_Hello}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Skills_Token_Protects}"/>
+                <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding TokenStoredText}"
+                           AutomationProperties.Name="{l:T Skills_Token_StatusName}"/>
+                <PasswordBox x:Name="TokenBox" Style="{StaticResource Skills.PasswordField}" Margin="0,6,0,0" MaxLength="255"
+                             AutomationProperties.Name="{l:T Skills_Token_FieldName}" ToolTip="{l:T Skills_Token_FieldTip}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                  <Button Style="{StaticResource GhostButton}" Content="{l:T Skills_Token_Save}" Click="OnSaveTokenClick"
+                          AutomationProperties.Name="{l:T Skills_Token_SaveName}"/>
+                  <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{l:T Skills_Token_Delete}" Command="{Binding DeleteTokenCommand}"
+                          AutomationProperties.Name="{l:T Skills_Token_DeleteName}"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding TokenStatus}"
+                           AutomationProperties.Name="{l:T Skills_Token_StatusName}"/>
+              </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </Border>

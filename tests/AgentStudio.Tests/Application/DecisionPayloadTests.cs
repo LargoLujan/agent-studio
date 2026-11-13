@@ -66,6 +66,7 @@ public sealed class DecisionPayloadTests
         .. Phase13PayloadTests.Samples,
         .. Phase14PayloadTests.Samples,
         .. Phase9PayloadTests.Samples,
+        .. Phase6PayloadTests.Samples,
     ];
 
     private static UsageSnapshot UsageOf(long tokens, decimal cost) => UsageSnapshot.From(new TokenUsage(
@@ -293,6 +294,8 @@ public sealed class DecisionPayloadTests
                 "OrderReview", "ConsumptionAnalysis", "PreparationChat",
                 // Phase 14 (docs/17 §8.2) appends the agent of the help and the draft of a document for clients.
                 "Help", "ClientDocumentDraft",
+                // Phase 6 (docs/20 D-21) appends the relations of Auto Graph proposed by an agent.
+                "GraphRelations",
             ],
             Enum.GetNames<AgentRunPurpose>());
     }

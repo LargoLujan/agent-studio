@@ -100,6 +100,214 @@ public interface ISkillHealthChecker
     Task<SkillHealthReport> CheckAsync(SkillEntry skill, CancellationToken ct);
 }
 
+// Phase 6 contracts (docs/20 D-13 to D-15 and section 4.2, ADR-0063): the doctor of skills, the only piece of the app that talks to GitHub.
+// WP-S implements them (src/AgentStudio.Infrastructure/Skills/GitHub and Security); the lead composes them with the permission of Settings.
+
+/// <summary>Why a skill could not be checked against GitHub (docs/20 D-14): each failure has a code, and its message never carries the address, the headers or the body.</summary>
+public enum SkillHealthFailure
+{
+    /// <summary>The permission of Settings is off, so nothing was asked.</summary>
+    NetworkNotAllowed,
+
+    /// <summary>The origin of the skill is not valid (<see cref="GitHubSkillOrigin"/>): «origen no válido». Nothing was asked.</summary>
+    InvalidOrigin,
+
+    /// <summary>No connection.</summary>
+    NoNetwork,
+
+    /// <summary>GitHub answered 403 (the limit, or a private repository).</summary>
+    Forbidden,
+
+    /// <summary>GitHub answered 404: the repository was deleted or is private (a warning).</summary>
+    NotFound,
+
+    /// <summary>The limit of requests was reached: the skills that are left are «sin comprobar: límite de GitHub».</summary>
+    RateLimited,
+
+    /// <summary>A redirection to another host, or more than three: refused.</summary>
+    RedirectRefused,
+
+    /// <summary>The answer was not what the schema expects, or was longer than 1 MB.</summary>
+    UnreadableResponse,
+
+    /// <summary>GitHub answered 401: the stored token is not valid or was revoked. The batch stops: every other skill would get the same answer.</summary>
+    InvalidToken,
+}
+
+/// <summary>One skill of a batch: its report, and why the checks that need GitHub were not made when they were not.</summary>
+public sealed record SkillHealthBatchEntry(SkillId Skill, SkillHealthReport Report, SkillHealthFailure? Failure);
+
+/// <summary>The result of a batch of checks against GitHub (docs/20 D-14): one entry per skill, whether the token was used and, at the limit, when it is reset.</summary>
+/// <param name="TokenState">Whether the token was used and, if not, why: <see cref="SkillsDoctorTokenState.PresenceDenied"/> says the batch went without it because the presence was not confirmed.</param>
+public sealed record SkillHealthBatchResult(
+    IReadOnlyList<SkillHealthBatchEntry> Entries,
+    bool UsedToken,
+    DateTimeOffset? RateLimitResetsAt,
+    SkillsDoctorTokenState TokenState = SkillsDoctorTokenState.NoneStored);
+
+/// <summary>
+/// Checks a batch of skills against GitHub, in series, with the answers cached by <c>ETag</c> (docs/20 D-14). It asks only when
+/// <see cref="ISkillsDoctorPolicy.NetworkAllowed"/> is true, and only when the person pressed «Comprobar en GitHub». <see cref="ISkillHealthChecker"/> stays as it is.
+/// </summary>
+public interface ISkillHealthBatchChecker
+{
+    Task<SkillHealthBatchResult> CheckAsync(IReadOnlyList<SkillEntry> skills, CancellationToken ct);
+}
+
+/// <summary>
+/// The permission «Comprobar las skills en GitHub» of Settings, seen from below (docs/20 §4.2): <c>AppSettings</c> lives in Desktop, so the client
+/// asks this port before each batch. It is off by default; the test of F6-13 turns it off with a double and expects no request.
+/// </summary>
+public interface ISkillsDoctorPolicy
+{
+    bool NetworkAllowed { get; }
+}
+
+/// <summary>
+/// The revision of the scripts of a skill (docs/20 D-14): the person marks the scripts as reviewed and what is stored is the SHA-256 of the
+/// content of <c>scripts/</c>. If a script changes, the stored one no longer matches and the skill is «sin revisar» again. No script is ever run.
+/// </summary>
+public interface ISkillScriptReviews
+{
+    /// <summary>The SHA-256 the person reviewed, or null when they never did.</summary>
+    Task<string?> ReviewedSha256Async(SkillId skill, CancellationToken ct);
+
+    /// <exception cref="ArgumentException">The hash is not a SHA-256.</exception>
+    Task MarkReviewedAsync(SkillId skill, string scriptsSha256, CancellationToken ct);
+}
+
+/// <summary>
+/// The token of GitHub (docs/20 D-15). Its text is in one place only, <see cref="Reveal"/>: it is not part of <see cref="ToString"/>, it is not an
+/// argument of any text of the app and it never goes in the log, in the journal, in a message of an error or in a diagnostic.
+/// </summary>
+public sealed class GitHubToken
+{
+    /// <summary>The longest token (a fine-grained token of GitHub is under 100 characters).</summary>
+    public const int MaxLength = 255;
+
+    private readonly string _value;
+
+    /// <exception cref="ArgumentException">Empty, longer than <see cref="MaxLength"/> or with anything but visible ASCII.</exception>
+    public GitHubToken(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length > MaxLength || value.Any(c => c is < '!' or > '~'))
+        {
+            throw new ArgumentException($"A token is 1 to {MaxLength} visible ASCII characters.", nameof(value));
+        }
+
+        _value = value;
+    }
+
+    /// <summary>The token, for the one place that puts it in an <c>Authorization</c> header after checking the host of the request.</summary>
+    public string Reveal() => _value;
+
+    public override string ToString() => "[GitHub token]";
+}
+
+/// <summary>Whether the token can be used in a batch, and why not.</summary>
+public enum SkillsDoctorTokenState
+{
+    /// <summary>The person has no token stored: the batch goes without one (60 requests an hour).</summary>
+    NoneStored,
+
+    /// <summary>The presence was confirmed (Windows Hello) and the vault was read.</summary>
+    Granted,
+
+    /// <summary>The presence was denied or could not be asked: the vault was not read, and the batch goes without a token and says so.</summary>
+    PresenceDenied,
+}
+
+/// <summary>What <see cref="ISkillsDoctorSecrets.UseTokenAsync"/> gives: the token only when the state is <see cref="SkillsDoctorTokenState.Granted"/>.</summary>
+public sealed record SkillsDoctorTokenUse
+{
+    public SkillsDoctorTokenUse(SkillsDoctorTokenState state, GitHubToken? token)
+    {
+        if (!Enum.IsDefined(state) || (state == SkillsDoctorTokenState.Granted) != (token is not null))
+        {
+            throw new ArgumentException("A token comes with the state Granted and only with it.", nameof(token));
+        }
+
+        State = state;
+        Token = token;
+    }
+
+    public SkillsDoctorTokenState State { get; }
+
+    public GitHubToken? Token { get; }
+
+    public static SkillsDoctorTokenUse None { get; } = new(SkillsDoctorTokenState.NoneStored, null);
+
+    public static SkillsDoctorTokenUse Denied { get; } = new(SkillsDoctorTokenState.PresenceDenied, null);
+}
+
+/// <summary>
+/// The only way the checker of skills gets the token (docs/20 D-15): it asks for presence first (Windows Hello; <c>RemoteOrSecretOperation</c> is on the
+/// fixed list of ADR-0053) and reads the vault only after it is granted. With the presence denied, the vault gets no reading at all.
+/// </summary>
+public interface ISkillsDoctorSecrets
+{
+    Task<SkillsDoctorTokenUse> UseTokenAsync(CancellationToken ct);
+}
+
+/// <summary>Why the person is asked to confirm their presence (Windows Hello) around the token of GitHub: every one is <c>RemoteOrSecretOperation</c>, «siempre» (ADR-0053).</summary>
+public enum SkillsDoctorPresenceReason
+{
+    /// <summary>A batch of «Comprobar en GitHub» is going to use the stored token: one confirmation for the whole batch.</summary>
+    UseToken,
+
+    /// <summary>The token is going to be stored or replaced.</summary>
+    StoreToken,
+
+    /// <summary>The token is going to be deleted.</summary>
+    DeleteToken,
+}
+
+/// <summary>
+/// Confirms the presence of the person for one use of the token (docs/20 D-15). The desktop implements it over <c>ReinforcedConfirmation</c>, the one rule of the
+/// fixed barrier (Windows Hello, or the verified lock of Windows without it). Anything but a confirmation, an error included, is a no.
+/// </summary>
+public interface ISkillsDoctorPresence
+{
+    Task<bool> ConfirmAsync(SkillsDoctorPresenceReason reason, CancellationToken ct);
+}
+
+/// <summary>What storing or deleting the token did.</summary>
+public enum SkillsDoctorTokenChange
+{
+    Done,
+
+    /// <summary>The presence was not confirmed: nothing was written.</summary>
+    PresenceDenied,
+
+    /// <summary>There was no token to delete.</summary>
+    NothingStored,
+}
+
+/// <summary>
+/// Storing, replacing and deleting the token of GitHub from the screen (docs/20 D-15). The three ask for presence first; the token is never read back
+/// and the screen only learns <see cref="HasTokenAsync"/>, which decrypts nothing.
+/// </summary>
+public interface ISkillsDoctorTokenManager
+{
+    Task<bool> HasTokenAsync(CancellationToken ct);
+
+    Task<SkillsDoctorTokenChange> StoreAsync(GitHubToken token, CancellationToken ct);
+
+    Task<SkillsDoctorTokenChange> DeleteAsync(CancellationToken ct);
+}
+
+/// <summary>What the scripts of a skill are right now: the SHA-256 of their content and their relative paths, for the review.</summary>
+public sealed record SkillScriptsInfo(string Sha256, IReadOnlyList<string> RelativePaths);
+
+/// <summary>
+/// Reads the <c>scripts/</c> folder of a skill without running anything (docs/20 D-14): the fingerprint of what is there, to compare with the one the person
+/// reviewed. Null when the skill has no scripts.
+/// </summary>
+public interface ISkillScriptsInspector
+{
+    Task<SkillScriptsInfo?> InspectAsync(string skillFolder, CancellationToken ct);
+}
+
 // Phase 4 contracts (docs/14 section 5.5): the catalog screen and the assisted recommendation.
 
 /// <summary>
