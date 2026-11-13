@@ -213,3 +213,6 @@ cambiada. Tres correcciones, mínimas:
 - Solo se juzga la decisión que había antes de releer. Si durante la relectura el plan se aprobó de nuevo, esa aprobación es
   más nueva que la plantilla leída y se deja como está.
 
+## Adenda · 2026-11-13 · la pantalla de Skills dice por qué un agente que vuelve tiene una skill apagada (P57)
+
+El almacén ya guardaba el motivo de las bajas que cierran skills (skill_activations.decided_by = oster:agent-removed, punto 8 de la adenda del 2026-11-11), pero SkillActivation no lo llevaba y la pantalla solo sabía «decisión del agente». SkillActivation gana al final ClosedByRemoval (falso por defecto; SkillActivationStore lo pone a verdadero cuando decided_by es ese valor; los registros anteriores se leen igual). SkillsDocumentViewModel usa el texto Skills_Effective_OffRemoved cuando la skill está apagada y la última decisión del agente es la de la baja. Si la persona decide después sobre ese agente, la última decisión es suya y vuelve el texto de siempre. El archivo global (.jsonl) no guarda bajas de agentes y no cambia.

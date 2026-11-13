@@ -949,9 +949,13 @@ Marca los scripts como revisados cuando los hayas leído.</value>
     <value>Licencia no OSI o con restricciones ({0}). Revisa los términos antes de usarla.</value>
   </data>
   <data name="Text_skills_pinned_ok" xml:space="preserve">
-    <value>Fijada a un commit concreto.</value>
+    <value>Fijada a una versión guardada (commit) concreta.</value>
   </data>
   <data name="Text_skills_pinned_missing" xml:space="preserve">
-    <value>Sin commit fijado. El contenido de origen puede cambiar sin revisión.</value>
+    <value>Sin versión guardada (commit) fijada. El contenido de origen puede cambiar sin revisión.</value>
+  </data>
+  <data name="Skills_Effective_OffRemoved" xml:space="preserve">
+    <value>Desactivada ({0}): el agente se quitó y volvió con el mismo nombre. Actívala aquí si la quieres.</value>
+    <comment>What an agent gets when the skill was closed by the removal of an agent with the same id (P57). {0}: which scope decided.</comment>
   </data>
 </root>

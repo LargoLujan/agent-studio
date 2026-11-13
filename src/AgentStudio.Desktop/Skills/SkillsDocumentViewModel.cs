@@ -625,8 +625,10 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         }
     }
 
-    private bool? LastDecision(SkillId skill, SkillScopeKind scope, string? scopeId) =>
-        _activations.LastOrDefault(a => a.Skill == skill && a.Scope == scope && (scope == SkillScopeKind.Global || string.Equals(a.ScopeId, scopeId, StringComparison.Ordinal)))?.Enabled;
+    private bool? LastDecision(SkillId skill, SkillScopeKind scope, string? scopeId) => LastActivation(skill, scope, scopeId)?.Enabled;
+
+    private SkillActivation? LastActivation(SkillId skill, SkillScopeKind scope, string? scopeId) =>
+        _activations.LastOrDefault(a => a.Skill == skill && a.Scope == scope && (scope == SkillScopeKind.Global || string.Equals(a.ScopeId, scopeId, StringComparison.Ordinal)));
 
     /// <summary>
     /// What an agent gets and which scope decided it, with the precedence of <see cref="SkillActivationResolver"/> (the
@@ -641,7 +643,16 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             : projectId is not null && LastDecision(skill, SkillScopeKind.Project, projectId) is not null
                 ? Texts.Get("Skills_By_Project")
                 : LastDecision(skill, SkillScopeKind.Global, null) is not null ? Texts.Get("Skills_By_Global") : null;
-        return source is null ? Texts.Get("Skills_Effective_None") : Texts.Format(enabled ? "Skills_Effective_On" : "Skills_Effective_Off", source);
+        if (source is null)
+        {
+            return Texts.Get("Skills_Effective_None");
+        }
+
+        // An agent that came back with the id of a removed one starts with the skill off at its own level: say why (P57, ADR-0048 addendum, point 8).
+        // Only the decision the removal wrote counts; one of the person, later, is the last and takes this away.
+        return !enabled && LastActivation(skill, SkillScopeKind.Agent, agentId) is { ClosedByRemoval: true }
+            ? Texts.Format("Skills_Effective_OffRemoved", source)
+            : Texts.Format(enabled ? "Skills_Effective_On" : "Skills_Effective_Off", source);
     }
 
     /// <summary>The badges of the tree and the cost of each agent, after the decisions changed.</summary>

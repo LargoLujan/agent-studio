@@ -812,9 +812,12 @@ Mark the scripts as reviewed once you have read them.</value>
     <value>Non-OSI or restricted license ({0}). Check the terms before using it.</value>
   </data>
   <data name="Text_skills_pinned_ok" xml:space="preserve">
-    <value>Pinned to a specific commit.</value>
+    <value>Pinned to a specific saved version (commit).</value>
   </data>
   <data name="Text_skills_pinned_missing" xml:space="preserve">
-    <value>No commit pinned. The upstream content can change without review.</value>
+    <value>No saved version (commit) pinned. The upstream content can change without review.</value>
+  </data>
+  <data name="Skills_Effective_OffRemoved" xml:space="preserve">
+    <value>Off ({0}): the agent was removed and came back with the same name. Turn it on here if you want it.</value>
   </data>
 </root>

@@ -198,6 +198,11 @@ public sealed class SqliteAgentRosterTests : IDisposable
         // The history is only added to: the six decisions are where they were, and the two skills that were on got one more.
         Assert.Equal(before.Count + 2, after.Count);
         Assert.Equal(before, after.Take(before.Count));
+
+        // P57: the store says which decisions the removal wrote and which the person did, so the screen can tell them apart; one of the person later takes it away.
+        Assert.Equal([docs, tdd], after.Skip(before.Count).Select(a => a.Skill).Order(Comparer<SkillId>.Create((x, y) => string.CompareOrdinal(x.Value, y.Value))));
+        Assert.All(after.Skip(before.Count), a => Assert.True(a.ClosedByRemoval && !a.Enabled && a.Scope == SkillScopeKind.Agent && a.ScopeId == gone.Id.Value));
+        Assert.All(after.Take(before.Count), a => Assert.False(a.ClosedByRemoval));
         using var connection = instance.Connect();
         Assert.Equal(6, Scalar(connection, "SELECT COUNT(*) FROM skill_activations WHERE decided_by = 'manuel'"));
         Assert.Equal(2, Scalar(connection, "SELECT COUNT(*) FROM skill_activations WHERE decided_by = 'roster:agent-removed' AND enabled = 0 AND scope = 'Agent' AND scope_id = '" + gone.Id.Value + "'"));
@@ -206,6 +211,12 @@ public sealed class SqliteAgentRosterTests : IDisposable
         await instance.Roster.DeleteAsync(instance.ProjectId, gone.Id, Ct);
         await instance.Roster.DeleteAsync(instance.ProjectId, gone.Id, Ct);
         Assert.Equal(8, Scalar(connection, "SELECT COUNT(*) FROM skill_activations"));
+
+        // A decision of the person after the removal is the last one and is not marked as the removal's.
+        await skills.AppendAsync(instance.ProjectId, new SkillActivation(docs, SkillScopeKind.Agent, gone.Id.Value, true), "manuel", Ct);
+        var turnedOn = (await skills.ListAsync(instance.ProjectId, Ct)).Last(a => a.Skill == docs && a.Scope == SkillScopeKind.Agent && a.ScopeId == gone.Id.Value);
+        Assert.True(turnedOn.Enabled);
+        Assert.False(turnedOn.ClosedByRemoval);
     }
 
     [Fact]

@@ -150,6 +150,27 @@ public sealed class SkillsDocumentViewModelTests
         Assert.Equal("Proy.", Find(document, "spark-optimization").ActiveBadge);
     }
 
+    /// <summary>P57: an agent that came back with the id of a removed one has its skills off by the removal; the screen says so, and a decision of the person takes the note away.</summary>
+    [Fact]
+    public async Task A_skill_off_for_an_agent_by_its_removal_says_why_until_the_person_decides()
+    {
+        var world = new SkillsWorld();
+        var skill = new SkillId("spark-optimization");
+        world.Activations.Decisions.Add(new SkillActivation(skill, SkillScopeKind.Project, ProjectId, true));
+        world.Activations.Decisions.Add(new SkillActivation(skill, SkillScopeKind.Agent, "juez", false, ClosedByRemoval: true));
+        var (_, document) = await OpenAsync(world);
+        Find(document, "spark-optimization").IsSelected = true;
+
+        var removed = Scope(document, "Agente «juez»").EffectiveText;
+        Assert.Equal("Desactivada (por el agente): el agente se quitó y volvió con el mismo nombre. Actívala aquí si la quieres.", removed);
+        Assert.Equal("Activada (por el proyecto)", Scope(document, "Agente «ejecutor»").EffectiveText);
+
+        // The person turns it on and off again: the last decision is theirs, and it is the plain «Desactivada».
+        await Scope(document, "Agente «juez»").ToggleCommand.ExecuteAsync(null);
+        await Scope(document, "Agente «juez»").ToggleCommand.ExecuteAsync(null);
+        Assert.Equal("Desactivada (por el agente)", Scope(document, "Agente «juez»").EffectiveText);
+    }
+
     [Fact]
     public async Task An_agent_decision_wins_over_the_project_and_the_global_ones()
     {
