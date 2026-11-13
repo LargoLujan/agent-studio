@@ -177,8 +177,10 @@ public sealed class PublicationServiceTests
         await using var rig = new PublicationRig();
 
         // The courtesy second after the stretch of git leaves the project closed for the notes: they park and the flow does not wait.
+        // The clock moves in steps of the retry timer and the consumer is waited for after each: the stretch of git runs at second 1 (when its own courtesy ends) and the note of the pull request
+        // finds the project closed until second 2.
         var ticket = await rig.Service.PublishAsync(Request(), CancellationToken.None);
-        await rig.AdvanceAsync(TimeSpan.FromSeconds(2));
+        await rig.AdvanceAsync(TimeSpan.FromSeconds(1));
 
         Assert.Equal(RemoteWorkState.Done, (await StatusAsync(rig, ticket)).State);
         Assert.Equal(1, rig.Log.Count(DecisionKind.HostingOperationPerformed));

@@ -284,9 +284,13 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     /// <summary>A long call of the platform: it ends only when the token it is given is cancelled (no wall clock is involved).</summary>
     public Func<CancellationToken, Task>? ObserveDelay { get; set; }
 
+    /// <summary>Completed when the provider is entered by a read of a pull request: the signal that the consumer reached the call.</summary>
+    public TaskCompletionSource ObserveEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public async Task<HostingResult<PullRequestObservation>> ObserveAsync(PullRequestRef pullRequest, ObservationCursor? cursor, CancellationToken ct)
     {
         Outside("observe");
+        ObserveEntered.TrySetResult();
         if (ObserveDelay is { } delay)
         {
             await delay(ct);
@@ -545,10 +549,16 @@ internal sealed class PublicationRig : IAsyncDisposable
     /// <summary>Waits until the mailbox has nothing queued, then moves the clock: what a test does to let a timer fire and its work end.</summary>
     public async Task AdvanceAsync(TimeSpan by)
     {
+        // The clock moves in steps, and after each one the mailbox is waited for until it is idle: what the consumer does in answer to a timer happens at the time of that step, never at some
+        // later time of a clock that this thread went on moving. A single big jump would make the courtesy second and the retries depend on how fast the consumer thread runs.
         var box = await BoxAsync();
         await box.WhenIdleAsync();
-        Time.Advance(by);
-        await box.WhenIdleAsync();
+        var step = by <= TimeSpan.FromMinutes(5) ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromMinutes(5);
+        for (var left = by; left > TimeSpan.Zero; left -= step)
+        {
+            Time.Advance(left < step ? left : step);
+            await box.WhenIdleAsync();
+        }
     }
 
     public async Task IdleAsync() => await (await BoxAsync()).WhenIdleAsync();
