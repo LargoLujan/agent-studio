@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Diagrams;
 using AgentStudio.Application.Orchestration;
@@ -24,8 +25,21 @@ internal sealed class DiagramStaleness(DiagramCacheStore store, RunModels runs, 
         var index = await store.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
         var context = new RenderContext(project, graph, runs, time.GetUtcNow());
         var stale = new List<StaleDiagram>();
+        var memo = MemoFor(graph);
         foreach (var entry in index.Entries)
         {
+            // The diagrams of the model of the solution depend on nothing but that model: what they give is worked out once per model and kept (never redrawn at every refresh).
+            if (entry.Diagram.Kind is DiagramKind.Solution or DiagramKind.ProjectNamespaces)
+            {
+                var outcome = memo.Outcomes.TryGetValue(entry.Diagram, out var known) ? known : (memo.Outcomes[entry.Diagram] = await GraphOutcomeAsync(entry.Diagram, context, ct).ConfigureAwait(false));
+                if (outcome.Failed || OfHash(entry, outcome.ModelHash) == DiagramState.Stale)
+                {
+                    stale.Add(new StaleDiagram(entry.Diagram, entry.Current.Describes));
+                }
+
+                continue;
+            }
+
             RenderedDiagram? now;
             try
             {
@@ -49,18 +63,56 @@ internal sealed class DiagramStaleness(DiagramCacheStore store, RunModels runs, 
     }
 
     /// <summary>The state of an entry against the diagram its model gives now (null: the model is not there any more).</summary>
-    public static DiagramState Of(IndexEntry? entry, RenderedDiagram? now)
-    {
-        if (entry is null)
-        {
-            return DiagramState.NotGenerated;
-        }
+    public static DiagramState Of(IndexEntry? entry, RenderedDiagram? now) =>
+        entry is null ? DiagramState.NotGenerated : OfHash(entry, now?.Source.ModelHash);
 
-        return now is not null
-            && string.Equals(now.Source.ModelHash, entry.Current.ModelHash, StringComparison.Ordinal)
+    /// <summary>The state of an entry against the fingerprint of the model its diagram is made of now (null: the model is not there any more).</summary>
+    private static DiagramState OfHash(IndexEntry entry, string? modelHash) =>
+        modelHash is not null
+            && string.Equals(modelHash, entry.Current.ModelHash, StringComparison.Ordinal)
             && entry.Current.Generator == DiagramGrammar.GeneratorVersion
             ? DiagramState.Current
             : DiagramState.Stale;
+
+    /// <summary>What drawing a diagram of the model of the solution gives to decide its state: the fingerprint (null when the model has no such diagram) or that it cannot be drawn.</summary>
+    private readonly record struct GraphOutcome(string? ModelHash, bool Failed);
+
+    /// <summary>The outcomes of one model of the solution, by diagram. Replaced as a whole when the model changes, so it never grows past the diagrams of one model.</summary>
+    private sealed record GraphMemo(string ModelHash, ConcurrentDictionary<DiagramRef, GraphOutcome> Outcomes);
+
+    private GraphMemo? _memo;
+
+    private GraphMemo MemoFor(CodeGraph graph)
+    {
+        var hash = graph.ModelHash;
+        if (_memo is { } current && string.Equals(current.ModelHash, hash, StringComparison.Ordinal))
+        {
+            return current;
+        }
+
+        var fresh = new GraphMemo(hash, new ConcurrentDictionary<DiagramRef, GraphOutcome>());
+        _memo = fresh;
+        return fresh;
+    }
+
+    private int _graphRenders;
+
+    /// <summary>How many diagrams of the model of the solution were drawn to decide a state (the rest came from the memory): what the tests count.</summary>
+    internal int GraphRenders => Volatile.Read(ref _graphRenders);
+
+    private async Task<GraphOutcome> GraphOutcomeAsync(DiagramRef diagram, RenderContext context, CancellationToken ct)
+    {
+        Interlocked.Increment(ref _graphRenders);
+        try
+        {
+            var rendered = await DiagramRenderer.RenderAsync(diagram, context, ct).ConfigureAwait(false);
+            return new GraphOutcome(rendered?.Source.ModelHash, Failed: false);
+        }
+        catch (ArgumentException)
+        {
+            // What it is made of cannot be built into a diagram: it stays visible as out of date, the same call the list of diagrams makes.
+            return new GraphOutcome(null, Failed: true);
+        }
     }
 }
 
@@ -103,12 +155,17 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
 
     internal DiagramCacheStore Store => _store;
 
-    public async Task<IReadOnlyList<DiagramStatus>> ListAsync(ProjectContext project, CancellationToken ct)
+    public Task<IReadOnlyList<DiagramStatus>> ListAsync(ProjectContext project, CancellationToken ct)
+    {
+        // All the work, from the first line, is queued to the pool: a hop that only awaits an already finished task would stay on the thread that called, which may be the one of the interface.
+        return Task.Run(() => ListAsyncCore(project, ct), ct);
+    }
+
+    private async Task<IReadOnlyList<DiagramStatus>> ListAsyncCore(ProjectContext project, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
 
         // The work below (the files, the rendering of every diagram) never starts on the thread that called, which may be the one of the interface.
-        await Task.Run(static () => { }).ConfigureAwait(false);
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -158,11 +215,16 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         }
     }
 
-    public async Task<DiagramStatus> GenerateAsync(ProjectContext project, DiagramKind kind, string subject, CancellationToken ct)
+    public Task<DiagramStatus> GenerateAsync(ProjectContext project, DiagramKind kind, string subject, CancellationToken ct)
+    {
+        // All the work, from the first line, is queued to the pool: a hop that only awaits an already finished task would stay on the thread that called, which may be the one of the interface.
+        return Task.Run(() => GenerateAsyncCore(project, kind, subject, ct), ct);
+    }
+
+    private async Task<DiagramStatus> GenerateAsyncCore(ProjectContext project, DiagramKind kind, string subject, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         var diagram = new DiagramRef(kind, subject);
-        await Task.Run(static () => { }).ConfigureAwait(false);
 
         // The model is read before the gate is taken: calculating the analysis of a commit can take minutes and listing must not wait behind it.
         var graph = kind is DiagramKind.Solution or DiagramKind.ProjectNamespaces ? await _graphs.LoadAsync(project, analyze: true, ct).ConfigureAwait(false) : null;
@@ -213,7 +275,13 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         }
     }
 
-    public async Task<DiagramStatus> RestorePreviousAsync(ProjectContext project, DiagramKind kind, string subject, CancellationToken ct)
+    public Task<DiagramStatus> RestorePreviousAsync(ProjectContext project, DiagramKind kind, string subject, CancellationToken ct)
+    {
+        // All the work, from the first line, is queued to the pool: a hop that only awaits an already finished task would stay on the thread that called, which may be the one of the interface.
+        return Task.Run(() => RestorePreviousAsyncCore(project, kind, subject, ct), ct);
+    }
+
+    private async Task<DiagramStatus> RestorePreviousAsyncCore(ProjectContext project, DiagramKind kind, string subject, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         var diagram = new DiagramRef(kind, subject);
@@ -242,7 +310,13 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         }
     }
 
-    public async Task<string?> ReadAsync(ProjectContext project, DiagramRef diagram, CancellationToken ct)
+    public Task<string?> ReadAsync(ProjectContext project, DiagramRef diagram, CancellationToken ct)
+    {
+        // All the work, from the first line, is queued to the pool: a hop that only awaits an already finished task would stay on the thread that called, which may be the one of the interface.
+        return Task.Run(() => ReadAsyncCore(project, diagram, ct), ct);
+    }
+
+    private async Task<string?> ReadAsyncCore(ProjectContext project, DiagramRef diagram, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(diagram);
@@ -260,11 +334,16 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
         }
     }
 
-    public async Task<DiagramExportResult> ExportAsync(ProjectContext project, DiagramExportRequest request, CancellationToken ct)
+    public Task<DiagramExportResult> ExportAsync(ProjectContext project, DiagramExportRequest request, CancellationToken ct)
+    {
+        // All the work, from the first line, is queued to the pool: a hop that only awaits an already finished task would stay on the thread that called, which may be the one of the interface.
+        return Task.Run(() => ExportAsyncCore(project, request, ct), ct);
+    }
+
+    private async Task<DiagramExportResult> ExportAsyncCore(ProjectContext project, DiagramExportRequest request, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(request);
-        await Task.Run(static () => { }).ConfigureAwait(false);
         RequireNoRun(project);
 
         await _store.Gate.WaitAsync(ct).ConfigureAwait(false);
@@ -285,43 +364,53 @@ public sealed class DiagramCatalog : IDiagramCatalog, IDiagramTextReader
 
             var written = new List<DiagramExportedFile>();
             var conflicts = new List<DiagramExportConflict>();
-            foreach (var diagram in request.Diagrams)
+            try
             {
-                var entry = index.Find(diagram)!;
-                var name = DiagramExportFiles.FileName(diagram);
-                var path = request.Folder + "/" + name;
-                var probe = DiagramExportFiles.Probe(project.RootPath, path);
-                if (probe.Exists && !(probe.Sha256 is { } sha && entry.Export is { } known && known.Path == path && known.FileSha256 == sha))
+                foreach (var diagram in request.Diagrams)
                 {
-                    var state = entry.Export?.Path == path ? DiagramExportState.ChangedOutside : DiagramExportState.Unknown;
-                    switch (request.OnConflict)
+                    var entry = index.Find(diagram)!;
+                    var name = DiagramExportFiles.FileName(diagram);
+                    var path = request.Folder + "/" + name;
+                    var probe = DiagramExportFiles.Probe(project.RootPath, path);
+                    if (probe.Exists && !(probe.Sha256 is { } sha && entry.Export is { } known && known.Path == path && known.FileSha256 == sha))
                     {
-                        case DiagramExportConflictChoice.Ask:
-                            conflicts.Add(new DiagramExportConflict(diagram, path, state));
-                            continue;
-                        case DiagramExportConflictChoice.Skip:
-                            continue;
-                        case DiagramExportConflictChoice.SaveAsNew:
-                            path = NextFreePath(project.RootPath, request.Folder, name);
-                            break;
-                        case DiagramExportConflictChoice.Overwrite when probe.IsLink:
-                            // A link is never overwritten: it would be written through, outside the project.
-                            conflicts.Add(new DiagramExportConflict(diagram, path, state));
-                            continue;
-                        default:
-                            break;
+                        var state = entry.Export?.Path == path ? DiagramExportState.ChangedOutside : DiagramExportState.Unknown;
+                        switch (request.OnConflict)
+                        {
+                            case DiagramExportConflictChoice.Ask:
+                                conflicts.Add(new DiagramExportConflict(diagram, path, state));
+                                continue;
+                            case DiagramExportConflictChoice.Skip:
+                                continue;
+                            case DiagramExportConflictChoice.SaveAsNew:
+                                path = NextFreePath(project.RootPath, request.Folder, name);
+                                break;
+                            case DiagramExportConflictChoice.Overwrite when probe.IsLink:
+                                // A link is never overwritten: it would be written through, outside the project.
+                                conflicts.Add(new DiagramExportConflict(diagram, path, state));
+                                continue;
+                            default:
+                                break;
+                        }
                     }
+
+                    RequireNoRun(project);
+                    var bytes = DiagramExportFiles.Markdown(texts[diagram]);
+                    DiagramExportFiles.Write(project.RootPath, path, bytes);
+                    var exported = new DiagramExportedFile(diagram, path, DiagramExportFiles.Sha256(bytes));
+                    index = index.With(entry with { Export = new IndexExport(exported.Path, exported.Sha256, entry.Current.TextSha256) });
+
+                    // The index is saved after each file, and not with the token of the call: a cancellation between writing and saving would leave the file written and unknown. If the
+                    // saving itself fails (the disk), the file is written and the index does not know it: it is not in the list of what was written, and the next export finds it there,
+                    // takes it for a file of someone else and asks before touching it.
+                    await _store.SaveAsync(project.ProjectId, index, CancellationToken.None).ConfigureAwait(false);
+                    written.Add(exported);
                 }
-
-                RequireNoRun(project);
-                var bytes = DiagramExportFiles.Markdown(texts[diagram]);
-                DiagramExportFiles.Write(project.RootPath, path, bytes);
-                var exported = new DiagramExportedFile(diagram, path, DiagramExportFiles.Sha256(bytes));
-                written.Add(exported);
-                index = index.With(entry with { Export = new IndexExport(exported.Path, exported.Sha256, entry.Current.TextSha256) });
-
-                // The index is saved after each file: if the next one fails, this one is not left written and unknown, to be taken for someone else's next time.
-                await _store.SaveAsync(project.ProjectId, index, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (written.Count > 0 && ex is not OperationCanceledException)
+            {
+                // What is in the list was written and indexed: the failure carries it, so nothing that was exported is lost to the caller.
+                throw new DiagramExportInterruptedException(written, conflicts, ex);
             }
 
             return new DiagramExportResult(written, conflicts);

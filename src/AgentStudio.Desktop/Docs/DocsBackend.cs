@@ -93,6 +93,13 @@ public static class DocsTexts
     {
         ArgumentNullException.ThrowIfNull(texts);
         ArgumentNullException.ThrowIfNull(exception);
+
+        // An export that failed after writing some files says why it failed, not that it was interrupted.
+        if (exception is DiagramExportInterruptedException { InnerException: { } cause })
+        {
+            exception = cause;
+        }
+
         return texts.Get(exception switch
         {
             DiagramExportBusyException => "Docs_Failure_Busy",

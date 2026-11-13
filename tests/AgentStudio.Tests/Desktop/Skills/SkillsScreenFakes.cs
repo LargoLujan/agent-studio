@@ -286,6 +286,10 @@ internal sealed class FakeTokens : ISkillsDoctorTokenManager
 internal sealed class FakeInspector : Dictionary<string, SkillScriptsInfo>, ISkillScriptsInspector
 {
     public Task<SkillScriptsInfo?> InspectAsync(string skillFolder, CancellationToken ct) => Task.FromResult(TryGetValue(skillFolder, out var info) ? info : null);
+
+    /// <summary>The real check over the real (temporary) folders of the test.</summary>
+    public Task<string?> ResolveScriptAsync(string skillFolder, string relativePath, CancellationToken ct) =>
+        new AgentStudio.Infrastructure.Skills.SkillScriptsInspector().ResolveScriptAsync(skillFolder, relativePath, ct);
 }
 
 internal sealed class FakeReviews : ISkillScriptReviews

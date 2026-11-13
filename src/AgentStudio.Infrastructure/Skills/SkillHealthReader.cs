@@ -16,7 +16,7 @@ namespace AgentStudio.Infrastructure.Skills;
 /// <item>upstream, archived and scripts, «sin comprobar (Fase 6)»: they need the network or a review. Unknown weighs more
 /// than healthy (<see cref="SkillHealthReport.Status"/>), so no skill looks healthy for what was never checked.</item>
 /// </list>
-/// The messages are in Spanish: the catalog screen shows them as they are.
+/// Every text is a code with its arguments: the desktop paints it in the language of the person (ADR-0054).
 /// </summary>
 public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, ISkillScriptReviews? reviews = null) : ISkillHealthReader
 {
@@ -67,6 +67,13 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
             }
 
             var count = info.RelativePaths.Count;
+
+            // Too big to be read: it is not «sin revisar» nor «cambiada» (nothing can be reviewed), and the card of the skill says the same.
+            if (!info.Reviewable)
+            {
+                return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, SkillsUserTexts.ReaderScriptsTooBig);
+            }
+
             var reviewed = reviews is null ? null : await reviews.ReviewedSha256Async(skill.Entry.Id, ct).ConfigureAwait(false);
             if (string.Equals(reviewed, info.Sha256, StringComparison.Ordinal))
             {
@@ -133,7 +140,8 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
                 text = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
             }
 
-            return SkillFrontmatter.Parse(text).Validate(folder.Name);
+            // The size check also says what the whole SKILL.md costs in context once the skill is used (docs/20 D-14).
+            return SkillFrontmatter.Parse(text).Validate(folder.Name, SkillContextCost.OfText(text.Length));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

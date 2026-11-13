@@ -234,13 +234,20 @@ public sealed partial class SkillsDocumentViewModel
         IReadOnlyList<SkillScriptLink> links = _openFile is null
             ? []
             : [.. info.RelativePaths.Take(SkillDetailViewModel.MaxScriptLines).Select(path => new SkillScriptLink(path, Texts.Format("Skills_Scripts_OpenName", path), new AsyncRelayCommand(() => OpenScriptAsync(item, path))))];
+        if (!info.Reviewable)
+        {
+            // Too big to be read: the list stays, there is nothing to mark, and the text says why.
+            return (info.RelativePaths, links, Texts.Get("Skills_Scripts_TooBig"), null);
+        }
+
         var reviewed = _reviewedScripts.TryGetValue(id, out var hash) && string.Equals(hash, info.Sha256, StringComparison.Ordinal);
         return (info.RelativePaths, links, reviewed ? Texts.Get("Skills_Scripts_Reviewed") : null, reviewed ? null : new AsyncRelayCommand(() => MarkScriptsReviewedAsync(item)));
     }
 
     /// <summary>
     /// Opens one script of the skill in the editor of the app, to read it. The path is rebuilt from the folder of the skill and a relative path that the reading of
-    /// <c>scripts/</c> gave, and checked again before it is opened: it must still be a plain file inside <c>scripts/</c>, never a link.
+    /// <c>scripts/</c> gave, and checked again before it is opened: it must still be a plain file inside <c>scripts/</c>, never a link, and neither <c>scripts/</c> nor a
+    /// folder under it may be a link or a junction.
     /// </summary>
     private async Task OpenScriptAsync(SkillItemViewModel item, string relativePath)
     {
@@ -249,13 +256,11 @@ public sealed partial class SkillsDocumentViewModel
             return;
         }
 
-        var scriptsRoot = Path.GetFullPath(Path.Combine(folder, "scripts"));
-        var full = Path.GetFullPath(Path.Combine(scriptsRoot, relativePath));
-        var file = new FileInfo(full);
-        if (!full.StartsWith(scriptsRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            || !file.Exists
-            || file.Attributes.HasFlag(FileAttributes.ReparsePoint)
-            || file.LinkTarget is not null)
+        // The inspector walks every stretch from the folder of the skill (no link or junction on the way) and asks Windows where the open file really is.
+        var full = _backend.ScriptsInspector is { } inspector
+            ? await inspector.ResolveScriptAsync(folder, relativePath, CancellationToken.None).ConfigureAwait(true)
+            : null;
+        if (full is null)
         {
             ActivationProblem = Texts.Get("Skills_Scripts_OpenFailed");
             return;

@@ -299,10 +299,21 @@ public sealed partial class DocsDiagramsSection : GraphSection
         async (project, catalog, row) =>
         {
             Conflicts.Clear();
-            var result = await catalog.ExportAsync(
-                project,
-                new DiagramExportRequest([row.Diagram], DiagramExportRequest.DefaultFolder, DiagramExportConflictChoice.Ask),
-                ct).ConfigureAwait(true);
+            DiagramExportResult result;
+            try
+            {
+                result = await catalog.ExportAsync(
+                    project,
+                    new DiagramExportRequest([row.Diagram], DiagramExportRequest.DefaultFolder, DiagramExportConflictChoice.Ask),
+                    ct).ConfigureAwait(true);
+            }
+            catch (DiagramExportInterruptedException interrupted)
+            {
+                // What was written is said, the conflicts found are shown, and the list is read again by the caller (the row must not keep its old state).
+                ShowInterrupted(interrupted);
+                return;
+            }
+
             foreach (var conflict in result.Conflicts)
             {
                 Conflicts.Add(new ExportConflictItem(conflict, T));
@@ -356,6 +367,11 @@ public sealed partial class DocsDiagramsSection : GraphSection
         {
             throw;
         }
+        catch (DiagramExportInterruptedException interrupted)
+        {
+            ShowInterrupted(interrupted);
+            await ReloadAfterFailureAsync(project, catalog, ct).ConfigureAwait(true);
+        }
 #pragma warning disable CA1031 // The catalog is behind a port: why it failed is said, never thrown into the UI.
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException)
 #pragma warning restore CA1031
@@ -365,6 +381,31 @@ public sealed partial class DocsDiagramsSection : GraphSection
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>An export failed after writing some files: says what was written and why it stopped, and shows the conflicts it had found.</summary>
+    private void ShowInterrupted(DiagramExportInterruptedException interrupted)
+    {
+        foreach (var conflict in interrupted.Conflicts)
+        {
+            Conflicts.Add(new ExportConflictItem(conflict, T));
+        }
+
+        Message = interrupted.Written.Count > 0 ? T.Format("Docs_Message_ExportInterrupted", interrupted.Written.Count, interrupted.Written[0].Path) : null;
+        Error = T.Format("Docs_Error_Export", DocsTexts.Failure(T, interrupted));
+    }
+
+    /// <summary>Reads the list again after a failure, so a row never keeps the state it had before what was written; a failure of that read adds nothing to the one already said.</summary>
+    private async Task ReloadAfterFailureAsync(ProjectContext project, IDiagramCatalog catalog, CancellationToken ct)
+    {
+        try
+        {
+            Apply(await catalog.ListAsync(project, ct).ConfigureAwait(true), SelectedRow?.Diagram);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or AgentStudio.Application.Decisions.DecisionLogIntegrityException)
+        {
+            // The first failure is the one the person sees.
         }
     }
 

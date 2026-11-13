@@ -447,4 +447,8 @@ Go to Work if a requirement has no task.</value>
     <value>The data of this diagram is not available.</value>
     <comment>Why something failed: the model of the diagram.</comment>
   </data>
+  <data name="Docs_Message_ExportInterrupted" xml:space="preserve">
+    <value>The export was cut short, but this was already written: {1}</value>
+    <comment>{0}: how many files were written before the failure; {1}: the first one.</comment>
+  </data>
 </root>

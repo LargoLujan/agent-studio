@@ -760,4 +760,70 @@ Mark the scripts as reviewed once you have read them.</value>
   <data name="Skills_Scripts_OpenFailed" xml:space="preserve">
     <value>That script could not be opened: it no longer exists or it is a link.</value>
   </data>
+  <data name="Text_skills_frontmatter_no_header" xml:space="preserve">
+    <value>Its SKILL.md has no valid header between &apos;---&apos; lines.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_missing" xml:space="preserve">
+    <value>The &apos;name&apos; field is missing from the header.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_too_long" xml:space="preserve">
+    <value>The &apos;name&apos; field is longer than {0} characters.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_invalid" xml:space="preserve">
+    <value>The &apos;name&apos; field only allows a-z, 0-9 and hyphens, with none at the start, at the end or doubled.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_folder_mismatch" xml:space="preserve">
+    <value>The name ({0}) does not match the folder ({1}).</value>
+  </data>
+  <data name="Text_skills_frontmatter_description_missing" xml:space="preserve">
+    <value>The &apos;description&apos; field is missing from the header.</value>
+  </data>
+  <data name="Text_skills_frontmatter_description_too_long" xml:space="preserve">
+    <value>The &apos;description&apos; field is longer than {0} characters.</value>
+  </data>
+  <data name="Text_skills_frontmatter_duplicate_key" xml:space="preserve">
+    <value>The key &apos;{0}&apos; is repeated in the header. The last one wins.</value>
+  </data>
+  <data name="Text_skills_frontmatter_ok" xml:space="preserve">
+    <value>The header follows the Agent Skills specification.</value>
+  </data>
+  <data name="Text_skills_size_long" xml:space="preserve">
+    <value>The body has {0} lines. Fewer than {1} are recommended.</value>
+  </data>
+  <data name="Text_skills_size_long_cost" xml:space="preserve">
+    <value>The body has {0} lines. Fewer than {1} are recommended. When used, it takes about {2:N0} tokens of context (estimated by Agent Studio).</value>
+  </data>
+  <data name="Text_skills_size_ok" xml:space="preserve">
+    <value>Body of {0} lines.</value>
+  </data>
+  <data name="Text_skills_size_ok_cost" xml:space="preserve">
+    <value>Body of {0} lines. When used, it takes about {1:N0} tokens of context (estimated by Agent Studio).</value>
+  </data>
+  <data name="Text_skills_license_missing" xml:space="preserve">
+    <value>No license declared. Check the terms of use.</value>
+  </data>
+  <data name="Text_skills_license_permissive" xml:space="preserve">
+    <value>Permissive license: {0}.</value>
+  </data>
+  <data name="Text_skills_license_copyleft" xml:space="preserve">
+    <value>Copyleft license, valid for personal use ({0}).</value>
+  </data>
+  <data name="Text_skills_license_restricted" xml:space="preserve">
+    <value>Non-OSI or restricted license ({0}). Check the terms before using it.</value>
+  </data>
+  <data name="Text_skills_pinned_ok" xml:space="preserve">
+    <value>Pinned to a specific saved version (commit).</value>
+  </data>
+  <data name="Text_skills_pinned_missing" xml:space="preserve">
+    <value>No saved version (commit) pinned. The upstream content can change without review.</value>
+  </data>
+  <data name="Skills_Effective_OffRemoved" xml:space="preserve">
+    <value>Off ({0}): the agent was removed and came back with the same name. Turn it on here if you want it.</value>
+  </data>
+  <data name="Skills_Scripts_TooBig" xml:space="preserve">
+    <value>This scripts folder is too big to review here: it cannot be marked as reviewed. Open it and read it outside the app.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_too_big" xml:space="preserve">
+    <value>This scripts folder is too big to review: it cannot be marked as reviewed. Read it outside the app. None is run.</value>
+  </data>
 </root>

@@ -61,14 +61,100 @@ public sealed class MarkdownScannerTests
     [Fact]
     public void A_line_made_of_empty_links_cannot_make_every_candidate_read_to_the_end_of_the_line()
     {
-        var line = string.Concat(Enumerable.Repeat("[](a", MarkdownScanner.MaxLineLength / 4));
+        var line = string.Concat(Enumerable.Repeat("[](a", 500));
         var text = string.Join('\n', Enumerable.Repeat(line, 200));
 
         _ = MarkdownScanner.Scan(text, out var steps);
 
         // Without a budget each of the 500 candidates of a line read up to 500 characters (250 000 a line); with it, a line reads at most its budget and one destination more.
-        Assert.True(steps <= 200L * (MarkdownScanner.LineBudget + MarkdownScanner.MaxDestinationLength), steps.ToString());
-        Assert.True(steps < text.Length * 3L, $"{steps} for {text.Length} characters");
+        Assert.True(steps <= 200L * (MarkdownScanner.LineBudget + line.Length + MarkdownScanner.MaxDestinationLength), steps.ToString());
+        // Linear in the text: one character per character of each line, plus the fixed budget and the last destination of each line, whatever the lines hold.
+        Assert.True(steps <= text.Length + 200L * (MarkdownScanner.LineBudget + MarkdownScanner.MaxDestinationLength), $"{steps} for {text.Length} characters");
+    }
+
+    [Fact]
+    public void A_lone_backtick_in_a_list_item_a_table_cell_a_quote_or_a_heading_does_not_cross_into_the_next_block()
+    {
+        foreach (var opener in new[] { "- un `ítem", "1. un `ítem", "| celda ` | b |", "> una `cita", "# Un `título" })
+        {
+            var text = $"{opener}\n- [uno](a.md)\n| [dos](b.md) |\n> [tres](c.md)\n# [cuatro](d.md)\n";
+
+            Assert.Equal(["a.md", "b.md", "c.md", "d.md"], Destinations(text));
+        }
+    }
+
+    [Fact]
+    public void An_html_comment_opener_inside_code_opens_no_comment_and_a_backtick_inside_a_comment_opens_no_span()
+    {
+        var text = string.Join('\n', "Escribe `<!--` para abrir un comentario [uno](a.md)", "<!-- un ` suelto --> [dos](b.md)", "```html", "<!-- en un bloque", "```", "[tres](c.md)", "Código ``a <!-- b`` y [cuatro](d.md)");
+
+        Assert.Equal(["a.md", "b.md", "c.md", "d.md"], Destinations(text));
+    }
+
+    [Fact]
+    public void A_nested_list_or_a_paragraph_indented_four_spaces_after_a_blank_line_in_a_list_is_not_a_block_of_code()
+    {
+        var text = string.Join('\n', "- uno", "", "    - [anidado](a.md)", "", "    párrafo que sigue [aquí](b.md)", "", "Fuera de la lista.", "", "    [código](c.md)", "");
+
+        Assert.Equal(["a.md", "b.md"], Destinations(text));
+    }
+
+    [Fact]
+    public void A_backslash_does_not_escape_the_closing_backtick_of_a_code_span()
+    {
+        var text = "La ruta `C:\\` y [uno](a.md) y `D:\\` [dos](b.md)\n\nUn \\` escapado y [tres](c.md)\n";
+
+        var (links, code) = MarkdownScanner.Scan(text);
+
+        Assert.Equal(["a.md", "b.md", "c.md"], links.Select(l => l.Destination));
+        Assert.Equal(["C:\\", "D:\\"], code.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void A_fence_indented_under_a_list_item_or_inside_a_quote_is_a_fence_and_what_is_in_it_is_not_scanned()
+    {
+        var text = string.Join(
+            '\n',
+            "- elemento",
+            "",
+            "      ```",
+            "      [dentro](x.md)",
+            "      - [otro](y.md)",
+            "      # [titulo](z.md)",
+            "      ```",
+            "",
+            "- [fuera de la valla](a.md)",
+            "",
+            "> ```",
+            "> [en cita](q.md)",
+            "> | [tabla](t.md) |",
+            "> ```",
+            "> [tras la valla](b.md)",
+            "",
+            "> ~~~",
+            "> [sin cerrar](u.md)",
+            "",
+            "[fin de la cita](c.md)");
+
+        Assert.Equal(["a.md", "b.md", "c.md"], Destinations(text));
+    }
+
+    [Fact]
+    public void A_long_line_is_read_whole_and_its_cost_stays_linear()
+    {
+        var prose = string.Concat(Enumerable.Repeat("palabras de relleno ", 500));
+        var line = prose + string.Concat(Enumerable.Repeat("[x](f.md) ", 300)) + "[último](fin.md)";
+
+        Assert.Equal(301, Destinations(line).Length);
+        Assert.Equal("fin.md", Destinations(line)[^1]);
+
+        long Cost(int copies)
+        {
+            _ = MarkdownScanner.Scan(string.Concat(Enumerable.Repeat("[](a", 2_500 * copies)), out var steps);
+            return steps;
+        }
+
+        Assert.True(Cost(8) <= 8 * Cost(1) + 2_000, $"{Cost(8)} against {Cost(1)}");
     }
 
     [Fact]

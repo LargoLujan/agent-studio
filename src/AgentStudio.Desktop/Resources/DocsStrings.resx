@@ -447,4 +447,8 @@ Ve a Trabajo si falta una tarea para un requisito.</value>
     <value>Los datos de este diagrama no están disponibles.</value>
     <comment>Why something failed: the model of the diagram.</comment>
   </data>
+  <data name="Docs_Message_ExportInterrupted" xml:space="preserve">
+    <value>La exportación se cortó, pero ya se escribió: {1}</value>
+    <comment>{0}: how many files were written before the failure; {1}: the first one.</comment>
+  </data>
 </root>

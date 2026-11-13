@@ -80,7 +80,6 @@ public sealed class Phase6GraphDiagramsDiscrepanciesLocalToolsTests : IDisposabl
         var analyses = host.Provider.GetRequiredService<ICommitAnalysisService>();
         var catalog = host.Provider.GetRequiredService<IDiagramCatalog>();
         var line = host.Provider.GetServices<IDoctorCheckSource>().OfType<DiscrepanciesCheckSource>().Single();
-        var solution = new DiagramRef(DiagramKind.Solution, string.Empty);
 
         // The graph, from the real worker: the three projects of the sample, and the broken link of the README as a discrepancy.
         var analysis = await analyses.AnalyzeAsync(project, first, Ct);

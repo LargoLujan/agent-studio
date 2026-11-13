@@ -1560,6 +1560,12 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
 - **El coste de «Proponer relaciones»** (D-21): tokens por lanzamiento. Es una estimación hasta medirlo.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
 - **No se compiló ni se ejecutó nada** para escribir este documento: las firmas de §4 son propuestas.
+- **Nombres de los ficheros exportados de diagramas (2026-11-13):** el nombre de un fichero lleva la huella del sujeto cuando el sujeto tiene alguna mayúscula (`SafeName`),
+  para que `Abc` y `abc` no coincidan en Windows. Una exportación hecha con una versión anterior a la publicación de la Fase 6 tendría otro nombre y quedaría huérfana (el
+  índice no la reconocería y saldría como «no exportado»); no hubo ninguna versión publicada, así que no hay nada que migrar.
+- **Títulos de los pasos de verificación (2026-11-13):** `VerificationRules` sigue rechazando en un título los controles, los saltos de línea, los separadores U+2028, U+2029 y U+0085, las marcas de dirección y
+  el resto de los caracteres de formato, pero admite el unión de ancho cero (U+200D), el no unión (U+200C) y el guion blando (U+00AD): están en títulos reales (emojis compuestos, escrituras que los usan) y
+  ninguno termina una línea ni reordena el texto, así que no pueden falsificar la cabecera de la evidencia, que va en una sola línea. Lo fija `VerificationTitleRulesTests`.
 
 ---
 

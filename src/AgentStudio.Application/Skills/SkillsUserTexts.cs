@@ -3,7 +3,7 @@ namespace AgentStudio.Application.Skills;
 /// <summary>
 /// The texts of the health checks of a skill that the doctor and the local reader give (docs/17 D-47, ADR-0054): a code and its arguments in
 /// <see cref="AgentStudio.Domain.Skills.SkillHealthCheck.TextCode"/>, painted by the desktop in the language of the person (<c>Text_</c> + the code, in
-/// <c>SkillsStrings</c>). The checks of the frontmatter, the license and the pinning, still sentences of the domain, are listed as pending in docs/18.
+/// <c>SkillsStrings</c>). The pure checks of the domain (frontmatter, size, license, pinning) have their codes in <see cref="AgentStudio.Domain.Skills.SkillHealthTextCodes"/>, because Domain cannot see Application; <see cref="All"/> lists them too.
 /// </summary>
 public static class SkillsUserTexts
 {
@@ -45,6 +45,9 @@ public static class SkillsUserTexts
     /// <summary>Argument 0: the number of scripts.</summary>
     public const string ReaderScriptsChanged = "skills.reader-scripts-changed";
     public const string ReaderScriptsUnreadable = "skills.reader-scripts-unreadable";
+
+    /// <summary>The <c>scripts/</c> folder is too big to be read, so it cannot be reviewed.</summary>
+    public const string ReaderScriptsTooBig = "skills.reader-scripts-too-big";
     public const string ReaderUnreadNoCopy = "skills.reader-unread-no-copy";
     public const string ReaderUnreadNoFolder = "skills.reader-unread-no-folder";
     public const string ReaderUnreadFolderLink = "skills.reader-unread-folder-link";
@@ -65,7 +68,8 @@ public static class SkillsUserTexts
         DoctorOff, DoctorInvalidOrigin, DoctorNoNetwork, DoctorForbidden, DoctorNotFound, DoctorUpstreamNotFound, DoctorRateLimited, DoctorRateLimitedSoon,
         DoctorRedirectRefused, DoctorUnreadable, DoctorBadToken, DoctorArchived, DoctorNotArchived, DoctorCommitGone, DoctorBranchGone, DoctorFolderMissing,
         DoctorUpToDate, DoctorUpdateToReview, ReaderUpstreamUnchecked, ReaderArchivedUnchecked, ReaderScriptsNoCopy, ReaderScriptsNoReader, ReaderScriptsNone,
-        ReaderScriptsReviewed, ReaderScriptsUnreviewed, ReaderScriptsChanged, ReaderScriptsUnreadable, ReaderUnreadNoCopy, ReaderUnreadNoFolder,
+        ReaderScriptsReviewed, ReaderScriptsUnreviewed, ReaderScriptsChanged, ReaderScriptsUnreadable, ReaderScriptsTooBig, ReaderUnreadNoCopy, ReaderUnreadNoFolder,
         ReaderUnreadFolderLink, ReaderUnreadFileMissing, ReaderUnreadFileLink, ReaderUnreadFailed, ReaderSizeUnread, ReaderTooLargeFrontmatter, ReaderTooLargeSize,
+        .. AgentStudio.Domain.Skills.SkillHealthTextCodes.All,
     ];
 }

@@ -4,6 +4,8 @@ using AgentStudio.Application.Diagnostics;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Graph;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Doctor;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Diagnostics;
 using AgentStudio.Domain.Environments;
@@ -50,7 +52,7 @@ public sealed class Phase6AutoDoctorTests
 
         var first = await doctor.RunAsync(project, Ct);
 
-        // The sources of the five sections of D-01 (providers aside) all answered, and «Entorno declarado» compared the file with what the door said is installed.
+        // The sources of four of the five sections of D-01 (the providers are left out of this doctor) all answered, and «Entorno declarado» compared the file with what the door said is installed.
         var sections = first.Checks.Select(c => c.Section).Distinct().Order().ToArray();
         Assert.Equal([DoctorSection.Tools, DoctorSection.Project, DoctorSection.DeclaredEnvironment, DoctorSection.Containers], sections);
         var sdk = Assert.Single(first.Checks, c => c.Code == EnvironmentCheckCodes.DotNetSdk);
@@ -77,7 +79,7 @@ public sealed class Phase6AutoDoctorTests
     }
 
     [Fact]
-    public async Task Without_an_open_project_the_declared_environment_and_the_discrepancies_have_nothing_to_say_and_no_provider_is_asked()
+    public async Task Without_an_open_project_the_declared_environment_and_the_discrepancies_have_nothing_to_say()
     {
         var head = new FixedHead("fixed", Phase6Host.Commit);
         using var host = Host(head, new MovingGraphBuilder(DiagramFixtures.Graph(withInference: false)));
@@ -86,8 +88,11 @@ public sealed class Phase6AutoDoctorTests
 
         Assert.DoesNotContain(report.Checks, c => c.Section == DoctorSection.DeclaredEnvironment);
         Assert.DoesNotContain(report.Checks, c => c.Code == DiscrepanciesCheckSource.Code);
-        Assert.DoesNotContain(report.Checks, c => c.Section == DoctorSection.Providers);
         Assert.Contains(report.Checks, c => c.Section == DoctorSection.Tools);
+
+        // The composition does have the source of the providers: the doctor of this test leaves it out (a probe would start a CLI), so its section is the one that is missing.
+        Assert.Contains(host.Provider.GetServices<IDoctorCheckSource>(), s => s is ProviderCheckSource);
+        Assert.Equal(DoctorSection.Providers, host.Provider.GetServices<IDoctorCheckSource>().OfType<ProviderCheckSource>().Single().Section);
     }
 
     [Fact]
@@ -105,8 +110,15 @@ public sealed class Phase6AutoDoctorTests
         Assert.Contains("graph", navigation.Targets);
         Assert.Contains("skills", navigation.Targets);
 
-        // Every fix of the closed list that navigates names a target the panel can reach: nothing is offered that the app cannot open.
+        // Every fix of the closed list is in the catalog and has its sentence, and each one that navigates names a target the panel can reach: nothing is offered that the app cannot open.
         var reachable = navigation.Targets;
-        Assert.All(DoctorFixCatalog.All.OfType<DoctorFix.Navigate>().Where(f => f.Code == DoctorFixCatalog.OpenGraph), f => Assert.Contains(f.Target, reachable));
+        var texts = new ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("es-ES"));
+        Assert.NotEmpty(DoctorFixCatalog.All);
+        Assert.All(DoctorFixCatalog.All, offered =>
+        {
+            Assert.Same(offered, DoctorFixCatalog.Find(offered.Code));
+            Assert.True(texts.Has(DoctorTexts.FixKey(offered.Code)), DoctorTexts.FixKey(offered.Code));
+        });
+        Assert.All(DoctorFixCatalog.All.OfType<DoctorFix.Navigate>(), f => Assert.Contains(f.Target, reachable));
     }
 }
