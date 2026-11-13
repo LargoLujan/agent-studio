@@ -13,21 +13,45 @@ namespace AgentStudio.Orchestration.Publication;
 /// <summary>What the flows share: the gate, the providers, the runner of git and the builder of the verdict.</summary>
 internal sealed record FlowDependencies(IHostingUseGate Gate, IHostingProviders Providers, IRemoteGitRunner Git, VerdictNoticeBuilder Notices);
 
+/// <summary>What the flow of the verdict has done so far: the package, which channels the gate let through, and what the platform said.</summary>
+internal sealed class VerdictChannels
+{
+    public VerdictPackage? Package { get; set; }
+
+    public List<HostingOperationKind> Allowed { get; } = [];
+
+    public PublishedVerdict? Published { get; set; }
+}
+
 /// <summary>The base of the flows that talk to the platform: how an answer interrupts, and how an operation is annotated (docs/21 D-18, D-25 and D-26).</summary>
 internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, HostingOperation? operation, FlowDependencies deps, ApprovalLease lease) : RemoteFlow(ticket, key, operation)
 {
+    private static readonly HostingOperationKind[] VerdictKinds = [HostingOperationKind.PublishVerdictStatus, HostingOperationKind.PublishVerdictComment];
+
+    private readonly Dictionary<HostingOperationKind, (HostingAuthorization Authorization, string? Detail)> _authorizations = [];
+    private int _attempt;
+
     protected FlowDependencies Deps { get; } = deps;
 
     protected ApprovalLease Lease { get; } = lease;
 
-    private int _attempt;
-
-    /// <summary>Passes the gate just before an operation of the mailbox runs: it never asks (the person was asked at the click).</summary>
-    protected async Task<FlowResult?> AuthorizeAsync(FlowContext context, HostingOperation operation, bool holdsProject, CancellationToken ct)
+    /// <summary>
+    /// Passes the gate just before an operation of the mailbox runs: it never asks (the person was asked at the click). What it let through is kept, because the entry of the operation names what
+    /// allowed it, and that is what was checked before it ran, not what a later check says once it happened.
+    /// </summary>
+    protected async Task<FlowResult?> AuthorizeAsync(HostingOperation operation, bool holdsProject, CancellationToken ct, string? detail = null)
     {
-        var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, mayAsk: false, holdsProject, ct).ConfigureAwait(false);
-        return authorization.Allowed ? null : new FlowResult(FlowEnd.Failed, Message: authorization.Refusal ?? UserText.Of(PublicationCodes.StateChanged));
+        var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, mayAsk: false, holdsProject, ct, detail).ConfigureAwait(false);
+        if (!authorization.Allowed)
+        {
+            return new FlowResult(FlowEnd.Failed, Message: authorization.Refusal ?? UserText.Of(PublicationCodes.StateChanged));
+        }
+
+        _authorizations[operation.Kind] = (authorization, detail);
+        return null;
     }
+
+    protected void Allowed(HostingOperationKind kind, HostingAuthorization authorization, string? detail = null) => _authorizations[kind] = (authorization, detail);
 
     /// <summary>What an answer of the platform that is not a success does to the flow; null when it went well.</summary>
     protected FlowResult? Interrupted<T>(FlowContext context, HostingResult<T> result)
@@ -51,20 +75,30 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
         }
     }
 
+    /// <summary>
+    /// Whether an answer says nothing certain about what the platform did: no connection, no reading of its answer, a refusal that may have come after the change. Before such a write is taken as
+    /// failed, the state is asked (D-18, step 5): the pull request may exist, the branch may be gone.
+    /// </summary>
+    protected static bool Unclear(HostingOutcome outcome) => outcome is HostingOutcome.Unreachable or HostingOutcome.Forbidden or HostingOutcome.InvalidAnswer;
+
     /// <summary>The entry of an operation performed (or refused or failed): null when what allowed it cannot be said (an approval with no entry in the log), and then nothing is written.</summary>
     protected HostingOperationPerformedPayload? Payload(
-        HostingOperation operation, HostingAuthorization authorization, HostingOutcome outcome, string? failure, string? branch, RemoteLogin? account,
-        EvidenceId? text, string? textSha, string? verdict, long? commentId)
+        HostingOperation operation, HostingOutcome outcome, string? failure, string? branch, RemoteLogin? account, EvidenceId? text, string? textSha, string? verdict, long? commentId)
     {
+        if (!_authorizations.TryGetValue(operation.Kind, out var allowed))
+        {
+            return null;
+        }
+
         string? grant = null;
         long? sequence = null;
-        if (authorization.Source == HostingAuthorizationSource.StandingGrant)
+        if (allowed.Authorization.Source == HostingAuthorizationSource.StandingGrant)
         {
-            grant = authorization.GrantId;
+            grant = allowed.Authorization.GrantId;
         }
         else
         {
-            sequence = Deps.Gate.SequenceOf(Lease, operation);
+            sequence = Deps.Gate.SequenceOf(Lease, operation, allowed.Detail);
         }
 
         if ((grant is null) == (sequence is null))
@@ -111,11 +145,91 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
                 await RecordAsync(context, payload).ConfigureAwait(false);
                 return true;
             });
+
+    /// <summary>
+    /// Stretch D of the publication (docs/21 D-18 and D-21): the status of the judged commit and the tagged comment. Each channel passes the gate on its own, with the judged commit and the base of
+    /// the pull request in the operation, so the one approval of the click and any standing grant cover them; a channel the platform cannot do (no capability) is left out and the other is
+    /// published, and only when there is none is it refused.
+    /// </summary>
+    protected async Task<FlowResult?> PublishVerdictAsync(
+        FlowContext context, ProjectContext project, RunId run, PullRequestRef pullRequest, string commit, RemoteBranch? baseBranch, string? head, VerdictChannels state)
+    {
+        state.Package ??= await Deps.Notices.BuildAsync(project, run, head, context.Stopping).ConfigureAwait(false);
+        if (state.Package is null)
+        {
+            return FlowResult.Failed(PublicationCodes.NoVerdict);
+        }
+
+        if (!string.Equals(state.Package.Notice.JudgedCommit, commit, StringComparison.Ordinal))
+        {
+            return FlowResult.Failed(PublicationCodes.StateChanged);
+        }
+
+        if (state.Allowed.Count == 0)
+        {
+            UserText? missing = null;
+            foreach (var kind in VerdictKinds)
+            {
+                var operation = new HostingOperation(project, run, kind, pullRequest.Repository, baseBranch, pullRequest, commit, null);
+                var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, mayAsk: false, holdsProject: false, context.Stopping).ConfigureAwait(false);
+                if (authorization.Allowed)
+                {
+                    Allowed(kind, authorization);
+                    state.Allowed.Add(kind);
+                }
+                else if (authorization.Refusal?.Code == PublicationCodes.CapabilityMissing)
+                {
+                    missing ??= authorization.Refusal;
+                }
+                else
+                {
+                    return new FlowResult(FlowEnd.Failed, Message: authorization.Refusal);
+                }
+            }
+
+            if (state.Allowed.Count == 0)
+            {
+                return new FlowResult(FlowEnd.Failed, Message: missing ?? UserText.Of(PublicationCodes.CapabilityMissing));
+            }
+        }
+
+        var provider = Deps.Providers.For(pullRequest.Repository);
+        if (provider is null)
+        {
+            return FlowResult.Failed(PublicationCodes.NoProvider);
+        }
+
+        var result = await provider.PublishVerdictAsync(pullRequest, state.Package.Notice, state.Package.StatusDescription, state.Package.CommentBody, null, context.Stopping).ConfigureAwait(false);
+        if (Interrupted(context, result) is { } interrupted)
+        {
+            return interrupted;
+        }
+
+        state.Published = result.Value;
+        return null;
+    }
+
+    /// <summary>Stretch E: the entries of the channels that were published (or tried), each with what allowed it.</summary>
+    protected async Task NoteVerdictAsync(
+        FlowContext context, ProjectContext project, RunId run, PullRequestRef pullRequest, string commit, RemoteBranch? baseBranch, RemoteLogin? account, VerdictChannels state)
+    {
+        var standing = state.Package!.Notice.Standing.ToString();
+        foreach (var kind in state.Allowed)
+        {
+            var operation = new HostingOperation(project, run, kind, pullRequest.Repository, baseBranch, pullRequest, commit, null);
+            var published = kind == HostingOperationKind.PublishVerdictStatus ? state.Published?.StatusPublished == true : state.Published?.CommentId is not null;
+            await NoteAsync(
+                context, Key,
+                Payload(operation, published ? HostingOutcome.Ok : HostingOutcome.Refused, published ? null : "verdict.not-published", null, account, null, null, standing,
+                    kind == HostingOperationKind.PublishVerdictComment ? state.Published?.CommentId : null)).ConfigureAwait(false);
+        }
+    }
 }
 
 /// <summary>
 /// «Publicar y abrir PR» (docs/21 D-18), in stretches, idempotent: A with the project in hand and not split (the inspection, the <c>push</c>, <c>ls-remote</c> and their entry), B the pull
-/// request (look for it, open or update), C its entry, D the verdict, E its entries and the follow. After a cut, the next try asks what is already done before it repeats anything.
+/// request (look for it, open or update), C its entry, D the verdict, E its entries and the follow. After a cut, the next try asks what is already done before it repeats anything. The pull
+/// request is followed even when the stretch of the verdict fails: it exists, and the poll must see it.
 /// </summary>
 internal sealed class PublishFlow(
     RemoteWorkTicket ticket, ProjectContext project, RunId run, RemoteRepository repository, string commit, RemoteBranch baseBranch, PullRequestText text, bool draft,
@@ -129,16 +243,15 @@ internal sealed class PublishFlow(
         NotePullRequest,
         Verdict,
         NoteVerdict,
+        Finished,
     }
 
+    private readonly VerdictChannels _verdict = new();
     private Stage _stage;
     private PullRequestRef? _pullRequest;
     private HostingOperationKind _prKind;
-    private HostingAuthorization? _prAuthorization;
     private RemoteLogin? _account;
     private bool _accountRead;
-    private PublishedVerdict? _published;
-    private VerdictPackage? _package;
 
     private RemoteBranch Head => RemoteBranch.ForRun(run);
 
@@ -146,7 +259,7 @@ internal sealed class PublishFlow(
     {
         while (true)
         {
-            if (_stage != Stage.Git && context.Closing)
+            if (_stage != Stage.Git && _stage != Stage.Finished && context.Closing)
             {
                 return FlowResult.WaitForSync(PendingReason.Offline, TimeSpan.FromMinutes(1));
             }
@@ -157,14 +270,21 @@ internal sealed class PublishFlow(
                 Stage.PullRequest => await PullRequestAsync(context).ConfigureAwait(false),
                 Stage.NotePullRequest => await NotePullRequestAsync(context).ConfigureAwait(false),
                 Stage.Verdict => await VerdictAsync(context).ConfigureAwait(false),
-                _ => await NoteVerdictAsync(context).ConfigureAwait(false),
+                Stage.NoteVerdict => await NoteVerdictStageAsync(context).ConfigureAwait(false),
+                _ => FlowResult.Done,
             };
             if (stop is { } result)
             {
+                // The pull request exists and is followed whatever happened to the verdict (D-18).
+                if (_pullRequest is not null && _stage >= Stage.Verdict && result.End != FlowEnd.WaitSync && result.End != FlowEnd.WaitProject)
+                {
+                    context.Follow(_pullRequest, run.Value);
+                }
+
                 return result;
             }
 
-            if (_stage == Stage.NoteVerdict + 1)
+            if (_stage == Stage.Finished)
             {
                 return FlowResult.Done;
             }
@@ -193,10 +313,9 @@ internal sealed class PublishFlow(
 
         context.Trust(repository);
         var operation = (Operation ?? throw new InvalidOperationException("The publication has no operation.")) with { Commit = commit };
-        var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, mayAsk: false, holdsProject: true, CancellationToken.None).ConfigureAwait(false);
-        if (!authorization.Allowed)
+        if (await AuthorizeAsync(operation, holdsProject: true, CancellationToken.None).ConfigureAwait(false) is { } refused)
         {
-            return new FlowResult(FlowEnd.Failed, Message: authorization.Refusal);
+            return refused;
         }
 
         // No token that can be cancelled reaches git: a push is not cut halfway.
@@ -206,7 +325,7 @@ internal sealed class PublishFlow(
         var pushed = push.Outcome is RemotePushOutcome.Pushed or RemotePushOutcome.AlreadyUpToDate || (push.Outcome == RemotePushOutcome.NotConfirmed && confirmed);
         var outcome = pushed && confirmed ? HostingOutcome.Ok : push.Outcome == RemotePushOutcome.Unreachable || !read.Reached || push.Outcome == RemotePushOutcome.NotConfirmed ? HostingOutcome.Unreachable : HostingOutcome.Refused;
         var failure = pushed && confirmed ? null : push.FailureCode is { } code && UserText.IsCode(code) ? code : "push." + push.Outcome.ToString().ToLowerInvariant();
-        if (Payload(operation, authorization, outcome, failure, Head.Name, null, null, null, null, null) is { } payload)
+        if (Payload(operation, outcome, failure, Head.Name, null, null, null, null, null) is { } payload)
         {
             await RecordAsync(context, payload).ConfigureAwait(false);
         }
@@ -235,18 +354,18 @@ internal sealed class PublishFlow(
             return FlowResult.Failed(PublicationCodes.NoProvider);
         }
 
+        // The gate passes before anything of the platform runs, and again at every retry (D-26): a verdict challenged meanwhile stops it here.
+        var openOperation = new HostingOperation(project, run, HostingOperationKind.OpenPullRequest, repository, baseBranch, null, commit, null);
+        if (await AuthorizeAsync(openOperation, holdsProject: false, context.Stopping).ConfigureAwait(false) is { } stopped)
+        {
+            return stopped;
+        }
+
         if (!_accountRead)
         {
             var account = await provider.ReadAccountAsync(repository, context.Stopping).ConfigureAwait(false);
             _account = account.Outcome == HostingOutcome.Ok ? account.Value : null;
             _accountRead = true;
-        }
-
-        // The gate passes before anything of the platform runs, and again at every retry (D-26): a verdict challenged meanwhile stops it here.
-        var openOperation = new HostingOperation(project, run, HostingOperationKind.OpenPullRequest, repository, baseBranch, null, commit, null);
-        if (await AuthorizeAsync(context, openOperation, holdsProject: false, context.Stopping).ConfigureAwait(false) is { } stopped)
-        {
-            return stopped;
         }
 
         // What is already there is asked before anything is repeated (D-18, step 5): a cut after the platform opened it leaves it opened.
@@ -258,25 +377,14 @@ internal sealed class PublishFlow(
 
         var existing = found.Value;
         _prKind = existing is null ? HostingOperationKind.OpenPullRequest : HostingOperationKind.UpdatePullRequest;
-        var operation = new HostingOperation(project, run, _prKind, repository, baseBranch, existing, commit, null);
-        if (await AuthorizeAsync(context, operation, holdsProject: false, context.Stopping).ConfigureAwait(false) is { } refused)
+        if (existing is not null)
         {
-            return refused;
-        }
-
-        _prAuthorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, false, false, context.Stopping).ConfigureAwait(false);
-        if (existing is null)
-        {
-            var opened = await provider.OpenPullRequestAsync(new PullRequestDraft(repository, Head, baseBranch, text, draft), context.Stopping).ConfigureAwait(false);
-            if (Interrupted(context, opened) is { } failed)
+            var update = new HostingOperation(project, run, HostingOperationKind.UpdatePullRequest, repository, baseBranch, existing, commit, null);
+            if (await AuthorizeAsync(update, holdsProject: false, context.Stopping).ConfigureAwait(false) is { } refused)
             {
-                return failed;
+                return refused;
             }
 
-            _pullRequest = opened.Value;
-        }
-        else
-        {
             var updated = await provider.UpdatePullRequestAsync(existing, text, context.Stopping).ConfigureAwait(false);
             if (Interrupted(context, updated) is { } failed)
             {
@@ -284,6 +392,26 @@ internal sealed class PublishFlow(
             }
 
             _pullRequest = existing;
+        }
+        else
+        {
+            var opened = await provider.OpenPullRequestAsync(new PullRequestDraft(repository, Head, baseBranch, text, draft), context.Stopping).ConfigureAwait(false);
+            if (opened.Outcome != HostingOutcome.Ok && Unclear(opened.Outcome))
+            {
+                // It may have been opened although the answer did not say so: the platform is asked before the request is taken as failed.
+                var check = await provider.FindPullRequestAsync(repository, Head, context.Stopping).ConfigureAwait(false);
+                if (check.Outcome == HostingOutcome.Ok && check.Value is { } there)
+                {
+                    opened = new HostingResult<PullRequestRef>(HostingOutcome.Ok, there);
+                }
+            }
+
+            if (Interrupted(context, opened) is { } failed)
+            {
+                return failed;
+            }
+
+            _pullRequest = opened.Value;
         }
 
         _stage = Stage.NotePullRequest;
@@ -293,140 +421,71 @@ internal sealed class PublishFlow(
     private async Task<FlowResult?> NotePullRequestAsync(FlowContext context)
     {
         var operation = new HostingOperation(project, run, _prKind, repository, baseBranch, _pullRequest, commit, null);
-        var payload = Payload(operation, _prAuthorization!, HostingOutcome.Ok, null, Head.Name, _account, textEvidence, textSha, null, null);
-        await NoteAsync(context, Key, payload).ConfigureAwait(false);
+        await NoteAsync(context, Key, Payload(operation, HostingOutcome.Ok, null, Head.Name, _account, textEvidence, textSha, null, null)).ConfigureAwait(false);
         _stage = Stage.Verdict;
         return null;
     }
 
     private async Task<FlowResult?> VerdictAsync(FlowContext context)
     {
-        _package ??= await Deps.Notices.BuildAsync(project, run, null, context.Stopping).ConfigureAwait(false);
-        if (_package is null)
+        // Without a verdict that counts (the log does not verify or none judged the run) nothing is published (D-21), and that is not a failure of the publication.
+        _verdict.Package ??= await Deps.Notices.BuildAsync(project, run, null, context.Stopping).ConfigureAwait(false);
+        if (_verdict.Package is null)
         {
-            // The log does not verify or no verdict judged the run: nothing is published (D-21).
-            await FinishAsync(context).ConfigureAwait(false);
+            _stage = Stage.NoteVerdict;
             return null;
         }
 
-        var pr = _pullRequest!;
-        foreach (var kind in new[] { HostingOperationKind.PublishVerdictStatus, HostingOperationKind.PublishVerdictComment })
+        var stop = await PublishVerdictAsync(context, project, run, _pullRequest!, commit, baseBranch, null, _verdict).ConfigureAwait(false);
+        if (stop is { } result)
         {
-            if (await AuthorizeAsync(context, new HostingOperation(project, run, kind, repository, null, pr, null, null), holdsProject: false, context.Stopping).ConfigureAwait(false) is { } refused)
-            {
-                return refused;
-            }
+            return result;
         }
 
-        var provider = Deps.Providers.For(repository)!;
-        var result = await provider.PublishVerdictAsync(pr, _package.Notice, _package.StatusDescription, _package.CommentBody, null, context.Stopping).ConfigureAwait(false);
-        if (Interrupted(context, result) is { } interrupted)
-        {
-            return interrupted;
-        }
-
-        _published = result.Value;
         _stage = Stage.NoteVerdict;
         return null;
     }
 
-    private async Task<FlowResult?> NoteVerdictAsync(FlowContext context)
+    private async Task<FlowResult?> NoteVerdictStageAsync(FlowContext context)
     {
-        var pr = _pullRequest!;
-        var standing = _package!.Notice.Standing.ToString();
-        foreach (var kind in new[] { HostingOperationKind.PublishVerdictStatus, HostingOperationKind.PublishVerdictComment })
+        if (_verdict.Package is not null)
         {
-            var operation = new HostingOperation(project, run, kind, repository, null, pr, null, null);
-            var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, false, false, context.Stopping).ConfigureAwait(false);
-            if (!authorization.Allowed)
-            {
-                continue;
-            }
-
-            var published = kind == HostingOperationKind.PublishVerdictStatus ? _published?.StatusPublished != false : _published?.CommentId is not null;
-            var payload = Payload(
-                operation, authorization, published ? HostingOutcome.Ok : HostingOutcome.Refused, published ? null : "verdict.not-published", null, _account, null, null, standing,
-                kind == HostingOperationKind.PublishVerdictComment ? _published?.CommentId : null);
-            await NoteAsync(context, Key, payload).ConfigureAwait(false);
+            await NoteVerdictAsync(context, project, run, _pullRequest!, commit, baseBranch, _account, _verdict).ConfigureAwait(false);
         }
 
-        await FinishAsync(context).ConfigureAwait(false);
+        context.Follow(_pullRequest!, run.Value);
+        _stage = Stage.Finished;
         return null;
-    }
-
-    private Task FinishAsync(FlowContext context)
-    {
-        if (_pullRequest is { } pr)
-        {
-            context.Follow(pr, run.Value);
-        }
-
-        _stage = Stage.NoteVerdict + 1;
-        return Task.CompletedTask;
     }
 }
 
-/// <summary>The verdict published again for a pull request the person already has (docs/21 D-22): stretch D and E of the publication.</summary>
+/// <summary>The verdict published again for a pull request the person already has (docs/21 D-22): stretches D and E of the publication.</summary>
 internal sealed class VerdictFlow(
-    RemoteWorkTicket ticket, ProjectContext project, RunId run, PullRequestRef pullRequest, string? head, FlowDependencies deps, ApprovalLease lease)
-    : HostingFlow(ticket, pullRequest.TraceId, new HostingOperation(project, run, HostingOperationKind.PublishVerdictStatus, pullRequest.Repository, null, pullRequest, null, null), deps, lease)
+    RemoteWorkTicket ticket, ProjectContext project, RunId run, PullRequestRef pullRequest, string commit, RemoteBranch? baseBranch, string? head, FlowDependencies deps, ApprovalLease lease)
+    : HostingFlow(ticket, pullRequest.TraceId, new HostingOperation(project, run, HostingOperationKind.PublishVerdictStatus, pullRequest.Repository, baseBranch, pullRequest, commit, null), deps, lease)
 {
-    private PublishedVerdict? _published;
-    private VerdictPackage? _package;
+    private readonly VerdictChannels _verdict = new();
 
     public override async Task<FlowResult> RunAsync(FlowContext context)
     {
-        if (_published is null)
+        if (_verdict.Published is null)
         {
-            _package ??= await Deps.Notices.BuildAsync(project, run, head, context.Stopping).ConfigureAwait(false);
-            if (_package is null)
+            var stop = await PublishVerdictAsync(context, project, run, pullRequest, commit, baseBranch, head, _verdict).ConfigureAwait(false);
+            if (stop is { } result)
             {
-                return FlowResult.Failed(PublicationCodes.NoVerdict);
-            }
-
-            foreach (var kind in new[] { HostingOperationKind.PublishVerdictStatus, HostingOperationKind.PublishVerdictComment })
-            {
-                if (await AuthorizeAsync(context, new HostingOperation(project, run, kind, pullRequest.Repository, null, pullRequest, null, null), false, context.Stopping).ConfigureAwait(false) is { } refused)
-                {
-                    return new FlowResult(refused.End, Message: refused.Message);
-                }
-            }
-
-            var provider = Deps.Providers.For(pullRequest.Repository);
-            if (provider is null)
-            {
-                return FlowResult.Failed(PublicationCodes.NoProvider);
-            }
-
-            var result = await provider.PublishVerdictAsync(pullRequest, _package.Notice, _package.StatusDescription, _package.CommentBody, null, context.Stopping).ConfigureAwait(false);
-            if (Interrupted(context, result) is { } interrupted)
-            {
-                return interrupted;
-            }
-
-            _published = result.Value;
-        }
-
-        var standing = _package!.Notice.Standing.ToString();
-        foreach (var kind in new[] { HostingOperationKind.PublishVerdictStatus, HostingOperationKind.PublishVerdictComment })
-        {
-            var operation = new HostingOperation(project, run, kind, pullRequest.Repository, null, pullRequest, null, null);
-            var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, false, false, context.Stopping).ConfigureAwait(false);
-            if (authorization.Allowed)
-            {
-                var published = kind == HostingOperationKind.PublishVerdictStatus ? _published?.StatusPublished != false : _published?.CommentId is not null;
-                await NoteAsync(
-                    context, Key,
-                    Payload(operation, authorization, published ? HostingOutcome.Ok : HostingOutcome.Refused, published ? null : "verdict.not-published", null, null, null, null, standing,
-                        kind == HostingOperationKind.PublishVerdictComment ? _published?.CommentId : null)).ConfigureAwait(false);
+                return result;
             }
         }
 
+        await NoteVerdictAsync(context, project, run, pullRequest, commit, baseBranch, null, _verdict).ConfigureAwait(false);
         return FlowResult.Done;
     }
 }
 
-/// <summary>Merging (docs/21 D-20): the platform is asked what the pull request is before and after, and what is annotated is what really happened, never what was asked.</summary>
+/// <summary>
+/// Merging (docs/21 D-20): the platform is asked what the pull request is before and after, and what is annotated is what really happened, never what was asked. Before it asks, the pull
+/// request has to be readable, its head the judged commit and its base the one that was approved; otherwise nothing is merged.
+/// </summary>
 internal sealed class MergeFlow(
     RemoteWorkTicket ticket, ProjectContext project, RunId run, PullRequestRef pullRequest, string expectedHead, MergeMethod method, RemoteBranch baseBranch, FlowDependencies deps, ApprovalLease lease)
     : HostingFlow(ticket, pullRequest.TraceId, new HostingOperation(project, run, HostingOperationKind.MergePullRequest, pullRequest.Repository, baseBranch, pullRequest, expectedHead, method), deps, lease)
@@ -442,21 +501,31 @@ internal sealed class MergeFlow(
             return FlowResult.Failed(PublicationCodes.NoProvider);
         }
 
-        // After a cut it may be merged already: it is asked before the merge is asked for again.
+        if (await AuthorizeAsync(operation, false, context.Stopping).ConfigureAwait(false) is { } refused)
+        {
+            return refused;
+        }
+
+        // After a cut it may be merged already: it is asked before the merge is asked for again. What cannot be read stops the merge.
         var before = await context.ObserveAsync(pullRequest).ConfigureAwait(false);
-        if (before is { State: PullRequestState.Merged })
+        if (before is null)
+        {
+            return FlowResult.Failed(PublicationCodes.PullRequestUnreadable);
+        }
+
+        if (before.State == PullRequestState.Merged)
         {
             return await NoteAsync(context, operation, HostingOutcome.Ok, null).ConfigureAwait(false);
         }
 
-        if (before is not null && !string.Equals(before.HeadCommit, expectedHead, StringComparison.Ordinal))
+        if (!string.Equals(before.HeadCommit, expectedHead, StringComparison.Ordinal))
         {
             return FlowResult.Failed(PublicationCodes.BranchMoved);
         }
 
-        if (await AuthorizeAsync(context, operation, false, context.Stopping).ConfigureAwait(false) is { } refused)
+        if (!string.Equals(before.BaseBranch.Name, baseBranch.Name, StringComparison.Ordinal))
         {
-            return refused;
+            return FlowResult.Failed(PublicationCodes.BaseChanged);
         }
 
         var merged = await provider.MergeAsync(pullRequest, method, expectedHead, context.Stopping).ConfigureAwait(false);
@@ -487,12 +556,7 @@ internal sealed class MergeFlow(
     {
         if (!_noted)
         {
-            var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, false, false, context.Stopping).ConfigureAwait(false);
-            if (authorization.Allowed)
-            {
-                await NoteAsync(context, Key, Payload(operation, authorization, outcome, failure, null, null, null, null, null, null)).ConfigureAwait(false);
-            }
-
+            await NoteAsync(context, Key, Payload(operation, outcome, failure, null, null, null, null, null, null)).ConfigureAwait(false);
             _noted = true;
         }
 
@@ -500,12 +564,25 @@ internal sealed class MergeFlow(
     }
 }
 
-/// <summary>Asking for reviewers, closing a pull request: one call to the platform, passed by the gate, and its entry (closing is read back afterwards).</summary>
+/// <summary>What a check of the state says about a write whose answer was not clear.</summary>
+internal enum WriteCheck
+{
+    Unknown,
+    Done,
+    Busy,
+}
+
+/// <summary>
+/// Asking for reviewers, closing a pull request, deleting the branch of a run: one call to the platform, passed by the gate, and its entry. An answer that says nothing certain (no connection,
+/// forbidden, unreadable) does not make the write a failure: the state is asked first (the pull request is read after closing; the branch, with git, before deleting again), and a deletion
+/// whose branch is already gone is done. Asking for reviewers has nothing to read back, and asking twice is harmless.
+/// </summary>
 internal sealed class WriteFlow(
-    RemoteWorkTicket ticket, HostingOperation target, Func<IHostingProvider, CancellationToken, Task<HostingResult<bool>>> call, bool observeAfter, FlowDependencies deps, ApprovalLease lease)
+    RemoteWorkTicket ticket, HostingOperation target, Func<IHostingProvider, CancellationToken, Task<HostingResult<bool>>> call, bool observeAfter, FlowDependencies deps, ApprovalLease lease,
+    string? detail = null, Func<FlowContext, Task<WriteCheck>>? verify = null)
     : HostingFlow(ticket, target.PullRequest?.TraceId ?? "run:" + target.Run.Value, target, deps, lease)
 {
-    private bool _called;
+    private bool _attempted;
 
     public override async Task<FlowResult> RunAsync(FlowContext context)
     {
@@ -516,42 +593,64 @@ internal sealed class WriteFlow(
             return FlowResult.Failed(PublicationCodes.NoProvider);
         }
 
-        if (!_called)
+        if (await AuthorizeAsync(operation, false, context.Stopping, detail).ConfigureAwait(false) is { } refused)
         {
-            if (await AuthorizeAsync(context, operation, false, context.Stopping).ConfigureAwait(false) is { } refused)
+            return refused;
+        }
+
+        var done = false;
+        if (_attempted && verify is not null)
+        {
+            // After a cut, before it is asked again.
+            var check = await verify(context).ConfigureAwait(false);
+            if (check == WriteCheck.Busy)
             {
-                return refused;
+                return FlowResult.WaitForProject();
             }
 
+            done = check == WriteCheck.Done;
+        }
+
+        if (!done)
+        {
+            _attempted = true;
             var result = await call(provider, context.Stopping).ConfigureAwait(false);
-            if (Interrupted(context, result) is { } interrupted)
+            if (result.Outcome != HostingOutcome.Ok)
             {
-                if (!observeAfter || operation.PullRequest is null)
+                if (Unclear(result.Outcome))
                 {
-                    return interrupted;
+                    if (observeAfter && operation.PullRequest is not null)
+                    {
+                        done = await context.ObserveAsync(operation.PullRequest).ConfigureAwait(false) is { State: PullRequestState.Closed };
+                    }
+                    else if (verify is not null)
+                    {
+                        var check = await verify(context).ConfigureAwait(false);
+                        if (check == WriteCheck.Busy)
+                        {
+                            // It could not be read now: it stays pending, and the next round reads before it asks again.
+                            return FlowResult.WaitForSync(PendingReason.Offline, PublicationCodes.OfflineWait(0), PublicationCodes.Unreachable);
+                        }
+
+                        done = check == WriteCheck.Done;
+                    }
                 }
 
-                // An answer that was lost does not say it did not happen: the pull request is read first.
-                var seen = await context.ObserveAsync(operation.PullRequest).ConfigureAwait(false);
-                if (seen is not { State: PullRequestState.Closed })
+                if (!done)
                 {
-                    return interrupted;
+                    return Interrupted(context, result) ?? FlowResult.Failed(PublicationCodes.ProviderRefused);
                 }
             }
-
-            _called = true;
-            if (observeAfter && operation.PullRequest is not null)
+            else if (observeAfter && operation.PullRequest is not null)
             {
                 await context.ObserveAsync(operation.PullRequest).ConfigureAwait(false);
             }
         }
 
-        var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, false, false, context.Stopping).ConfigureAwait(false);
-        if (authorization.Allowed)
-        {
-            await NoteAsync(context, Key, Payload(operation, authorization, HostingOutcome.Ok, null, operation.Kind == HostingOperationKind.DeleteRemoteBranch ? RemoteBranch.ForRun(operation.Run).Name : null, null, null, null, null, null)).ConfigureAwait(false);
-        }
-
+        context.Outcome(HostingOutcome.Ok);
+        await NoteAsync(
+            context, Key,
+            Payload(operation, HostingOutcome.Ok, null, operation.Kind == HostingOperationKind.DeleteRemoteBranch ? RemoteBranch.ForRun(operation.Run).Name : null, null, null, null, null, null)).ConfigureAwait(false);
         return FlowResult.Done;
     }
 }

@@ -1256,7 +1256,7 @@ public sealed record RemoteSnapshot(
 public enum RemoteChangeKind
 {
     Opened, HeadMoved, ForcePushed, Merged, Closed, Reopened, HeadBranchDeleted, ChecksChanged, ReviewsChanged,
-    RevertSuspected, DeploymentChanged,
+    RevertSuspected, DeploymentChanged, BaseChanged,   // BaseChanged appended by WP3: the base of the pull request changed
 }
 
 /// Pure (D-23): the changes between the last recorded snapshot and a new one. Same fingerprint, no change; an older UpdatedAt, discarded.
@@ -2150,16 +2150,29 @@ Dónde el diseño y el código real chocaron al escribir la compuerta, la public
 - **Leer el registro sin la toma.** La compuerta y la vista de PR leen el registro (solo leen) fuera de la toma, como ya hacen la entrega y `PullRequestProjector`; escribir y lanzar git, nunca. Dentro de la toma se lee otra vez lo que se va a anotar.
 - **«La última huella registrada».** `RemoteLogReading.Find(pr).Latest` es la mayor por contenido, no la última por secuencia. Se usa como «lo registrado» para reconciliar, y además se compara la huella con la de la última entrada por secuencia (leyendo solo
   ese campo) para no duplicar tras perder la caché. **Petición al lead:** si se quiere «la última por secuencia» como dato del lector, hace falta en `RemoteLogReading`; no se escribió otro lector.
-- **Autorizaciones y anotaciones aparcadas en memoria.** `PendingRemoteWork` no lleva el resultado, la cuenta ni qué amparó una operación, y un fichero que pudiera escribir historia sería el fichero autorizando. Del fichero solo vuelven observaciones, que
-  se piden otra vez a la plataforma. **Petición al P0 si se quiere persistirlas:** campos para el resultado, la cuenta, el comentario, la evidencia y la autorización, validados contra el registro.
+- **Autorizaciones dadas y anotaciones aparcadas, en memoria; revocaciones pendientes, en el fichero.** PendingRemoteWork no lleva el resultado, la cuenta ni qué amparó una operación, y un fichero que pudiera escribir historia sería el fichero autorizando: una autorización **dada** y aparcada no vale hasta anotarse y no se persiste, y del fichero solo vuelven observaciones, que se piden otra vez a la plataforma. Lo único con efecto que guarda el fichero es RemoteSyncState.PendingRevocations (autorizado por el lead): solo puede **quitar** autoridad.
 - **La cortesía de un segundo** es un «no antes de T» de la toma, no una espera: tras identificar el remoto en el clic, el primer tramo de git espera un segundo aparcado. Las pruebas mueven el reloj.
 - **El repositorio del proyecto** sale de `IHostingProviders.IdentifyAsync` con la toma, en esta sesión; el sondeo solo observa PR de ese repositorio. `RemoteSyncState.Repository` del fichero es una pista y solo sirve para devolver el freno al proveedor.
-- **Lo que no se hizo.** El recuento de commits de la tarjeta (`SystemCommits`, `OwnUnpublishedCommits`) no tiene puerto; el nombre del hito en el título del PR (se usa el id de la ejecución); `x-poll-interval` (el puerto no lo expone); la hora real de lo anotado
-  tarde; el modo «solo comentario» cuando falta `CommitStatus` (el proveedor publica estado y comentario en una llamada; la compuerta rechaza si falta la capacidad del estado). El requisito y el modelo del juez salen del último veredicto válido del almacén, no del que
-  decide por la regla de `VerdictReach` (el estado y el commit sí salen de `VerdictInForce`).
-- **Marca del comentario.** El comentario empieza por `<!-- agent-studio:verdict run=<id> -->`, puesta por el sistema; si el adaptador de GitHub también la añadiera, saldría dos veces: hay que comprobarlo con el adaptador real.
+- **Lo que no se hizo.** El nombre del hito en el título del PR (se usa el id de la ejecución; aceptado); x-poll-interval (el puerto no lo expone); la hora real de lo anotado tarde (el registrador pone «ahora»).
+- **Marca del comentario.** El comentario empieza por `<!-- agent-studio:verdict run=<id> -->`, puesta por el sistema; el adaptador de GitHub comprueba que ya empiece por ella y no la repite.
 - **Sin verificar:** ninguna prueba con `gh`, red o git reales; la composición real (`AddAgentStudioPublication` con `IRemoteSyncPolicy` e `IResponseLanguage` del escritorio) es del lead; el «Ejecutar» y la reanudación frente a una toma remota ya los probó el P0.
 - **Pruebas:** `tests/.../Orchestration/Publication/**` (compuerta, buzón y sondeo, publicación, composición y textos), `Domain/Hosting/RemoteReconcilerTests.cs` e `Infrastructure/Hosting/State/RemoteSyncStoreTests.cs`. Los dobles fallan si el proveedor se llama con la toma, o git o el registro sin ella.
+
+
+**Ronda de arreglos tras la revisión independiente (2026-11-13).**
+
+- **El veredicto con aprobación por uso.** Las operaciones del veredicto llevan el commit juzgado y la rama base del PR (la atadura no incluye el tipo de operación), así que la aprobación del clic de publicar, o una autorización con o sin base, las ampara; la descripción de la aprobación de «escribir en el PR» dice «+verdict». `VerdictFlow` y `UpdateVerdictAsync` hacen lo mismo y se prueban con un veredicto real en el registro y el almacén. El PR se sigue aunque el tramo D falle, y publicar sin veredicto que contar no es un fallo. Cada canal pasa la compuerta por separado: sin la capacidad del estado se publica el comentario (D-21), y solo se rechaza si no hay ninguno.
+- **Red sin permiso.** `ObserveAsync` exige `PeriodicSyncAllowed` en el momento de lanzarse a quien no sea un clic: el sondeo, las observaciones que vuelven de `pending.json` y los reintentos.
+- **Fusionar.** `RemoteChangeKind.BaseChanged` (al final) lo da el reconciliador si cambia la base. Se relee el PR antes de pedir la aprobación y otra vez después, y de nuevo en el flujo antes de fusionar: ilegible (`hosting.refused.pr-unreadable`), cabeza distinta del commit juzgado o base distinta de la aprobada, y no se fusiona.
+- **Retirar una autorización** vale desde el instante en que se pide (la compuerta no cuenta una autorización con revocación pendiente), se ve en `IRemoteSync.Pending` y sobrevive a un reinicio (`RemoteSyncState.PendingRevocations`, validada y acotada a 50 ids al leerla). Lo aparcado de dar y retirar dice «se anotará cuando termine lo que está en marcha».
+- **Cierre ordenado.** `DisposeAsync` hace un último intento, sin la cortesía, de anotar lo aparcado antes de parar. Residual si no puede o la app cae: la siguiente observación registra el hecho y quién lo hizo según la plataforma, pero no qué aprobación lo amparó.
+- **La compuerta se obedece.** Todas las llamadas a `AuthorizeUseAsync` usan su resultado, y la entrada de cada operación nombra lo que la amparó antes de ejecutarse. La compuerta se pasa antes de buscar el PR, de modo que un veredicto impugnado entre medias lo detiene.
+- **Una escritura sin respuesta clara no es un fallo.** Si abrir el PR da «sin conexión», «prohibido» o «ilegible», se busca el PR antes de darlo por fallido; cerrar relee el PR; borrar la rama lee con git antes de repetir (una rama que ya no está es «hecho»). Pedir revisores no tiene nada que releer y repetirlo es inocuo.
+- **Pedir revisores** lleva los nombres (validados, ordenados y acotados a 20) en la atadura y en la descripción de la aprobación.
+- **Un solo veredicto.** `RemoteJudgement.VerdictInForceWithVerdict` (sin cambiar `VerdictInForce`) da además el veredicto que decide; el comentario cuenta de él los requisitos y el modelo.
+- **La tarjeta cuenta commits** con `IRepositoryHistoryReader` e `IRepositoryAnnotator` (con la toma): `SystemCommits` son los de la ejecución en su rama y `OwnUnpublishedCommits` los que subirían y no son suyos contra la cabeza de la base en el remoto, o nulo si esa cabeza no está en la historia leída. Sin poder leer la historia, la tarjeta no está lista y lo dice.
+- **Bajos.** El número de la aprobación se casa por la atadura (una referencia hecha de ella va en la descripción, no por la acción); `_retryTimer` no se crea tras cerrar; un buzón que falló al abrirse se reintenta en el siguiente uso; el cercado quita también los caracteres de formato (Cf); solo cuentan las autorizaciones que anotó una persona (actor `User`). Los resúmenes de las entradas están en castellano corto, como los de `DeliveryService` («Entregado: …») y las demás entradas del proyecto.
+- **Sin verificar:** nada con `gh`, red o git reales; que `ReadBranchAsync` dé «alcanzado y sin commit» para una rama borrada (se supone así en el borrado).
 
 ### 10.6 WP4 · Proyecciones: cadena, tablero, participación e hito (M)
 

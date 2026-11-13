@@ -3463,7 +3463,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>There is no valid verdict to publish.</value>
   </data>
   <data name="Text_hosting_refused_commit_not_judged" xml:space="preserve">
-    <value>The commit is not the one the independent reviewer judged.</value>
+    <value>That saved version (commit) is not the one the independent reviewer (judge) checked.</value>
   </data>
   <data name="Text_hosting_refused_config_refused" xml:space="preserve">
     <value>The git configuration of the project fails the inspection. Nothing is published.</value>
@@ -3490,7 +3490,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>This operation needs your approval and none was given.</value>
   </data>
   <data name="Text_hosting_refused_project_busy" xml:space="preserve">
-    <value>The project is busy with a run. Try again when it ends.</value>
+    <value>A run is in progress. Wait for it to end.</value>
   </data>
   <data name="Text_hosting_refused_no_remote" xml:space="preserve">
     <value>The project has no recognised GitHub remote.</value>
@@ -3502,7 +3502,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>That pull request is not in the history of the project.</value>
   </data>
   <data name="Text_hosting_refused_branch_moved" xml:space="preserve">
-    <value>The head of the pull request is no longer the commit the reviewer judged.</value>
+    <value>Someone changed the pull request. It no longer has the saved version (commit) that was checked.</value>
   </data>
   <data name="Text_hosting_failed_push" xml:space="preserve">
     <value>The branch could not be published.</value>
@@ -3523,7 +3523,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>GitHub asks to wait before the next request.</value>
   </data>
   <data name="Text_hosting_failed_redirected" xml:space="preserve">
-    <value>The repository changed address. Update your remote.</value>
+    <value>The repository moved. Change your remote.</value>
   </data>
   <data name="Text_hosting_failed_merge_blocked" xml:space="preserve">
     <value>GitHub did not allow the merge.</value>
@@ -3550,7 +3550,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Agent Studio · {0}</value>
   </data>
   <data name="Text_hosting_pr_body_run" xml:space="preserve">
-    <value>Run {0}, commit {1}.</value>
+    <value>Run {0}, saved version (commit) {1}.</value>
   </data>
   <data name="Text_hosting_pr_body_requirement_met" xml:space="preserve">
     <value>Requirement {0}: met.</value>
@@ -3562,33 +3562,45 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Requirement {0}: could not be verified.</value>
   </data>
   <data name="Text_hosting_pr_body_judge" xml:space="preserve">
-    <value>Decision of the judge: {0}. Judged by {1} with the model {2}.</value>
+    <value>Decision of the independent reviewer (judge): {0}. Checked by {1} with the model {2}.</value>
   </data>
   <data name="Text_hosting_pr_body_verification" xml:space="preserve">
     <value>Tests: {0} passed, {1} failed, {2} skipped.</value>
   </data>
   <data name="Text_hosting_pr_body_evidence" xml:space="preserve">
-    <value>Evidence {0}, fingerprint {1}.</value>
+    <value>Saved proof {0}, fingerprint {1}.</value>
   </data>
   <data name="Text_hosting_pr_body_footer" xml:space="preserve">
-    <value>Published with Agent Studio. The verdict of an AI judge is not a GitHub review.</value>
+    <value>Published with Agent Studio. The verdict of the independent reviewer (judge) is not a GitHub review.</value>
   </data>
   <data name="Text_hosting_verdict_comment_approved" xml:space="preserve">
-    <value>Decision of the independent judge: approved. Judged commit: {0}.</value>
+    <value>Result: approved. Saved version (commit): {0}.</value>
   </data>
   <data name="Text_hosting_verdict_comment_rejected" xml:space="preserve">
-    <value>Decision of the independent judge: not approved. Judged commit: {0}.</value>
+    <value>Result: not approved. Saved version (commit): {0}.</value>
   </data>
   <data name="Text_hosting_verdict_comment_in_review" xml:space="preserve">
-    <value>Decision of the independent judge: in review. Judged commit: {0}.</value>
+    <value>Result: in review. Saved version (commit): {0}.</value>
   </data>
   <data name="Text_hosting_verdict_comment_judge" xml:space="preserve">
-    <value>Judged by {0} with the model {1}. The judge did not produce the work.</value>
+    <value>It was checked by {0} with the model {1}. The reviewer did not do the work.</value>
   </data>
   <data name="Text_hosting_verdict_comment_head_moved" xml:space="preserve">
-    <value>The head of the pull request is no longer the commit the judge judged.</value>
+    <value>The pull request changed. It is no longer the saved version (commit) that was checked.</value>
   </data>
   <data name="Text_hosting_verdict_comment_footer" xml:space="preserve">
     <value>This is not a GitHub review nor an approval by the account that publishes it.</value>
+  </data>
+  <data name="Text_hosting_refused_pr_unreadable" xml:space="preserve">
+    <value>The pull request could not be read on GitHub. Nothing is done.</value>
+  </data>
+  <data name="Text_hosting_refused_base_changed" xml:space="preserve">
+    <value>The base branch of the pull request is no longer the one you approved.</value>
+  </data>
+  <data name="Text_hosting_refused_history_unreadable" xml:space="preserve">
+    <value>The history of the project could not be read.</value>
+  </data>
+  <data name="Text_hosting_pending_annotation" xml:space="preserve">
+    <value>It will be recorded when what is running ends.</value>
   </data>
 </root>

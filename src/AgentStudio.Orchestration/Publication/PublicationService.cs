@@ -31,12 +31,19 @@ public sealed class PublicationService : IPublicationService
     private readonly IDecisionRecorder _recorder;
     private readonly IEvidenceStore _evidence;
     private readonly PullRequestTextComposer _composer;
+    private readonly IRepositoryHistoryReader _history;
+    private readonly IRepositoryAnnotator _annotator;
+    private const int MaxReviewers = 20;
+    private const int MaxHistory = 500;
+
     private readonly FlowDependencies _deps;
 
     internal PublicationService(
         IHostingUseGate gate, IRemoteMailboxes mailboxes, IDeliveryService delivery, IHostingProviders providers, IRemoteGitRunner git, IDecisionRecorder recorder,
-        IEvidenceStore evidence, PullRequestTextComposer composer, VerdictNoticeBuilder notices)
+        IEvidenceStore evidence, PullRequestTextComposer composer, VerdictNoticeBuilder notices, IRepositoryHistoryReader history, IRepositoryAnnotator annotator)
     {
+        _history = history;
+        _annotator = annotator;
         _gate = gate;
         _mailboxes = mailboxes;
         _delivery = delivery;
@@ -92,7 +99,36 @@ public sealed class PublicationService : IPublicationService
             context.Trust(repository);
             var inspection = await _git.InspectAsync(project, repository, CancellationToken.None).ConfigureAwait(false);
             var remote = inspection.Accepted ? await _git.ReadBranchAsync(project, repository, RemoteBranch.ForRun(run), CancellationToken.None).ConfigureAwait(false) : null;
-            return new Located(false, repository, inspection, remote);
+            if (!inspection.Accepted)
+            {
+                return new Located(false, repository, inspection, remote);
+            }
+
+            // The commits that would go up (D-08): the history of the run's branch from the hardened git layer, which commits the log says are of the run, and the head of the base branch on the
+            // remote to count against. All of it with the project in hand, in the same take as the rest of git.
+            try
+            {
+                var graph = await _history.CommitsAsync(project, new CommitGraphQuery(MaxHistory, Branch: RemoteBranch.ForRun(run).Name), CancellationToken.None).ConfigureAwait(false);
+                var annotated = await _annotator.AnnotateAsync(project, graph, CancellationToken.None).ConfigureAwait(false);
+                string? baseHead = null;
+                string? baseName = null;
+                foreach (var candidate in baseBranch is null ? new[] { "main", "master" } : new[] { baseBranch.Name })
+                {
+                    if (RemoteBranch.TryParse(candidate) is { } branch
+                        && await _git.ReadBranchAsync(project, repository, branch, CancellationToken.None).ConfigureAwait(false) is { Reached: true, Commit: { } head })
+                    {
+                        baseHead = head;
+                        baseName = candidate;
+                        break;
+                    }
+                }
+
+                return new Located(false, repository, inspection, remote, Graph: graph, Annotated: annotated, BaseHead: baseHead, BaseName: baseName);
+            }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException)
+            {
+                return new Located(false, repository, inspection, remote, HistoryFailed: true);
+            }
         }).ConfigureAwait(false);
         if (local.Busy)
         {
@@ -133,9 +169,15 @@ public sealed class PublicationService : IPublicationService
         {
             reason = UserText.Of(PublicationCodes.ProviderRefused);
         }
+        else if (local.HistoryFailed)
+        {
+            reason = UserText.Of(PublicationCodes.HistoryUnreadable);
+        }
 
-        // The counts of commits need a reader of history that the ports of this package do not give: they are left unknown (pending in the ADR).
-        return new PublicationPreview(reason is null, reason, repo, readiness.Commit, target, 0, null, rules, local.Inspection, capabilities, text, existing);
+        // The counts are of the history read with the project taken. Against the base head of the remote only when it is the base the card names; unknown (null) when that head is not in the
+        // history read («no se puede saber», D-08).
+        var counts = CommitCounts.Of(local.Graph, local.Annotated, run, string.Equals(local.BaseName, target?.Name, StringComparison.Ordinal) ? local.BaseHead : null);
+        return new PublicationPreview(reason is null, reason, repo, readiness.Commit, target, counts.System, counts.OwnUnpublished, rules, local.Inspection, capabilities, text, existing);
     }
 
     public async Task<RemoteWorkTicket> PublishAsync(PublicationRequest request, CancellationToken ct)
@@ -220,15 +262,23 @@ public sealed class PublicationService : IPublicationService
             return Rejected(box, ticket, UserText.Of(PublicationCodes.UnknownPullRequest));
         }
 
+        // The operation carries the judged commit and the base of the pull request, so the approval (or the grant, which may name a base) is for exactly what the flow publishes.
+        var package = await _deps.Notices.BuildAsync(project, run, known.Head, ct).ConfigureAwait(false);
+        if (package is null)
+        {
+            return Rejected(box, ticket, UserText.Of(PublicationCodes.NoVerdict));
+        }
+
+        var commit = package.Notice.JudgedCommit;
         var lease = new ApprovalLease();
-        var operation = new HostingOperation(project, run, HostingOperationKind.PublishVerdictStatus, pullRequest.Repository, null, pullRequest, null, null);
+        var operation = new HostingOperation(project, run, HostingOperationKind.PublishVerdictStatus, pullRequest.Repository, known.BaseBranch, pullRequest, commit, null);
         var authorization = await _gate.AuthorizeUseAsync(operation, lease, true, false, ct).ConfigureAwait(false);
         if (!authorization.Allowed)
         {
             return Rejected(box, ticket, authorization.Refusal ?? UserText.Of(PublicationCodes.NotApproved));
         }
 
-        return await box.RunAsync(new VerdictFlow(ticket, project, run, pullRequest, known.Head, _deps, lease)).ConfigureAwait(false);
+        return await box.RunAsync(new VerdictFlow(ticket, project, run, pullRequest, commit, known.BaseBranch, known.Head, _deps, lease)).ConfigureAwait(false);
     }
 
     public async Task<RemoteWorkTicket> RequestReviewersAsync(ProjectContext project, PullRequestRef pullRequest, IReadOnlyList<RemoteLogin> reviewers, CancellationToken ct)
@@ -249,8 +299,10 @@ public sealed class PublicationService : IPublicationService
         }
 
         // Always by use: it warns people by name, and no standing grant covers it.
+        // The person approves seeing whom it warns: the accounts (validated) are part of the tie and of the description.
+        var names = reviewers.Select(r => r.Value).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Take(MaxReviewers).ToList();
         var operation = new HostingOperation(project, run, HostingOperationKind.RequestReviewers, pullRequest.Repository, null, pullRequest, commit, null);
-        return await StartAsync(box, ticket, operation, (provider, token) => provider.RequestReviewersAsync(pullRequest, [.. reviewers], token), false, ct).ConfigureAwait(false);
+        return await StartAsync(box, ticket, operation, (provider, token) => provider.RequestReviewersAsync(pullRequest, [.. names.Select(n => RemoteLogin.TryParse(n)!)], token), false, ct, "reviewers=" + string.Join(',', names)).ConfigureAwait(false);
     }
 
     public async Task<RemoteWorkTicket> MergeAsync(ProjectContext project, PullRequestRef pullRequest, MergeMethod method, CancellationToken ct)
@@ -269,10 +321,10 @@ public sealed class PublicationService : IPublicationService
             return Rejected(box, ticket, readiness.ReasonText ?? UserText.Of(PublicationCodes.VerdictNotApproved));
         }
 
-        // The pull request is read before asking (D-20): the head must still be the judged commit.
-        if (known.Head is not null && !string.Equals(known.Head, commit, StringComparison.Ordinal))
+        // The pull request is read before asking and again after the approval (D-20): it must be readable, its head the judged commit and its base the one the approval names.
+        if (await CheckBeforeMergeAsync(pullRequest, commit, baseBranch, ct).ConfigureAwait(false) is { } unfit)
         {
-            return Rejected(box, ticket, UserText.Of(PublicationCodes.BranchMoved));
+            return Rejected(box, ticket, unfit);
         }
 
         var lease = new ApprovalLease();
@@ -281,6 +333,11 @@ public sealed class PublicationService : IPublicationService
         if (!authorization.Allowed)
         {
             return Rejected(box, ticket, authorization.Refusal ?? UserText.Of(PublicationCodes.NotApproved));
+        }
+
+        if (await CheckBeforeMergeAsync(pullRequest, commit, baseBranch, ct).ConfigureAwait(false) is { } changed)
+        {
+            return Rejected(box, ticket, changed);
         }
 
         return await box.RunAsync(new MergeFlow(ticket, project, run, pullRequest, commit, method, baseBranch, _deps, lease)).ConfigureAwait(false);
@@ -336,20 +393,35 @@ public sealed class PublicationService : IPublicationService
         }
 
         var operation = new HostingOperation(project, run, HostingOperationKind.DeleteRemoteBranch, repo, null, null, null, null);
-        return await StartAsync(box, ticket, operation, (provider, token) => provider.DeleteRunBranchAsync(repo, branch, expected, token), false, ct).ConfigureAwait(false);
+
+        // After a cut, or an answer that says nothing certain, the branch is read with git before it is deleted again: one that is already gone is a deletion done.
+        async Task<WriteCheck> Gone(FlowContext context)
+        {
+            using var taken = context.Take();
+            if (taken is null)
+            {
+                return WriteCheck.Busy;
+            }
+
+            var now = await _git.ReadBranchAsync(project, repo, branch, CancellationToken.None).ConfigureAwait(false);
+            return now.Reached && now.Commit is null ? WriteCheck.Done : WriteCheck.Unknown;
+        }
+
+        return await StartAsync(box, ticket, operation, (provider, token) => provider.DeleteRunBranchAsync(repo, branch, expected, token), false, ct, null, Gone).ConfigureAwait(false);
     }
 
     private async Task<RemoteWorkTicket> StartAsync(
-        ProjectRemoteMailbox box, RemoteWorkTicket ticket, HostingOperation operation, Func<IHostingProvider, CancellationToken, Task<HostingResult<bool>>> call, bool observeAfter, CancellationToken ct)
+        ProjectRemoteMailbox box, RemoteWorkTicket ticket, HostingOperation operation, Func<IHostingProvider, CancellationToken, Task<HostingResult<bool>>> call, bool observeAfter, CancellationToken ct,
+        string? detail = null, Func<FlowContext, Task<WriteCheck>>? verify = null)
     {
         var lease = new ApprovalLease();
-        var authorization = await _gate.AuthorizeUseAsync(operation, lease, mayAsk: true, holdsProject: false, ct).ConfigureAwait(false);
+        var authorization = await _gate.AuthorizeUseAsync(operation, lease, mayAsk: true, holdsProject: false, ct, detail).ConfigureAwait(false);
         if (!authorization.Allowed)
         {
             return Rejected(box, ticket, authorization.Refusal ?? UserText.Of(PublicationCodes.NotApproved));
         }
 
-        return await box.RunAsync(new WriteFlow(ticket, operation, call, observeAfter, _deps, lease)).ConfigureAwait(false);
+        return await box.RunAsync(new WriteFlow(ticket, operation, call, observeAfter, _deps, lease, detail, verify)).ConfigureAwait(false);
     }
 
     /// <summary>What the verified log says of a pull request: its run, its base branch and the head as last observed. A log that does not verify says nothing.</summary>
@@ -369,7 +441,33 @@ public sealed class PublicationService : IPublicationService
         return (observed?.Latest.HeadCommit, run is null ? null : new RunId(run), observed?.Latest.BaseBranch);
     }
 
-    private sealed record Located(bool Busy, RemoteRepository? Repository, RemoteGitInspection? Inspection = null, RemoteBranchRead? Remote = null, string? Commit = null);
+    private sealed record Located(
+        bool Busy, RemoteRepository? Repository, RemoteGitInspection? Inspection = null, RemoteBranchRead? Remote = null, string? Commit = null,
+        IReadOnlyList<CommitNode>? Graph = null, IReadOnlyList<AnnotatedCommit>? Annotated = null, string? BaseHead = null, string? BaseName = null, bool HistoryFailed = false);
+
+    /// <summary>Reads the pull request from the platform and says why it must not be merged, or null when it is as the approval names it.</summary>
+    private async Task<UserText?> CheckBeforeMergeAsync(PullRequestRef pullRequest, string commit, RemoteBranch baseBranch, CancellationToken ct)
+    {
+        var provider = _providers.For(pullRequest.Repository);
+        if (provider is null)
+        {
+            return UserText.Of(PublicationCodes.NoProvider);
+        }
+
+        var read = await provider.ObserveAsync(pullRequest, null, ct).ConfigureAwait(false);
+        if (read.Outcome != HostingOutcome.Ok || read.Value is not { } observation || observation.Snapshot.PullRequest != pullRequest)
+        {
+            return UserText.Of(PublicationCodes.PullRequestUnreadable);
+        }
+
+        var snapshot = observation.Snapshot;
+        if (!string.Equals(snapshot.HeadCommit, commit, StringComparison.Ordinal))
+        {
+            return UserText.Of(PublicationCodes.BranchMoved);
+        }
+
+        return string.Equals(snapshot.BaseBranch.Name, baseBranch.Name, StringComparison.Ordinal) ? null : UserText.Of(PublicationCodes.BaseChanged);
+    }
 
     private static PublicationPreview NotReady(UserText reason, RemoteRepository? repository, RemoteGitInspection? inspection, PullRequestText text) =>
         new(false, reason, repository, null, null, 0, null, null, inspection, HostingCapabilities.None, text, null);
@@ -433,7 +531,45 @@ public static class PublicationServiceCollectionExtensions
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<IEvidenceStore>(),
             provider.GetRequiredService<PullRequestTextComposer>(),
-            provider.GetRequiredService<VerdictNoticeBuilder>()));
+            provider.GetRequiredService<VerdictNoticeBuilder>(),
+            provider.GetRequiredService<IRepositoryHistoryReader>(),
+            provider.GetRequiredService<IRepositoryAnnotator>()));
         return services;
+    }
+}
+
+/// <summary>The counts of the card of publication (docs/21 D-08): the commits of the run on its branch, and those that would go up and are not of the run.</summary>
+internal static class CommitCounts
+{
+    public static (int System, int? OwnUnpublished) Of(IReadOnlyList<CommitNode>? graph, IReadOnlyList<AnnotatedCommit>? annotated, RunId run, string? baseHead)
+    {
+        if (graph is null || annotated is null)
+        {
+            return (0, null);
+        }
+
+        var isRun = annotated.Where(a => string.Equals(a.Annotation?.Run, run.Value, StringComparison.Ordinal)).Select(a => a.Commit.Id).ToHashSet(StringComparer.Ordinal);
+        if (baseHead is null || graph.All(c => !string.Equals(c.Id, baseHead, StringComparison.Ordinal)))
+        {
+            return (isRun.Count, null);
+        }
+
+        // What the base head already has: it, and everything reachable from it by the parents the graph holds.
+        var byId = graph.ToDictionary(c => c.Id, StringComparer.Ordinal);
+        var onRemote = new HashSet<string>(StringComparer.Ordinal);
+        var pending = new Stack<string>([baseHead]);
+        while (pending.Count > 0)
+        {
+            var id = pending.Pop();
+            if (onRemote.Add(id) && byId.TryGetValue(id, out var node))
+            {
+                foreach (var parent in node.Parents)
+                {
+                    pending.Push(parent);
+                }
+            }
+        }
+
+        return (isRun.Count, graph.Count(c => !onRemote.Contains(c.Id) && !isRun.Contains(c.Id)));
     }
 }

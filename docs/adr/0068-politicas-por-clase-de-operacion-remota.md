@@ -94,3 +94,13 @@
   código sin sus acentos graves (`PullRequestTextComposer.Fence`); el comentario empieza por la marca `<!-- agent-studio:verdict run=<id> -->`; nada del razonamiento del juez ni de un agente sale. Queda sin cumplir el nombre del hito en el título: se usa el id
   de la ejecución.
 - **Pedir revisores, fusionar y lo destructivo** piden siempre; ninguna autorización los cubre aunque su clase sea la suya (prueba).
+
+### Ronda de arreglos tras la revisión (2026-11-13)
+
+- **Una aprobación para todo lo que el flujo va a hacer.** La atadura (`Binding`) no lleva el tipo de operación: acción, repositorio, ejecución, commit juzgado, rama base, modo y, si ya existe, el PR. Las operaciones del veredicto llevan el commit juzgado y la base, así que la aprobación de «escribir en el PR» del clic cubre abrir el PR y publicar el estado y el comentario, y una autorización (con base o sin ella) también. La descripción dice «+verdict» y termina con una referencia hecha de la atadura, con la que se casa la entrada de la respuesta para sacar el `ApprovalSequence`.
+- **Pedir revisores** añade a la atadura y a la descripción los nombres a los que se avisa (validados, ordenados, hasta 20): la persona aprueba viéndolos.
+- **La compuerta se obedece:** el resultado de cada llamada decide, y la entrada de cada operación nombra lo que la amparó cuando se comprobó, no lo que diga una comprobación posterior.
+- **Revocar** vale desde que se pide (ver ADR-0067). Solo cuentan las entradas de autorización escritas por una persona (actor `User`).
+- **Canales del veredicto:** estado y comentario pasan la compuerta cada uno; sin la capacidad del estado de commit se publica el comentario (D-21), y solo se rechaza si no hay ningún canal.
+- **Un solo veredicto** para el estado, el commit, los requisitos y el modelo del juez: `RemoteJudgement.VerdictInForceWithVerdict`.
+- **Textos:** siguen la guía (versión guardada (commit), revisor independiente (juez), INFLESZ 55). El título del PR lleva el id de la ejecución (aceptado).

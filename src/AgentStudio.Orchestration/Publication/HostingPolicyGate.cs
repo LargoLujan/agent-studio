@@ -42,10 +42,11 @@ public interface IHostingUseGate : IHostingPolicyGate
     /// <param name="mayAsk">True at the click of the person: without a grant or an approval of the lease, the person is asked (with Windows Hello, as the classifier says). False in the
     /// mailbox: it never asks, so what needs an approval it does not have is refused.</param>
     /// <param name="holdsProject">True when the caller holds the project with a remote operation: a use that touches git (the <c>push</c>) also needs the inspection of the configuration to pass.</param>
-    Task<HostingAuthorization> AuthorizeUseAsync(HostingOperation operation, ApprovalLease lease, bool mayAsk, bool holdsProject, CancellationToken ct);
+    /// <param name="detail">What the operation does that its record has no field for, and the person must see when they approve (the accounts that are warned when reviewers are asked for): it goes into the tie and the description.</param>
+    Task<HostingAuthorization> AuthorizeUseAsync(HostingOperation operation, ApprovalLease lease, bool mayAsk, bool holdsProject, CancellationToken ct, string? detail = null);
 
     /// <summary>The sequence of the approval that allowed a use, for the entry of the operation; null when a standing grant did.</summary>
-    long? SequenceOf(ApprovalLease lease, HostingOperation operation);
+    long? SequenceOf(ApprovalLease lease, HostingOperation operation, string? detail = null);
 }
 
 /// <summary>
@@ -94,7 +95,7 @@ public sealed class HostingPolicyGate : IHostingUseGate
     public Task<HostingAuthorization> AuthorizeAsync(HostingOperation operation, CancellationToken ct) =>
         AuthorizeUseAsync(operation, new ApprovalLease(), mayAsk: true, holdsProject: false, ct);
 
-    public async Task<HostingAuthorization> AuthorizeUseAsync(HostingOperation operation, ApprovalLease lease, bool mayAsk, bool holdsProject, CancellationToken ct)
+    public async Task<HostingAuthorization> AuthorizeUseAsync(HostingOperation operation, ApprovalLease lease, bool mayAsk, bool holdsProject, CancellationToken ct, string? detail = null)
     {
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(lease);
@@ -134,7 +135,7 @@ public sealed class HostingPolicyGate : IHostingUseGate
         }
 
         var action = HostingActions.ActionOf(operation.Kind);
-        var leased = lease.Approvals.FirstOrDefault(a => a.Action == action && string.Equals(BindingOf(operation, a.IncludesPullRequest), a.Binding, StringComparison.Ordinal));
+        var leased = lease.Approvals.FirstOrDefault(a => a.Action == action && string.Equals(BindingOf(operation, a.IncludesPullRequest, detail), a.Binding, StringComparison.Ordinal));
         if (leased is not null)
         {
             return new HostingAuthorization(true, HostingAuthorizationSource.Approval, null, leased.Binding, null);
@@ -146,8 +147,9 @@ public sealed class HostingPolicyGate : IHostingUseGate
         }
 
         var includesPullRequest = operation.PullRequest is not null;
-        var binding = BindingOf(operation, includesPullRequest);
-        var request = new ApprovalRequest(action, Describe(operation), RiskLevel.Critical, null, [], operation.Project.ProjectId, operation.Run.Value, null, binding);
+        var binding = BindingOf(operation, includesPullRequest, detail);
+        var description = Describe(operation, detail, binding);
+        var request = new ApprovalRequest(action, description, RiskLevel.Critical, null, [], operation.Project.ProjectId, operation.Run.Value, null, binding);
         var decision = await _approvals.RequestAsync(request, ct).ConfigureAwait(false);
         if (!decision.Approved)
         {
@@ -166,17 +168,17 @@ public sealed class HostingPolicyGate : IHostingUseGate
             return Refuse(PublicationCodes.StateChanged);
         }
 
-        var sequence = await ApprovalSequenceAsync(operation.Project.ProjectId, action, ct).ConfigureAwait(false);
+        var sequence = await ApprovalSequenceAsync(operation.Project.ProjectId, action, description, ct).ConfigureAwait(false);
         lease.Add(new LeasedApproval(action, binding, includesPullRequest, sequence));
         return new HostingAuthorization(true, HostingAuthorizationSource.Approval, null, binding, null);
     }
 
-    public long? SequenceOf(ApprovalLease lease, HostingOperation operation)
+    public long? SequenceOf(ApprovalLease lease, HostingOperation operation, string? detail = null)
     {
         ArgumentNullException.ThrowIfNull(lease);
         ArgumentNullException.ThrowIfNull(operation);
         var action = HostingActions.ActionOf(operation.Kind);
-        return lease.Approvals.FirstOrDefault(a => a.Action == action && string.Equals(BindingOf(operation, a.IncludesPullRequest), a.Binding, StringComparison.Ordinal))?.Sequence;
+        return lease.Approvals.FirstOrDefault(a => a.Action == action && string.Equals(BindingOf(operation, a.IncludesPullRequest, detail), a.Binding, StringComparison.Ordinal))?.Sequence;
     }
 
     public async Task<HostingPolicyGrant?> GrantAsync(ProjectContext project, HostingOperationClass @class, RemoteRepository repository, RemoteBranch? baseBranch, CancellationToken ct)
@@ -205,7 +207,7 @@ public sealed class HostingPolicyGate : IHostingUseGate
         var grant = new HostingPolicyGrant(Guid.NewGuid().ToString("N"), @class, repository, baseBranch, Person(decision.DecidedBy), decision.At);
         var payload = HostingPolicyGrantedPayload.Granting(grant);
         var mailbox = await _mailboxes.OfAsync(project, ct).ConfigureAwait(false);
-        var recorded = await mailbox.NoteFromOutsideAsync("grants", () => RecordAsync(mailbox, project, DecisionKind.HostingPolicyGranted, $"Autoriza de forma persistente en {repository.Id}: {@class}", payload)).ConfigureAwait(false);
+        var recorded = await mailbox.NoteFromOutsideAsync("grants", UserText.Of(PublicationCodes.AnnotationPending), () => RecordAsync(mailbox, project, DecisionKind.HostingPolicyGranted, $"Autoriza de forma persistente en {repository.Id}: {@class}", payload)).ConfigureAwait(false);
 
         // Parked (the project is busy): it will be written when it is free, and until then the grant does not count.
         return recorded ? grant : null;
@@ -215,9 +217,10 @@ public sealed class HostingPolicyGate : IHostingUseGate
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentException.ThrowIfNullOrWhiteSpace(grantId);
-        var payload = HostingPolicyRevokedPayload.Revoking(grantId, Person(null));
         var mailbox = await _mailboxes.OfAsync(project, ct).ConfigureAwait(false);
-        await mailbox.NoteFromOutsideAsync("grants", () => RecordAsync(mailbox, project, DecisionKind.HostingPolicyRevoked, $"Retira la autorización {grantId}", payload)).ConfigureAwait(false);
+
+        // A revocation counts from this instant (the gate does not count a grant with a revocation pending) and survives a restart; the entry is written when the project is free.
+        await mailbox.RevokeAsync(grantId).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<HostingPolicyGrant>> GrantsAsync(ProjectContext project, CancellationToken ct)
@@ -229,7 +232,8 @@ public sealed class HostingPolicyGate : IHostingUseGate
             throw new DecisionLogIntegrityException(project.ProjectId, log.Verification);
         }
 
-        return ActiveGrants(log.Entries);
+        var withdrawn = (await _mailboxes.OfAsync(project, ct).ConfigureAwait(false)).PendingRevocations;
+        return [.. ActiveGrants(log.Entries).Where(g => !withdrawn.Contains(g.GrantId))];
     }
 
     // ---- the checks ----
@@ -244,7 +248,9 @@ public sealed class HostingPolicyGate : IHostingUseGate
             return new Checked(UserText.Of(PublicationCodes.LogNotVerified), null, []);
         }
 
-        var grants = ActiveGrants(log.Entries);
+        var mailbox = await _mailboxes.OfAsync(operation.Project, ct).ConfigureAwait(false);
+        var withdrawn = mailbox.PendingRevocations;
+        var grants = ActiveGrants(log.Entries).Where(g => !withdrawn.Contains(g.GrantId)).ToList();
         string? judged = null;
         if (HostingPolicy.RequiresApprovedVerdict(operation.Kind))
         {
@@ -269,6 +275,11 @@ public sealed class HostingPolicyGate : IHostingUseGate
             if (standing is null || commit is null)
             {
                 return new Checked(UserText.Of(PublicationCodes.NoVerdict), null, grants);
+            }
+
+            if (operation.Commit is not null && !string.Equals(operation.Commit, commit, StringComparison.Ordinal))
+            {
+                return new Checked(UserText.Of(PublicationCodes.CommitNotJudged), null, grants);
             }
 
             judged = commit;
@@ -317,31 +328,50 @@ public sealed class HostingPolicyGate : IHostingUseGate
         return null;
     }
 
-    private async Task<long?> ApprovalSequenceAsync(string projectId, string action, CancellationToken ct)
+    /// <summary>
+    /// The sequence of the approval that answered <em>this</em> request: the last request of the log whose description is ours (it carries a reference made from the tie), and the first
+    /// grant of that action after it. Two runs asking at once are not mixed up, because the descriptions differ.
+    /// </summary>
+    private async Task<long?> ApprovalSequenceAsync(string projectId, string action, string description, CancellationToken ct)
     {
         var log = await _recorder.LoadAsync(projectId, ct).ConfigureAwait(false);
-        for (var i = log.Entries.Count - 1; i >= 0; i--)
+        long? requested = null;
+        for (var i = log.Entries.Count - 1; i >= 0 && requested is null; i--)
         {
             var entry = log.Entries[i];
-            if (entry.Kind != DecisionKind.ApprovalGranted)
+            if (entry.Kind == DecisionKind.ApprovalRequested && Read(entry) is ApprovalRequestedPayload asked && string.Equals(asked.Action, action, StringComparison.Ordinal)
+                && string.Equals(asked.Description, description, StringComparison.Ordinal))
             {
-                continue;
+                requested = entry.Sequence;
             }
+        }
 
-            try
+        if (requested is null)
+        {
+            return null;
+        }
+
+        foreach (var entry in log.Entries.Where(e => e.Sequence > requested && e.Kind == DecisionKind.ApprovalGranted))
+        {
+            if (Read(entry) is ApprovalAnsweredPayload answered && string.Equals(answered.Action, action, StringComparison.Ordinal))
             {
-                if (DecisionPayloadSerializer.Deserialize(entry.Kind, entry.PayloadJson) is ApprovalAnsweredPayload answered && string.Equals(answered.Action, action, StringComparison.Ordinal))
-                {
-                    return entry.Sequence;
-                }
-            }
-            catch (Exception ex) when (ex is System.Text.Json.JsonException or NotSupportedException)
-            {
-                // an entry that cannot be read is not the approval
+                return entry.Sequence;
             }
         }
 
         return null;
+    }
+
+    private static DecisionPayload? Read(DecisionEntry entry)
+    {
+        try
+        {
+            return DecisionPayloadSerializer.Deserialize(entry.Kind, entry.PayloadJson);
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or NotSupportedException)
+        {
+            return null;
+        }
     }
 
     private async Task<bool> RecordAsync(ProjectRemoteMailbox mailbox, ProjectContext project, DecisionKind kind, string summary, DecisionPayload payload)
@@ -369,7 +399,8 @@ public sealed class HostingPolicyGate : IHostingUseGate
         var revoked = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in entries)
         {
-            if (entry.Kind is not (DecisionKind.HostingPolicyGranted or DecisionKind.HostingPolicyRevoked))
+            // Only what a person wrote counts: a grant or a revocation from any other actor is not one.
+            if (entry.Kind is not (DecisionKind.HostingPolicyGranted or DecisionKind.HostingPolicyRevoked) || entry.Actor.Kind != ActorKind.User)
             {
                 continue;
             }
@@ -397,7 +428,7 @@ public sealed class HostingPolicyGate : IHostingUseGate
     }
 
     /// <summary>What the request is tied to (docs/21 D-15): the action, the repository, the run, the commit, the method, the base branch and, when the use has one, the pull request.</summary>
-    internal static string BindingOf(HostingOperation operation, bool includePullRequest) => string.Join(
+    internal static string BindingOf(HostingOperation operation, bool includePullRequest, string? detail = null) => string.Join(
         '|',
         HostingActions.ActionOf(operation.Kind),
         operation.Repository.Id,
@@ -405,9 +436,20 @@ public sealed class HostingPolicyGate : IHostingUseGate
         operation.Commit ?? "-",
         operation.BaseBranch?.Name ?? "-",
         operation.Method?.ToString() ?? "-",
-        includePullRequest && operation.PullRequest is { } pullRequest ? pullRequest.Number.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-");
+        includePullRequest && operation.PullRequest is { } pullRequest ? pullRequest.Number.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-",
+        detail ?? "-");
 
-    private static string Describe(HostingOperation operation) =>
+    /// <summary>
+    /// What the person reads when they approve. A class of «escribir en el PR» also covers the verdict of that pull request, so it says so; asking for reviewers names who is warned; and a short
+    /// reference made from the tie ends it, so the entry of the answer can be matched to this very request.
+    /// </summary>
+    private static string Describe(HostingOperation operation, string? detail, string binding) =>
+        Core(operation)
+        + (HostingActions.ActionOf(operation.Kind) == HostingActions.PullRequestWriteAction && operation.Kind != HostingOperationKind.RequestReviewers ? " +verdict" : string.Empty)
+        + (detail is null ? string.Empty : " " + detail)
+        + " #" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(binding)))[..8];
+
+    private static string Core(HostingOperation operation) =>
         $"{operation.Kind} {operation.Repository.Id}"
         + (operation.PullRequest is { } pullRequest ? $" #{pullRequest.Number}" : string.Empty)
         + (operation.Commit is { Length: > 12 } commit ? $" {commit[..12]}" : string.Empty)

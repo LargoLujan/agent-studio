@@ -112,6 +112,10 @@ public static class PublicationCodes
     public const string OtherRepository = "hosting.refused.other-repository";
     public const string UnknownPullRequest = "hosting.refused.unknown-pull-request";
     public const string BranchMoved = "hosting.refused.branch-moved";
+    public const string PullRequestUnreadable = "hosting.refused.pr-unreadable";
+    public const string BaseChanged = "hosting.refused.base-changed";
+    public const string AnnotationPending = "hosting.pending.annotation";
+    public const string HistoryUnreadable = "hosting.refused.history-unreadable";
 
     public const string PushRefused = "hosting.failed.push";
     public const string PushRejected = "hosting.failed.push-rejected";

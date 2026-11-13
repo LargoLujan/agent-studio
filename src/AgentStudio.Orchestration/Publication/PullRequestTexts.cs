@@ -47,7 +47,8 @@ public sealed class PullRequestTextComposer
     /// <summary>Data inside a code span: the backticks and the line breaks of the datum are taken out, so it cannot close the span nor start another line.</summary>
     public static string Fence(string? datum)
     {
-        var clean = new string((datum ?? string.Empty).Where(c => c != '`' && !char.IsControl(c)).ToArray()).Trim();
+        // Out go the backticks, the control characters and the format ones (zero width, bidirectional marks…): nothing that closes the span, starts a line or hides what the text says.
+        var clean = new string((datum ?? string.Empty).Where(c => c != '`' && !char.IsControl(c) && char.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.Format).ToArray()).Trim();
         return "`" + (clean.Length == 0 ? "-" : clean) + "`";
     }
 
@@ -137,13 +138,13 @@ internal sealed class VerdictNoticeBuilder(IDecisionRecorder recorder, IVerdictS
 
         var stored = (await verdicts.ListAsync(project.ProjectId, run.Value, ct).ConfigureAwait(false)).ToList();
         var byId = stored.GroupBy(v => v.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
-        var (commit, standing) = RemoteJudgement.VerdictInForce(WorkLog.Parse(log.Entries), log.Entries, run.Value, byId);
+        // The standing, the commit, the requirements and the judge all come from the one verdict that decides (never the last valid one of the store, which may be a revision).
+        var (commit, standing, deciding) = RemoteJudgement.VerdictInForceWithVerdict(WorkLog.Parse(log.Entries), log.Entries, run.Value, byId);
         if (commit is null || standing is not { } value)
         {
             return null;
         }
 
-        var deciding = stored.LastOrDefault(v => v.Valid);
         var requirements = deciding?.Verdict.Assessments.Select(a => new RequirementOutcome(a.Requirement.Value, a.Status == AssessmentStatus.Satisfied)).ToList() ?? [];
         var provider = deciding?.Verdict.Judge.Model.Provider.Value ?? "-";
         var model = deciding?.Verdict.Judge.Model.Model ?? "-";

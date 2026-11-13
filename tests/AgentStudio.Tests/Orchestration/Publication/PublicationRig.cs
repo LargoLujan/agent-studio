@@ -15,6 +15,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Hosting;
 using AgentStudio.Orchestration.Publication;
 using AgentStudio.Tests.Domain.Hosting;
+using AgentStudio.Domain.Judging;
 using Microsoft.Extensions.Time.Testing;
 
 namespace AgentStudio.Tests.Orchestration.Publication;
@@ -123,11 +124,11 @@ internal sealed class RigRecorder(RigActivity activity, Trace trace, TimeProvide
     }
 
     /// <summary>An entry that somebody else wrote (an approval of the gate, a grant of the past): it does not need the project.</summary>
-    public DecisionEntry Add(DecisionKind kind, Actor actor, string summary, DecisionPayload payload)
+    public DecisionEntry Add(DecisionKind kind, Actor actor, string summary, DecisionPayload payload, string? hash = null)
     {
         lock (Entries)
         {
-            var entry = new DecisionEntry(Entries.Count + 1, time.GetUtcNow(), actor, kind, summary, DecisionPayloadSerializer.Serialize(payload), null, new string('0', 64), new string('1', 64));
+            var entry = new DecisionEntry(Entries.Count + 1, time.GetUtcNow(), actor, kind, summary, DecisionPayloadSerializer.Serialize(payload), null, new string('0', 64), hash ?? new string('1', 64));
             Entries.Add(entry);
             return entry;
         }
@@ -158,6 +159,11 @@ internal sealed class RigGit(RigActivity activity, Trace trace) : IRemoteGitRunn
 
     public string? RemoteHead { get; set; } = HostingP0Data.Head;
 
+    /// <summary>What successive reads of a branch answer (the head of the run branch, then none for a branch that is gone); empty: <see cref="RemoteHead"/>.</summary>
+    public Queue<string?> Reads { get; } = new();
+
+    public Action? OnPush { get; set; }
+
     private void Held(string name)
     {
         if (activity.Current("p1") != ProjectActivityKind.RemoteOperation)
@@ -177,12 +183,13 @@ internal sealed class RigGit(RigActivity activity, Trace trace) : IRemoteGitRunn
     public Task<RemoteBranchRead> ReadBranchAsync(ProjectContext project, RemoteRepository destination, RemoteBranch branch, CancellationToken ct)
     {
         Held("read");
-        return Task.FromResult(new RemoteBranchRead(true, RemoteHead, null));
+        return Task.FromResult(new RemoteBranchRead(true, Reads.Count > 0 ? Reads.Dequeue() : RemoteHead, null));
     }
 
     public Task<RemotePushResult> PushRunBranchAsync(RemotePush push, CancellationToken ct)
     {
         Held("push");
+        OnPush?.Invoke();
         return Task.FromResult(new RemotePushResult(PushOutcome, RemoteHead, Inspection));
     }
 }
@@ -193,6 +200,18 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
         (pr, _) => new HostingResult<PullRequestObservation>(HostingOutcome.NotModified);
 
     public HostingResult<PullRequestRef?> Found { get; set; } = new(HostingOutcome.Ok, null);
+
+    public Queue<HostingResult<PullRequestRef?>> FoundQueue { get; } = new();
+
+    public HostingResult<bool> Deleted { get; set; } = new(HostingOutcome.Ok, true);
+
+    public HostingResult<PublishedVerdict> VerdictResult { get; set; } = new(HostingOutcome.Ok, new PublishedVerdict(true, 7));
+
+    public (VerdictNotice Notice, string Status, string Body)? LastVerdict { get; private set; }
+
+    public HostingCapability Capabilities { get; set; } = (HostingCapability)65535;
+
+    public HostingResult<MergeOutcome> Merged { get; set; } = new(HostingOutcome.Ok, new MergeOutcome(true, HostingP0Data.Result, null));
 
     public HostingResult<PullRequestRef> Opened { get; set; } = new(HostingOutcome.Ok, HostingP0Data.PullRequest);
 
@@ -217,7 +236,7 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     public Task<HostingAvailability> ProbeAsync(CancellationToken ct)
     {
         Outside("probe");
-        return Task.FromResult(new HostingAvailability(true, new Version(2, 96, 0), new HostingCapabilities((HostingCapability)65535, [MergeMethod.MergeCommit, MergeMethod.Squash, MergeMethod.Rebase], false)));
+        return Task.FromResult(new HostingAvailability(true, new Version(2, 96, 0), new HostingCapabilities(Capabilities, [MergeMethod.MergeCommit, MergeMethod.Squash, MergeMethod.Rebase], false)));
     }
 
     public Task<HostingResult<RemoteLogin>> ReadAccountAsync(RemoteRepository repository, CancellationToken ct)
@@ -241,7 +260,7 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     public Task<HostingResult<PullRequestRef?>> FindPullRequestAsync(RemoteRepository repository, RemoteBranch head, CancellationToken ct)
     {
         Outside("find");
-        return Task.FromResult(Found);
+        return Task.FromResult(FoundQueue.Count > 0 ? FoundQueue.Dequeue() : Found);
     }
 
     public Task<HostingResult<PullRequestRef>> OpenPullRequestAsync(PullRequestDraft draft, CancellationToken ct)
@@ -271,13 +290,14 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     public Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string statusDescription, string commentBody, long? commentId, CancellationToken ct)
     {
         Outside("verdict");
-        return Task.FromResult(new HostingResult<PublishedVerdict>(HostingOutcome.Ok, new PublishedVerdict(true, 7)));
+        LastVerdict = (notice, statusDescription, commentBody);
+        return Task.FromResult(VerdictResult);
     }
 
     public Task<HostingResult<MergeOutcome>> MergeAsync(PullRequestRef pullRequest, MergeMethod method, string expectedHead, CancellationToken ct)
     {
         Outside("merge");
-        return Task.FromResult(new HostingResult<MergeOutcome>(HostingOutcome.Ok, new MergeOutcome(true, HostingP0Data.Result, null)));
+        return Task.FromResult(Merged);
     }
 
     public Task<HostingResult<bool>> CloseAsync(PullRequestRef pullRequest, CancellationToken ct)
@@ -289,7 +309,7 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     public Task<HostingResult<bool>> DeleteRunBranchAsync(RemoteRepository repository, RemoteBranch runBranch, string expectedCommit, CancellationToken ct)
     {
         Outside("delete");
-        return Task.FromResult(new HostingResult<bool>(HostingOutcome.Ok, true));
+        return Task.FromResult(Deleted);
     }
 }
 
@@ -326,6 +346,7 @@ internal sealed class RigApprovals(RigRecorder recorder) : IApprovalGate
     {
         Requests.Add(request);
         WhileDeciding?.Invoke();
+        recorder.Add(DecisionKind.ApprovalRequested, new Actor(ActorKind.System, "gate"), "asked", new ApprovalRequestedPayload(request.Action, request.Description, RiskLevel.Critical, null, []) { RunId = "r1" });
         if (Approve)
         {
             recorder.Add(DecisionKind.ApprovalGranted, new Actor(ActorKind.User, "person"), "ok", new ApprovalAnsweredPayload(request.Action, true, "person", null, null) { RunId = "r1" });
@@ -348,9 +369,45 @@ internal sealed class RigDelivery : IDeliveryService
 
 internal sealed class RigVerdicts : IVerdictStore
 {
-    public Task<string> AppendAsync(string projectId, StoredVerdict verdict, CancellationToken cancellationToken) => throw new NotSupportedException();
+    private readonly List<StoredVerdict> _verdicts = [];
 
-    public Task<IReadOnlyList<StoredVerdict>> ListAsync(string projectId, string? runId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<StoredVerdict>>([]);
+    public Task<string> AppendAsync(string projectId, StoredVerdict verdict, CancellationToken cancellationToken)
+    {
+        _verdicts.Add(verdict);
+        return Task.FromResult(verdict.Id);
+    }
+
+    public Task<IReadOnlyList<StoredVerdict>> ListAsync(string projectId, string? runId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<StoredVerdict>>([.. _verdicts.Where(v => runId is null || v.RunId == runId)]);
+}
+
+internal sealed class RigHistory(RigActivity activity) : IRepositoryHistoryReader
+{
+    public IReadOnlyList<CommitNode> Graph { get; set; } = [];
+
+    public bool Fails { get; set; }
+
+    public Task<RepositorySummary> SummaryAsync(ProjectContext project, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<BranchSummary>> BranchesAsync(ProjectContext project, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<CommitNode>> CommitsAsync(ProjectContext project, CommitGraphQuery query, CancellationToken cancellationToken)
+    {
+        if (activity.Current(project.ProjectId) != ProjectActivityKind.RemoteOperation)
+        {
+            throw new InvalidOperationException("The history was read without the project taken.");
+        }
+
+        return Fails ? throw new InvalidOperationException("unreadable") : Task.FromResult(Graph);
+    }
+}
+
+internal sealed class RigAnnotator : IRepositoryAnnotator
+{
+    public HashSet<string> OfTheRun { get; } = [];
+
+    public Task<IReadOnlyList<AnnotatedCommit>> AnnotateAsync(ProjectContext project, IReadOnlyList<CommitNode> commits, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<AnnotatedCommit>>([.. commits.Select(c => new AnnotatedCommit(c, OfTheRun.Contains(c.Id) ? new CommitAnnotation(AgentStudio.Tests.Domain.Hosting.HostingP0Data.Run.Value, null, null, null, null, [], []) : null))]);
 }
 
 internal sealed class RigEvidence : IEvidenceStore
@@ -410,21 +467,44 @@ internal sealed class PublicationRig : IAsyncDisposable
         Activity = new RigActivity(Trace);
         Log = new RigRecorder(Activity, Trace, Time);
         Git = new RigGit(Activity, Trace);
+        History = new RigHistory(Activity);
         Provider = new RigProvider(Activity, Trace);
         Providers = new RigProviders(Activity, Trace, Provider);
         Approvals = new RigApprovals(Log);
         Store = new RigStore { State = state ?? RemoteSyncState.Empty };
         Policy = new RigPolicy();
         Sync = new RemoteSyncService(Log, Activity, Providers, Store, policy ? Policy : null, Time);
-        Gate = new HostingPolicyGate(Log, Approvals, Delivery, new RigVerdicts(), Providers, Git, Sync);
+        Gate = new HostingPolicyGate(Log, Approvals, Delivery, Verdicts, Providers, Git, Sync);
         var texts = new RigTexts();
         Service = new PublicationService(
             Gate, Sync, Delivery, Providers, Git, Log, new RigEvidence(),
-            new PullRequestTextComposer(texts, null, new RigVerdicts(), new RigEvidence()),
-            new VerdictNoticeBuilder(Log, new RigVerdicts(), texts, null));
+            new PullRequestTextComposer(texts, null, Verdicts, new RigEvidence()),
+            new VerdictNoticeBuilder(Log, Verdicts, texts, null), History, Annotator);
     }
 
     public Trace Trace { get; } = new();
+
+    public RigVerdicts Verdicts { get; } = new();
+
+    public RigHistory History { get; }
+
+    public RigAnnotator Annotator { get; } = new();
+
+    public const string IntegrationHash = "abababababababababababababababababababababababababababababababab";
+
+    /// <summary>A judged run: the integration the judge was shown (its hash is the head of the verdict) and a valid verdict, stored and announced in the log, as the engine writes them.</summary>
+    public async Task JudgeAsync(AgentStudio.Domain.Judging.VerdictDecision decision = AgentStudio.Domain.Judging.VerdictDecision.Approved)
+    {
+        var run = HostingP0Data.Run.Value;
+        Log.Add(DecisionKind.IntegrationPerformed, new Actor(ActorKind.System, "agent-studio"), "integration", new IntegrationPerformedPayload(null, "agentstudio/run-" + run, [], HostingP0Data.Head, [], false) { RunId = run }, IntegrationHash);
+        var verdict = AgentStudio.Tests.Domain.TestData.ValidVerdict(AgentStudio.Tests.Domain.TestData.Dossier(), decision) with { DecisionLogHeadHash = IntegrationHash };
+        await Verdicts.AppendAsync("p1", new StoredVerdict("v1", verdict, run, "T7", AgentStudio.Application.Judging.AuditScope.CurrentPlan, true, [], null), CancellationToken.None);
+        Log.Add(DecisionKind.VerdictIssued, new Actor(ActorKind.System, "agent-studio"), "verdict", new VerdictIssuedPayload("v1", null, decision, true, [], verdict.RequirementSetHash, IntegrationHash, null, null) { RunId = run });
+    }
+
+    /// <summary>The observation of the pull request the log already holds (what a merge, a close or a new verdict starts from).</summary>
+    public void Observed(RemoteSnapshot snapshot) =>
+        Log.Add(DecisionKind.RemoteStateObserved, new Actor(ActorKind.System, "remote-sync"), "observed", RemoteStateObservedPayload.Observing(snapshot, HostingP0Data.Run.Value, null, [RemoteChangeKind.Opened]));
 
     public FakeTimeProvider Time { get; }
 
