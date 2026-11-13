@@ -116,8 +116,12 @@
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding SessionText, TargetNullValue=''}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding LastSyncText, TargetNullValue=''}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding SyncPolicyText, TargetNullValue=''}"/>
-                <CheckBox Margin="0,4,0,0" Content="{l:T Hosting_Sync_Permission}" IsChecked="{Binding SyncEnabled}" ToolTip="{l:T Hosting_Sync_Permission_What}"
-                          Visibility="{Binding HasSyncSwitch, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                <StackPanel Visibility="{Binding HasSyncSwitch, Converter={StaticResource Pr.BoolToVisibility}}">
+                    <CheckBox Margin="0,4,0,0" Content="{l:T Hosting_Sync_Permission}" IsChecked="{Binding SyncEnabled}" IsEnabled="{Binding HasProject}"
+                              AutomationProperties.Name="{l:T Hosting_Sync_Permission}" AutomationProperties.HelpText="{l:T Hosting_Sync_Permission_What}"/>
+                    <!-- What switching it on sends out is said in plain sight, not only in a tooltip. -->
+                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="22,0,0,0" Text="{l:T Hosting_Sync_Permission_What}"/>
+                </StackPanel>
                 <WrapPanel Margin="0,6,0,0">
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,0" Content="{l:T Hosting_Header_SyncNow}" Command="{Binding SyncNowCommand}"/>
                     <Button Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Header_Check}" Command="{Binding CheckConnectionCommand}"/>

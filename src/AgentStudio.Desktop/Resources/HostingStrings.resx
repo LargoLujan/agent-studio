@@ -976,4 +976,7 @@ Si hace falta, reabre el hito.</value>
   <data name="Hosting_Change_BaseChanged" xml:space="preserve">
     <value>La rama base cambió</value>
   </data>
+  <data name="Hosting_Update_Mismatch" xml:space="preserve">
+    <value>No se encontró esa petición de fusión en GitHub. No se abrió ninguna tarjeta ni se creó otra.</value>
+  </data>
 </root>

@@ -47,6 +47,12 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     private Func<PullRequestDetail, bool>? _cardNeeds;
     private bool _selectingInPlace;
     private bool _rowsUpdating;
+
+    // The row the detail was built for: while a read in place is under way the detail of the row before is on screen, and an action must not be built over it.
+    private PullRequestRow? _detailRow;
+
+    // Counts the projects the section has been for: what an action in flight says when it ends belongs to the project it started in, and is dropped if another is on screen.
+    private int _projectEpoch;
     private bool _permissionSubscribed;
     private bool _syncSwitchUpdating;
     private int _otherRepositories;
@@ -126,6 +132,9 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     [ObservableProperty]
     private string? _syncPolicyText;
 
+    /// <summary>Whether a project is set: the switch of the header is enabled only with one.</summary>
+    public bool HasProject => _project is not null;
+
     /// <summary>Whether the header offers the switch «Sincronizar con GitHub»: only when the shell composed the port that gives the permission.</summary>
     public bool HasSyncSwitch => _syncPermission is not null;
 
@@ -146,11 +155,15 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
     private async Task ApplySyncSwitchAsync(ProjectContext project, bool allowed)
     {
+        var epoch = _projectEpoch;
         Error = null;
         try
         {
             await _syncPermission!.SetAsync(project.ProjectId, allowed, _actions.Token).ConfigureAwait(true);
-            Message = Texts.Get(allowed ? "Hosting_Sync_TurnedOn" : "Hosting_Sync_TurnedOff");
+            if (epoch == _projectEpoch)
+            {
+                Message = Texts.Get(allowed ? "Hosting_Sync_TurnedOn" : "Hosting_Sync_TurnedOff");
+            }
         }
         catch (OperationCanceledException) when (_actions.IsCancellationRequested)
         {
@@ -160,10 +173,16 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         catch (Exception)
 #pragma warning restore CA1031
         {
-            Error = Texts.Get("Hosting_Card_Failed");
+            if (epoch == _projectEpoch)
+            {
+                Error = Texts.Get("Hosting_Card_Failed");
+            }
         }
 
-        RefreshSyncSwitch(project);
+        if (epoch == _projectEpoch)
+        {
+            RefreshSyncSwitch(project);
+        }
     }
 
     private void RefreshSyncSwitch(ProjectContext project)
@@ -305,7 +324,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     {
         // What belongs to the project before goes at once: no row, card, permission or switch of it stays to be confirmed over the new one.
         Reset();
-        _context = SynchronizationContext.Current;
+        _context = SynchronizationContext.Current ?? _context;
         _project = project;
         if (project is not null && !_disposed)
         {
@@ -322,6 +341,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             }
         }
 
+        OnPropertyChanged(nameof(HasProject));
         await ReloadAsync().ConfigureAwait(true);
     }
 
@@ -334,6 +354,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         CancelReads();
         RestartActions();
         Unsubscribe();
+        _projectEpoch++;
         _project = null;
         _repository = null;
         _provider = null;
@@ -350,6 +371,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         IsBusy = false;
         SetStatus(PullRequestsStatus.NotRead, Texts.Get("Hosting_Pr_Loading"));
         OnPropertyChanged(nameof(SyncEnabled));
+        OnPropertyChanged(nameof(HasProject));
     }
 
     /// <summary>Reads again: the remote, the program, the pull requests and what is pending. A read that is not the last one asked is dropped when it ends.</summary>
@@ -738,6 +760,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
 
         Detail = null;
+        _detailRow = null;
         Card = null;
         _cardNeeds = null;
         if (value is not null)
@@ -820,6 +843,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
+        _detailRow = row;
         Detail = BuildDetail(row, capabilities, facts, branchRules, rules, notes);
 
         // A card that was open for an action the pull request no longer admits (it changed under it) is closed, and it is said.
@@ -1020,8 +1044,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             null,
             lines,
             ct => _publication.UpdateVerdictAsync(project, row.Reference, ct),
-            CloseCard,
-            Sent);
+            GuardedClose(),
+            GuardedSent());
     }
 
     [RelayCommand]
@@ -1030,14 +1054,15 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         if (_publication is not null && _project is { } project && Selected is { } row && Detail is { CanRequestReviewers: true })
         {
             _cardNeeds = d => d.CanRequestReviewers;
-            Card = new ReviewersCardViewModel(project, row.Reference, _publication, CloseCard, Sent);
+            Card = new ReviewersCardViewModel(project, row.Reference, _publication, GuardedClose(), GuardedSent());
         }
     }
 
     [RelayCommand]
     private void OpenMergeCard()
     {
-        if (_publication is null || _project is not { } project || Selected is not { } row || Detail is not { CanMerge: true } detail || row.View.Snapshot is not { } snapshot)
+        if (_publication is null || _project is not { } project || Selected is not { } row || Detail is not { CanMerge: true } detail || row.View.Snapshot is not { } snapshot
+            || !ReferenceEquals(_detailRow, row) || row.View.JudgedCommit is null || !row.View.HeadIsJudgedCommit)
         {
             return;
         }
@@ -1060,9 +1085,19 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             lines.Add(new CardLine(row.ReviewsText));
         }
 
-        _cardNeeds = d => d.CanMerge;
-        Card = new MergeCardViewModel(project, row.Reference, snapshot.BaseBranch.Name, detail.MergeMethods, lines, _publication, CloseCard, Sent);
+        // The card shows the commit, the base and the methods it was opened with: if any of them changes under it, it closes and says so, instead of showing what is no longer true.
+        var shown = MergeSignature(row, detail);
+        _cardNeeds = d => d.CanMerge && Selected is { } current && MergeSignature(current, d) == shown;
+        Card = new MergeCardViewModel(project, row.Reference, snapshot.BaseBranch.Name, detail.MergeMethods, lines, _publication, GuardedClose(), GuardedSent());
     }
+
+    private static string MergeSignature(PullRequestRow row, PullRequestDetail detail) => string.Join(
+        "|",
+        row.View.Snapshot?.HeadCommit,
+        row.View.JudgedCommit,
+        row.View.HeadIsJudgedCommit,
+        row.View.Snapshot?.BaseBranch.Name,
+        string.Join(",", detail.MergeMethods));
 
     [RelayCommand]
     private void OpenCloseCard()
@@ -1082,8 +1117,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
                 new CardLine(Texts.Get("Hosting_Close_Explain")),
             ],
             ct => _publication.CloseAsync(project, row.Reference, ct),
-            CloseCard,
-            Sent);
+            GuardedClose(),
+            GuardedSent());
     }
 
     [RelayCommand]
@@ -1109,8 +1144,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
                 new CardLine(Texts.Format("Hosting_Delete_Explain", RemoteBranch.ForRun(run).Name)),
             ],
             ct => _publication.DeleteRunBranchAsync(project, run, ct),
-            CloseCard,
-            Sent);
+            GuardedClose(),
+            GuardedSent());
     }
 
     /// <summary>«Publicar y abrir PR…» for a run: the card shows what the service says it would do, and what covers it.</summary>
@@ -1142,14 +1177,18 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     [RelayCommand]
     private async Task OpenUpdateCardAsync()
     {
-        if (Selected is { } row && row.View.Run is { } run && Detail is { CanUpdate: true })
+        if (Selected is { } row && row.View.Run is { } run && Detail is { CanUpdate: true } && ReferenceEquals(_detailRow, row))
         {
-            await ShowPublishCardAsync(run).ConfigureAwait(true);
+            await ShowPublishCardAsync(run, row.Reference).ConfigureAwait(true);
         }
     }
 
     /// <summary>Opens the card of publication of a run, wherever the person asked for it (the list of runs here, or the button beside «Entregar» of the monitor).</summary>
-    public async Task ShowPublishCardAsync(RunId run)
+    public Task ShowPublishCardAsync(RunId run) => ShowPublishCardAsync(run, null);
+
+    /// <param name="run">The run to publish.</param>
+    /// <param name="mustUpdate">When not null, the card is only for updating that very pull request (repository and number): if the service does not find it as the existing one, nothing is opened and it is said.</param>
+    private async Task ShowPublishCardAsync(RunId run, PullRequestRef? mustUpdate)
     {
         if (_publication is null || _project is not { } project)
         {
@@ -1169,12 +1208,19 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
                 return;
             }
 
+            if (mustUpdate is not null && preview.Existing != mustUpdate)
+            {
+                // A card of «Actualizar» whose confirmation would open another pull request is not a card of «Actualizar»: it does not open.
+                Error = Texts.Get("Hosting_Update_Mismatch");
+                return;
+            }
+
             HostingOperationKind[] kinds = preview.Existing is null
                 ? [HostingOperationKind.PushRunBranch, HostingOperationKind.OpenPullRequest]
                 : [HostingOperationKind.PushRunBranch, HostingOperationKind.UpdatePullRequest];
             var coverage = await CoverageAsync(project, preview.Repository, preview.BaseBranch, kinds, token).ConfigureAwait(true);
             _cardNeeds = null;
-            Card = new PublishCardViewModel(project, run, preview, coverage, _publication, CloseCard, Sent);
+            Card = new PublishCardViewModel(project, run, preview, coverage, _publication, GuardedClose(), GuardedSent());
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -1237,6 +1283,31 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
     }
 
+    /// <summary>What a card calls when it is done: it acts only if the project it was opened for is still the one on screen.</summary>
+    private Action GuardedClose()
+    {
+        var epoch = _projectEpoch;
+        return () =>
+        {
+            if (epoch == _projectEpoch)
+            {
+                CloseCard();
+            }
+        };
+    }
+
+    private Action<string> GuardedSent()
+    {
+        var epoch = _projectEpoch;
+        return message =>
+        {
+            if (epoch == _projectEpoch)
+            {
+                Sent(message);
+            }
+        };
+    }
+
     private void CloseCard()
     {
         Card = null;
@@ -1251,13 +1322,17 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
     private async Task Run(Func<Task> action, string doneKey, CancellationToken token)
     {
+        var epoch = _projectEpoch;
         Error = null;
         Message = null;
         IsBusy = true;
         try
         {
             await action().ConfigureAwait(true);
-            Message = Texts.Get(doneKey);
+            if (epoch == _projectEpoch)
+            {
+                Message = Texts.Get(doneKey);
+            }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -1265,17 +1340,26 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
         catch (UserTextException refusal)
         {
-            Error = HostingTexts.Say(refusal.Text);
+            if (epoch == _projectEpoch)
+            {
+                Error = HostingTexts.Say(refusal.Text);
+            }
         }
 #pragma warning disable CA1031 // The mailbox is behind a port: a failure (a timeout inside it too) is said in the section.
         catch (Exception)
 #pragma warning restore CA1031
         {
-            Error = Texts.Get("Hosting_Card_Failed");
+            if (epoch == _projectEpoch)
+            {
+                Error = Texts.Get("Hosting_Card_Failed");
+            }
         }
         finally
         {
-            IsBusy = false;
+            if (epoch == _projectEpoch)
+            {
+                IsBusy = false;
+            }
         }
     }
 
@@ -1352,6 +1436,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         PublishableRuns.Clear();
         Selected = null;
         Detail = null;
+        _detailRow = null;
         RepositoryText = null;
         SessionText = null;
         LastSyncText = null;

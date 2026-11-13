@@ -963,4 +963,7 @@ If needed, reopen the milestone.</value>
   <data name="Hosting_Change_BaseChanged" xml:space="preserve">
     <value>The base branch changed</value>
   </data>
+  <data name="Hosting_Update_Mismatch" xml:space="preserve">
+    <value>That pull request was not found on GitHub. No card was opened and no other one was created.</value>
+  </data>
 </root>

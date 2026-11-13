@@ -88,10 +88,11 @@ public sealed class PullRequestProjector(
                 .Where(o => o.Payload is { Operation: HostingOperationKind.PublishVerdictStatus or HostingOperationKind.PublishVerdictComment, Outcome: HostingOutcome.Ok }
                     && o.Payload.PullRequest == pullRequest.Number
                     && string.Equals($"{o.Payload.Host}/{o.Payload.Owner}/{o.Payload.Repository}", pullRequest.Repository.Id, StringComparison.Ordinal)
-                    && Enum.TryParse<HostingStanding>(o.Payload.Verdict, out _))
+                    && ParseStanding(o.Payload.Verdict) is not null)
                 .OrderBy(o => o.Sequence)
                 .LastOrDefault();
-            LastPublishedVerdict? lastPublished = published is null ? null : new LastPublishedVerdict(Enum.Parse<HostingStanding>(published.Payload.Verdict!), published.Payload.Commit, published.At);
+            LastPublishedVerdict? lastPublished = published is null ? null : new LastPublishedVerdict(ParseStanding(published.Payload.Verdict)!.Value, published.Payload.Commit, published.At);
+            // A run in several milestones gets the first in ordinal order (MilestoneMembership gives them sorted): stable, and the same on every read.
             var milestone = run is not null && milestones.TryGetValue(run, out var of) && of.Count > 0 ? of[0] : null;
             result.Add(new PullRequestView(
                 pullRequest,
@@ -110,6 +111,10 @@ public sealed class PullRequestProjector(
 
         return result;
     }
+
+    /// <summary>The standing a payload names, or null: a name that is not one (a number "1", a made-up word) is not a standing, whatever Enum.TryParse accepts.</summary>
+    private static HostingStanding? ParseStanding(string? name) =>
+        Enum.TryParse<HostingStanding>(name, out var standing) && Enum.IsDefined(standing) && !int.TryParse(name, out _) ? standing : null;
 
     private static RunId? SafeRun(string run)
     {

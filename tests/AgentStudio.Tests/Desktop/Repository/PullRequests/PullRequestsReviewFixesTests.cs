@@ -655,4 +655,251 @@ public sealed class PullRequestsReviewFixesTests
         var plain = new RepositoryActivity(PrData.Now, RepositoryActivityKind.RemoteOperation, RunA, null, null, true, null, 3);
         Assert.Equal(Texts.Get("Hosting_Activity_Operation"), RepositoryTexts.Kind(plain));
     }
+
+    // ---- The last round ----
+
+    [Fact]
+    public async Task A_grant_or_a_withdrawal_that_waited_for_hello_does_not_repopulate_the_list_of_the_project_that_was_left()
+    {
+        var world = new PrWorld();
+        world.Gate.Held.Add(new HostingPolicyGrant("g-1", HostingOperationClass.PublishRunBranch, PrData.Repository, null, "person", PrData.Now));
+        await world.Model.SetProjectAsync(PrData.Project);
+        var permissions = world.Model.Permissions;
+        var row = permissions.Grants.Single();
+
+        var hello = new TaskCompletionSource();
+        world.Gate.HoldHello = hello;
+        var grant = permissions.GrantCommand.ExecuteAsync(null);
+        var revoke = permissions.RevokeCommand.ExecuteAsync(row);
+        await world.Model.SetProjectAsync(null);
+
+        hello.SetResult();
+        await grant;
+        await revoke;
+
+        Assert.Empty(permissions.Grants);
+        Assert.False(permissions.CanGrant);
+        Assert.Null(permissions.Note);
+        Assert.False(permissions.IsBusy);
+    }
+
+    [Fact]
+    public async Task A_withdrawal_that_waited_for_hello_still_reloads_when_the_project_is_the_same()
+    {
+        var world = new PrWorld();
+        world.Gate.Held.Add(new HostingPolicyGrant("g-1", HostingOperationClass.PublishRunBranch, PrData.Repository, null, "person", PrData.Now));
+        await world.Model.SetProjectAsync(PrData.Project);
+        var hello = new TaskCompletionSource();
+        world.Gate.HoldHello = hello;
+        var revoke = world.Model.Permissions.RevokeCommand.ExecuteAsync(world.Model.Permissions.Grants.Single());
+        hello.SetResult();
+        await revoke;
+
+        Assert.Empty(world.Model.Permissions.Grants);
+        Assert.Equal(Texts.Get("Hosting_Permissions_Revoked"), world.Model.Permissions.Note);
+    }
+
+    [Fact]
+    public async Task Updating_opens_only_over_the_very_pull_request_of_the_row_and_never_over_a_closed_one()
+    {
+        var world = await WorldAsync(View(12, PullRequestState.Open));
+        await SelectAsync(world, 12);
+
+        // The service finds no existing pull request, or another one of the same run: no card, and it is said.
+        foreach (var existing in new PullRequestRef?[] { null, PrData.Pr(99), new PullRequestRef(RemoteRepository.TryCreateGitHub("acme", "other")!, 12) })
+        {
+            world.Publication.Preview = world.Publication.Preview with { Existing = existing };
+            world.Model.Card = null;
+            await world.Model.OpenUpdateCardCommand.ExecuteAsync(null);
+            Assert.Null(world.Model.Card);
+            Assert.Equal(Texts.Get("Hosting_Update_Mismatch"), world.Model.Error);
+        }
+
+        // The same one (repository and number) opens the card of updating.
+        world.Publication.Preview = world.Publication.Preview with { Existing = PrData.Pr(12) };
+        await world.Model.OpenUpdateCardCommand.ExecuteAsync(null);
+        Assert.IsType<PublishCardViewModel>(world.Model.Card);
+        Assert.Null(world.Model.Error);
+
+        var closed = await WorldAsync(View(12, PullRequestState.Closed));
+        await SelectAsync(closed, 12);
+        Assert.False(closed.Model.Detail!.CanUpdate);
+        await closed.Model.OpenUpdateCardCommand.ExecuteAsync(null);
+        Assert.Null(closed.Model.Card);
+    }
+
+    private static PrWorld WorldForDetailHold()
+    {
+        var world = new PrWorld();
+
+        // Protections that cannot be read are not cached: every detail asks the provider again, so a read can be held.
+        world.Provider.Rules = new HostingResult<BranchRules>(HostingOutcome.Ok, BranchRules.Unreadable);
+        return world;
+    }
+
+    [Fact]
+    public async Task While_the_detail_is_being_read_again_the_merge_card_is_not_opened_over_the_old_one()
+    {
+        var world = WorldForDetailHold();
+        world.Projector.Views.Add(View(12, PullRequestState.Open));
+        await world.Model.SetProjectAsync(PrData.Project);
+        await SelectAsync(world, 12);
+        Assert.True(world.Model.Detail!.CanMerge);
+
+        // The head moves: the row is replaced in place and its detail is read again, held.
+        var hold = new TaskCompletionSource();
+        world.Provider.HoldRules = hold;
+        world.Projector.Views.Clear();
+        world.Projector.Views.Add(new PullRequestView(PrData.Pr(12), new RunId(RunA), PrData.Snapshot(12, head: 'b'), PrData.Sha('a'), false, VerdictStanding.Approved, RemoteDisplayTexts.None, PrData.Now, []));
+        world.Sync.RaiseChanged("p-1");
+
+        Assert.True(world.Model.Detail!.CanMerge);
+        world.Model.OpenMergeCardCommand.Execute(null);
+        Assert.Null(world.Model.Card);
+
+        hold.SetResult();
+        for (var i = 0; i < 200 && world.Model.Detail!.CanMerge; i++)
+        {
+            await Task.Yield();
+        }
+
+        Assert.False(world.Model.Detail!.CanMerge);
+        world.Model.OpenMergeCardCommand.Execute(null);
+        Assert.Null(world.Model.Card);
+    }
+
+    [Fact]
+    public async Task A_merge_card_that_is_open_closes_when_the_commit_the_base_or_the_modes_it_showed_change()
+    {
+        var world = WorldForDetailHold();
+        world.Projector.Views.Add(View(12, PullRequestState.Open));
+        await world.Model.SetProjectAsync(PrData.Project);
+        await SelectAsync(world, 12);
+        world.Model.OpenMergeCardCommand.Execute(null);
+        Assert.NotNull(world.Model.Card);
+
+        // The head and the judged commit move together: the pull request still can be merged, but not the commit the card said.
+        world.Projector.Views.Clear();
+        world.Projector.Views.Add(new PullRequestView(PrData.Pr(12), new RunId(RunA), PrData.Snapshot(12, head: 'b'), PrData.Sha('b'), true, VerdictStanding.Approved, RemoteDisplayTexts.None, PrData.Now, []));
+        world.Sync.RaiseChanged("p-1");
+        for (var i = 0; i < 200 && world.Model.Card is not null; i++)
+        {
+            await Task.Yield();
+        }
+
+        Assert.Null(world.Model.Card);
+        Assert.Equal(Texts.Get("Hosting_Card_Stale"), world.Model.Message);
+        Assert.True(world.Model.Detail!.CanMerge);
+
+        // Open again over the new commit, then the repository stops allowing one of the modes.
+        world.Model.OpenMergeCardCommand.Execute(null);
+        var card = (MergeCardViewModel)world.Model.Card!;
+        Assert.Contains(card.Lines, l => l.Text == Texts.Format("Hosting_Merge_Commit", new string('b', 8)));
+        world.Provider.Facts = new HostingResult<RemoteRepositoryFacts>(HostingOutcome.Ok, new RemoteRepositoryFacts(PrData.Main, [MergeMethod.Squash], true, false));
+        world.Projector.Views[0] = world.Projector.Views[0] with { Display = new RemoteDisplayTexts("x-2", [], null) };
+        world.Sync.RaiseChanged("p-1");
+        for (var i = 0; i < 200 && world.Model.Card is not null; i++)
+        {
+            await Task.Yield();
+        }
+
+        Assert.Null(world.Model.Card);
+    }
+
+    [Fact]
+    public async Task A_project_set_from_the_pool_does_not_throw_away_the_context_of_the_interface()
+    {
+        var world = new PrWorld();
+        world.Projector.Views.Add(View(12, PullRequestState.Open));
+        var ui = new QueueContext();
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(ui);
+        try
+        {
+            await world.Model.SetProjectAsync(PrData.Project);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+
+        // The next project arrives from a thread of the pool, with no context: the one of the interface stays.
+        await Task.Run(() => world.Model.SetProjectAsync(PrData.Project), Ct);
+        var reads = world.Projector.Reads;
+        await Task.Run(() => world.Sync.RaiseChanged("p-1"), Ct);
+
+        Assert.Equal(reads, world.Projector.Reads);
+        Assert.Single(ui.Posted);
+        ui.Pump();
+        Assert.Equal(reads + 1, world.Projector.Reads);
+    }
+
+    [Fact]
+    public async Task The_switch_is_disabled_without_a_project()
+    {
+        var world = new PrWorld(withPermission: true);
+        Assert.False(world.Model.HasProject);
+
+        await world.Model.SetProjectAsync(PrData.Project);
+        Assert.True(world.Model.HasProject);
+
+        await world.Model.SetProjectAsync(null);
+        Assert.False(world.Model.HasProject);
+        world.Model.SyncEnabled = true;
+        Assert.Empty(world.Permission!.Sets);
+    }
+
+    [Fact]
+    public async Task What_an_action_in_flight_says_when_it_ends_is_dropped_if_the_project_changed()
+    {
+        var world = await WorldAsync(View(12, PullRequestState.Open));
+        var raw = new TaskCompletionSource();
+        world.Sync.HoldSyncRaw = raw;
+        var sync = world.Model.SyncNowCommand.ExecuteAsync(null);
+
+        await world.Model.SetProjectAsync(PrData.Project);
+        world.Model.Message = null;
+        raw.SetResult();
+        await sync;
+
+        Assert.Null(world.Model.Message);
+        Assert.Null(world.Model.Error);
+
+        var permission = new PrWorld(withPermission: true);
+        await permission.Model.SetProjectAsync(PrData.Project);
+        var set = new TaskCompletionSource();
+        permission.Permission!.HoldSet = set;
+        permission.Model.SyncEnabled = true;
+        await permission.Model.SetProjectAsync(null);
+        set.SetResult();
+        for (var i = 0; i < 50; i++)
+        {
+            await Task.Yield();
+        }
+
+        Assert.Null(permission.Model.Message);
+        Assert.False(permission.Model.SyncEnabled);
+    }
+
+    [Fact]
+    public async Task A_card_that_ends_after_the_project_changed_neither_says_it_sent_nor_closes_the_card_of_the_new_one()
+    {
+        var world = await WorldAsync(View(12, PullRequestState.Open));
+        world.Model.SetBranches(["agentstudio/run-20261113-aa"]);
+        await world.Model.OpenPublishCardCommand.ExecuteAsync(new PublishableRunRow("20261113-aa"));
+        var card = (PublishCardViewModel)world.Model.Card!;
+        var hold = new TaskCompletionSource();
+        world.Publication.HoldPublish = hold;
+        var confirm = card.ConfirmCommand.ExecuteAsync(null);
+
+        await world.Model.SetProjectAsync(PrData.Project);
+        await SelectAsync(world, 12);
+        world.Model.OpenCloseCardCommand.Execute(null);
+        var other = world.Model.Card;
+        hold.SetResult();
+        await confirm;
+
+        Assert.Same(other, world.Model.Card);
+        Assert.NotEqual(Texts.Get("Hosting_Card_Sent"), world.Model.Message);
+    }
 }
