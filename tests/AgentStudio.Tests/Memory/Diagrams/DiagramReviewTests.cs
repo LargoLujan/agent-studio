@@ -215,13 +215,17 @@ public sealed class DiagramReviewTests
         await world.Catalog.GenerateAsync(world.Project, DiagramKind.RunSequence, DiagramFixtures.Run, ct);
         var live = new LiveConsistency(world.Staleness, null);
         var saved = new CommitAnalysis(world.Analysis.Graph, new ConsistencyReport(DiagramFixtures.Commit, [], [], false));
-        int callerUndo = 0, callerLive = 0;
+        int callerUndo = 0, callerLive = 0, undoThread = 0, generateThread = 0;
 
         await Task.Factory.StartNew(
             () =>
             {
                 callerUndo = Environment.CurrentManagedThreadId;
                 world.Catalog.RestorePreviousAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                undoThread = world.History.ThreadId;
+                Assert.NotNull(world.Catalog.ReadAsync(world.Project, Solution, CancellationToken.None).GetAwaiter().GetResult());
+                world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                generateThread = world.History.ThreadId;
                 callerLive = Environment.CurrentManagedThreadId;
                 live.RefreshAsync(world.Project, saved, CancellationToken.None).GetAwaiter().GetResult();
             },
@@ -230,8 +234,10 @@ public sealed class DiagramReviewTests
             TaskScheduler.Default);
 
         Assert.Equal(callerUndo, callerLive);
-        Assert.NotEqual(0, world.History.ThreadId);
-        Assert.NotEqual(callerUndo, world.History.ThreadId);
+        Assert.NotEqual(0, undoThread);
+        Assert.NotEqual(callerUndo, undoThread);
+        Assert.NotEqual(0, generateThread);
+        Assert.NotEqual(callerUndo, generateThread);
         Assert.NotEqual(0, world.Recorder.ThreadId);
         Assert.NotEqual(callerLive, world.Recorder.ThreadId);
     }
@@ -247,9 +253,14 @@ public sealed class DiagramReviewTests
         var renamed = DiagramFixtures.Graph(appName: "Renamed");
 
         Assert.Empty(await world.Staleness.FindAsync(world.Project, current, ct));
+        Assert.Equal(2, world.Staleness.GraphRenders);
         Assert.Empty(await world.Staleness.FindAsync(world.Project, current, ct));
+
+        // The second time the two diagrams of the model come from the memory: nothing is drawn again.
+        Assert.Equal(2, world.Staleness.GraphRenders);
         var first = await world.Staleness.FindAsync(world.Project, renamed, ct);
         var second = await world.Staleness.FindAsync(world.Project, renamed, ct);
+        Assert.Equal(4, world.Staleness.GraphRenders);
 
         Assert.NotEmpty(first);
         Assert.Equal(first.Select(s => s.Diagram), second.Select(s => s.Diagram));

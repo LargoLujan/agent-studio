@@ -2603,7 +2603,8 @@ añade el destino `graph` a «Ir a…».
 - `SafeName`: un nombre solo se escribe tal cual si ya está en minúsculas; cualquier otro lleva la huella del original, así que `Abc` y `abc` no coinciden en Windows. Por eso el nombre de una exportación cambió para todo sujeto con mayúsculas: una exportación hecha con una versión anterior a la
   publicación de la Fase 6 quedaría huérfana (no hubo ninguna publicada, así que no hay nada que migrar).
 - `DiagramExportInterruptedException` (Application): una exportación que falla después de escribir algún fichero lleva la lista de lo escrito (`Written`, `Conflicts`) y la causa en `InnerException`; el
-  índice se guarda con `CancellationToken.None` tras cada fichero, así que lo escrito nunca queda «escrito y desconocido». `DiagramStaleness` calcula una vez por modelo (su `ModelHash`) lo que dan los diagramas
+  índice se guarda con `CancellationToken.None` tras cada fichero, así que una cancelación entre escribir y guardar no deja un fichero «escrito y desconocido». Si falla el propio guardado del índice (el disco), el fichero queda escrito
+  y el índice no lo sabe: no sale en `Written` y la siguiente exportación lo trata como ajeno y pregunta antes de tocarlo. `Written` solo lleva lo que se escribió y se anotó. `DiagramStaleness` calcula una vez por modelo (su `ModelHash`) lo que dan los diagramas
   del grafo; los de una ejecución se dibujan en cada refresco.
 - `MarkdownScanner` también deja fuera los bloques de código con sangría de cuatro espacios, los comentarios HTML (también de varias líneas) y los tramos de código de varias líneas (hasta 20 líneas de un párrafo), y limita lo que
   leen todos los destinos de una línea (`LineBudget`); `Scan(texto, out pasos)` cuenta los caracteres leídos y las pruebas fijan el coste con ese número, no con un reloj.
