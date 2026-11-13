@@ -176,6 +176,58 @@ public sealed class GraphMapSectionTests
         Assert.Null(section.Status);
     }
 
+    [Fact]
+    public async Task Changing_the_project_or_closing_the_tab_cancels_the_analysis_that_is_running()
+    {
+        var observing = new ObservingAnalysis();
+        var section = new GraphMapSection(new GraphBackend(observing, new History()));
+        var document = new GraphDocumentViewModel([section]);
+
+        var first = document.SetProjectAsync(GraphDesktopFakes.Project, Ct);
+        await WaitForAsync(() => observing.Started == 1);
+        await document.SetProjectAsync(null, Ct);
+        await first;
+
+        Assert.True(observing.Cancelled[0], "the project changed and the analysis kept running");
+        Assert.False(section.IsBusy);
+        Assert.Null(section.Error);
+
+        var second = document.SetProjectAsync(GraphDesktopFakes.Project, Ct);
+        await WaitForAsync(() => observing.Started == 2);
+        document.CancelPending();
+        await second;
+
+        Assert.True(observing.Cancelled[1], "the tab closed and the analysis kept running");
+        Assert.False(section.IsBusy);
+        Assert.Null(section.Error);
+    }
+
+    private sealed class ObservingAnalysis : AgentStudio.Application.Graph.ICommitAnalysisService
+    {
+        public int Started { get; private set; }
+
+        public List<bool> Cancelled { get; } = [];
+
+        public Task<CommitAnalysis?> FindAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct) => Task.FromResult<CommitAnalysis?>(null);
+
+        public async Task<CommitAnalysis> AnalyzeAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct)
+        {
+            var index = Started++;
+            Cancelled.Add(false);
+            try
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                Cancelled[index] = true;
+                throw;
+            }
+
+            throw new InvalidOperationException("unreachable");
+        }
+    }
+
     private sealed class GatedAnalysis(Task gate) : AgentStudio.Application.Graph.ICommitAnalysisService
     {
         public Task<CommitAnalysis?> FindAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct) => Task.FromResult<CommitAnalysis?>(null);

@@ -31,6 +31,18 @@ public sealed partial class GraphDocumentViewModel : DocumentViewModel
         }
 
         _selectedSection = _sections.FirstOrDefault();
+
+        // Closing the tab cancels what the sections wait for: the process of analysis is killed and the copy of the commit is deleted.
+        Closed += (_, _) => CancelPending();
+    }
+
+    /// <summary>Cancels what every section waits for.</summary>
+    public void CancelPending()
+    {
+        foreach (var section in _sections)
+        {
+            section.CancelPending();
+        }
     }
 
     /// <summary>The sections in the order the list shows them; empty while no package has put one.</summary>

@@ -81,19 +81,34 @@ public sealed class GraphWorkerHostTests
     }
 
     [Fact]
-    public async Task Each_relaunch_adds_the_file_that_killed_the_last_one_up_to_three_times_and_then_the_analysis_fails()
+    public async Task Each_relaunch_adds_the_file_that_killed_the_last_one_up_to_the_sixteen_that_can_be_skipped_and_then_a_last_launch_reads_no_source_and_its_graph_is_kept()
     {
-        var launcher = new ScriptedLauncher(Crash("a.cs"), Crash("b.cs"), Crash("c.cs"), Crash("d.cs"));
+        var crashes = Enumerable.Range(0, GraphWorkerProtocol.MaxSkipped + 1).Select(i => Crash($"f{i}.cs")).ToArray();
+        var launcher = new ScriptedLauncher([.. crashes, Done()]);
 
-        var failure = await Assert.ThrowsAsync<GraphAnalysisException>(() => BuildAsync(launcher));
+        var build = await BuildAsync(launcher);
 
-        Assert.Equal(GraphWorkerProtocol.MaxRelaunches + 1, launcher.Requests.Count);
-        Assert.Equal(["a.cs", "b.cs", "c.cs"], launcher.Requests[^1].Skipped);
-        Assert.DoesNotContain("d.cs", failure.Message, StringComparison.Ordinal);
+        Assert.Equal(Model, build.Graph);
+        Assert.Equal(GraphWorkerProtocol.MaxRelaunches + 2, launcher.Requests.Count);
+        Assert.Equal(GraphWorkerProtocol.MaxSkipped, launcher.Requests[^1].Skipped.Count);
+        Assert.True(launcher.Requests[^1].WithoutSources);
+        Assert.All(launcher.Requests.Take(launcher.Requests.Count - 1), r => Assert.False(r.WithoutSources));
     }
 
     [Fact]
-    public async Task Three_relaunches_are_enough_when_the_fourth_launch_completes()
+    public async Task A_process_that_dies_even_without_reading_sources_fails_the_analysis_without_quoting_a_file()
+    {
+        var crashes = Enumerable.Range(0, GraphWorkerProtocol.MaxSkipped + 3).Select(i => Crash($"f{i}.cs")).ToArray();
+        var launcher = new ScriptedLauncher(crashes);
+
+        var failure = await Assert.ThrowsAsync<GraphAnalysisException>(() => BuildAsync(launcher));
+
+        Assert.True(launcher.Requests[^1].WithoutSources);
+        Assert.DoesNotContain("f1.cs", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Three_relaunches_are_enough_when_the_fourth_launch_completes_and_it_is_kept()
     {
         var launcher = new ScriptedLauncher(Crash("a.cs"), Crash("b.cs"), Crash("c.cs"), Done());
 
@@ -101,19 +116,57 @@ public sealed class GraphWorkerHostTests
 
         Assert.Equal(Model, build.Graph);
         Assert.Equal(4, launcher.Requests.Count);
+        Assert.All(launcher.Requests, r => Assert.False(r.WithoutSources));
     }
 
     [Fact]
-    public async Task A_crash_with_no_file_to_name_or_on_a_file_already_skipped_is_not_launched_again()
+    public async Task A_crash_with_no_file_to_name_or_on_a_file_already_skipped_goes_to_the_launch_without_sources_and_not_to_a_failure()
     {
         var noFile = new ScriptedLauncher(Crash(null), Done());
         var sameFile = new ScriptedLauncher(Crash("a.cs"), Crash("a.cs"), Done());
 
-        await Assert.ThrowsAsync<GraphAnalysisException>(() => BuildAsync(noFile));
-        await Assert.ThrowsAsync<GraphAnalysisException>(() => BuildAsync(sameFile));
+        var first = await BuildAsync(noFile);
+        var second = await BuildAsync(sameFile);
 
-        Assert.Single(noFile.Requests);
-        Assert.Equal(2, sameFile.Requests.Count);
+        Assert.Equal(Model, first.Graph);
+        Assert.Equal(Model, second.Graph);
+        Assert.Equal([false, true], noFile.Requests.Select(r => r.WithoutSources));
+        Assert.Equal([false, false, true], sameFile.Requests.Select(r => r.WithoutSources));
+    }
+
+    [Fact]
+    public async Task A_stuck_process_is_read_as_a_crash_on_its_last_file_and_the_file_is_skipped()
+    {
+        var launcher = new ScriptedLauncher(new GraphWorkerLaunch(GraphWorkerExitCodes.FileStuck, null, "src/Slow.cs", false, false), Done());
+
+        var build = await BuildAsync(launcher);
+
+        Assert.Equal(Model, build.Graph);
+        Assert.Equal(["src/Slow.cs"], launcher.Requests[^1].Skipped);
+    }
+
+    [Fact]
+    public async Task A_cancellation_reaches_the_launcher_and_stops_the_loop()
+    {
+        using var cancelled = new CancellationTokenSource();
+        var launcher = new CancellingLauncher(cancelled);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new GraphWorkerHost(launcher).BuildAsync(new FakeSnapshot(), cancelled.Token));
+
+        Assert.Equal(1, launcher.Launches);
+    }
+
+    private sealed class CancellingLauncher(CancellationTokenSource source) : IGraphWorkerLauncher
+    {
+        public int Launches { get; private set; }
+
+        public Task<GraphWorkerLaunch> LaunchAsync(GraphWorkerRequest request, string workingDirectory, string tempDirectory, CancellationToken ct)
+        {
+            Launches++;
+            source.Cancel();
+            ct.ThrowIfCancellationRequested();
+            return Task.FromResult(Done());
+        }
     }
 
     [Theory]
@@ -155,6 +208,7 @@ public sealed class GraphWorkerHostTests
         var failure = await Assert.ThrowsAsync<GraphAnalysisException>(() => BuildAsync(launcher));
 
         Assert.DoesNotContain("not json", failure.Message, StringComparison.Ordinal);
+        Assert.Null(failure.InnerException);
     }
 
     [Fact]

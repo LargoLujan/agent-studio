@@ -2415,8 +2415,9 @@ para manejarlo; ningún módulo lo referencia.
   las invariantes de `CodeGraph` mandan; todo lo que falla es `InvalidDataException` sin citar el texto.
 - **Lo que debe hacer el anfitrión (WP-G):** aplicar el tope de bytes (`MaxOutputBytes`) **mientras lee** la salida estándar (dejar de leer, matar el proceso y fallar al pasarlo), acotar las líneas del error estándar, matar tras `MaxRuntime` y recortar el `\r` final de cada línea antes de compararla (`TryParseProgress` lo hace).
 - **Error estándar:** una línea `progress:<ruta relativa>` antes de abrir cada fichero, para que un fallo del proceso nombre su fichero y el anfitrión
-  lo relance con `--skip` (hasta tres veces; si sigue cayendo no queda salida de la que sacar un grafo, y el análisis falla: §25.6). Cualquier otra línea es un diagnóstico sin rutas ni texto del repositorio.
-- **Códigos de salida:** 0 completado, 2 uso, 3 la raíz no es una carpeta, 4 análisis no disponible, 5 fallo del análisis.
+  lo relance con `--skip` (hasta 16 veces; después, un último lanzamiento con `--sources none` que no lee ningún `.cs` y da el grafo parcial: §25.6). Cualquier otra línea es un diagnóstico sin rutas ni texto del repositorio.
+- **Códigos de salida:** 0 completado, 2 uso, 3 la raíz no es una carpeta, 4 análisis no disponible, 5 fallo del análisis, 6 `FileStuck` (el analizador no devolvió un fichero a tiempo y el proceso terminó por sí mismo: el anfitrión lo trata como una caída).
+- **Opción `--sources none`:** el proceso lee solución y proyectos y ningún `.cs`; cada proyecto sale parcial con `graph.limit`.
 - **El esqueleto del P0 no analizaba nada** (terminaba con el código 4 y la salida vacía). WP-G lo sustituye por el análisis real (§25.6); `UnavailableGraphAnalysis` queda
   como el doble de ese caso en las pruebas. Una copia vacía da un modelo con cero nodos: es un modelo, no un fallo.
 
@@ -2459,11 +2460,11 @@ Lo que WP-G añadió o cambió respecto a §25.2 y §25.3 (todo con prueba; ver 
   sumo 64 niveles de elementos; `.sln` con un lector de líneas; los `.cs` con `CSharpSyntaxTree.ParseText` (solo `Usings` y declaraciones de espacios de nombres, hasta 64
   niveles, 1 MB y 5 s por fichero). Cada ruta del repositorio se resuelve contra la carpeta del fichero que la nombra, se colapsa de forma léxica, se valida con
   `RepositoryPaths` y se comprueba en disco sin enlaces ni uniones en ningún tramo (`RepositoryFiles`). Antes de parsear, una cuenta de corchetes anidados (`> 256`) devuelve el
-  fichero como hueco: es barata y evita el desbordamiento de pila más corriente; lo que pasa y aun así mata al proceso (3 000 `A<` anidados lo hacen, medido) lo cubre el
-  relanzamiento. Topes: 2 000 proyectos, 50 000 ficheros `.cs`, los de `CodeGraph`. Un tope alcanzado es hueco, no fallo.
+  fichero como hueco: es barata y evita el desbordamiento de pila más corriente; lo que pasa y aun así mata al proceso lo cubre el relanzamiento (el analizador corre en un
+  hilo de 64 MB, y con una pila pequeña de prueba tumban al proceso 20 000 casts, asignaciones, condicionales, `if`, `await` o lambdas anidados). Topes: 2 000 proyectos, 50 000 ficheros `.cs`, los de `CodeGraph`. Un tope alcanzado es hueco, no fallo.
 - **El anfitrión** (`Infrastructure/Graph`): `RepositorySnapshots` (copia del commit en un área aislada por `IIsolatedWorkAreaFactory`, con el cerrojo de «una a la vez»),
-  `GraphWorkerHost` (`ICodeGraphBuilder`: relanza saltando el fichero que mató al proceso, tres veces como mucho, y no relanza ante un código propio, un tiempo agotado ni
-  una salida que pasa su tope), `LowIntegrityGraphWorkerLauncher` (ejecutable por ruta absoluta junto a la app, carpeta de trabajo y `TEMP` en el área, sin entrada
+  `GraphWorkerHost` (`ICodeGraphBuilder`: relanza saltando el fichero que mató al proceso, 16 veces como mucho, después lanza una vez sin fuentes y se queda con el resultado del primer lanzamiento que termina; no relanza ante un código propio, un tiempo agotado ni
+  una salida que pasa su tope; ningún mensaje de excepción cita lo que escribió el proceso), `LowIntegrityGraphWorkerLauncher` (ejecutable por ruta absoluta junto a la app, carpeta de trabajo y `TEMP` en el área, sin entrada
   estándar), `BoundedProcessReaders` (tope en bytes **mientras lee** la salida; el error estándar, en líneas acotadas a 1 024 caracteres, solo se cree una línea
   `progress:` con una ruta segura, terminada en `\n` y con el `\r` recortado), `CommitAnalysisFileCache` y `GraphInferenceFileStore`.
 - **El servicio** (`CommitAnalysisService`): una copia abierta por análisis para el grafo y las discrepancias y cerrada después, caché por commit

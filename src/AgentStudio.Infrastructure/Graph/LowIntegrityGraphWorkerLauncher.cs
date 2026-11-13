@@ -11,7 +11,8 @@ namespace AgentStudio.Infrastructure.Graph;
 /// whole tree past the cap or after <see cref="GraphWorkerProtocol.MaxRuntime"/>, and returns what it read.
 /// </summary>
 /// <param name="workerPath">The executable of the process; the one next to the app when null. Only a test gives its own.</param>
-public sealed class LowIntegrityGraphWorkerLauncher(string? workerPath = null) : IGraphWorkerLauncher
+/// <param name="extraEnvironment">Variables added to the environment of the process; only a test gives any (the size of the stack of the parser, to make the files that exhaust it small).</param>
+public sealed class LowIntegrityGraphWorkerLauncher(string? workerPath = null, IReadOnlyDictionary<string, string?>? extraEnvironment = null) : IGraphWorkerLauncher
 {
     public const string ExecutableName = "AgentStudio.GraphWorker.exe";
 
@@ -26,20 +27,27 @@ public sealed class LowIntegrityGraphWorkerLauncher(string? workerPath = null) :
             throw new GraphAnalysisException("The analysis process is not next to the app.");
         }
 
+        var environment = new Dictionary<string, string?>
+        {
+            ["TEMP"] = tempDirectory,
+            ["TMP"] = tempDirectory,
+            ["DOTNET_NOLOGO"] = "1",
+            ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
+        };
+        foreach (var (name, value) in extraEnvironment ?? new Dictionary<string, string?>())
+        {
+            environment[name] = value;
+        }
+
         var spec = new ProcessSpec(
             executable,
             request.ToArguments(),
             workingDirectory,
-            new Dictionary<string, string?>
-            {
-                ["TEMP"] = tempDirectory,
-                ["TMP"] = tempDirectory,
-                ["DOTNET_NOLOGO"] = "1",
-                ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
-            },
+            environment,
             Timeout: null,
             StandardInput: null,
-            Isolation: ProcessIsolation.LowIntegrity);
+            Isolation: ProcessIsolation.LowIntegrity,
+            MemoryLimitBytes: GraphWorkerProtocol.MaxProcessMemoryBytes);
 
         using var process = ProcessLaunch.Start(spec, new ExecutableSearch(roots: null, pathVariable: null));
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);

@@ -77,6 +77,13 @@ internal sealed class GraphTestRepository : IDisposable
         return (build, progress);
     }
 
+    /// <summary>Runs an analysis of its own (small caps, another parser, another way to end a stuck process) over the root, in-process.</summary>
+    public async Task<AgentStudio.Application.Graph.GraphBuild> AnalyzeWithAsync(SolutionGraphAnalysis analysis, bool withoutSources = false)
+    {
+        var request = new GraphWorkerRequest(Root, CommitA, [], withoutSources);
+        return await analysis.AnalyzeAsync(request, _ => { }, TestContext.Current.CancellationToken);
+    }
+
     public void Dispose() => TempFolders.Delete(_base);
 
     private static void CopyDirectory(string from, string to)

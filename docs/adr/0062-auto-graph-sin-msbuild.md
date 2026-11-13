@@ -57,9 +57,20 @@
   `GraphWorkerLocalToolsTests`).
 - **Los ficheros que declaran cada espacio de nombres** (F6-5) viajan **al lado** del modelo (`NamespaceFiles`, campo opcional `files` de `CodeGraphJson`) y nunca entran en
   su huella. `ICodeGraphBuilder.BuildAsync` devuelve `GraphBuild`. Los códigos de hueco son los de `GraphGapCodes`.
-- **Un proceso relanzado tres veces que sigue cayendo** no da un grafo «parcial con lo que haya»: no queda salida de la que sacarlo, así que el análisis **falla** con un mensaje
-  sin texto del repositorio. Las cuatro cosas que sí dan grafo parcial son un fichero que falla con una excepción o un tope (hueco `graph.file-skipped`), el que mató al proceso
-  (el relanzamiento lo salta), un tope total (`graph.limit`) y lo que MSBuild resolvería (`graph.unevaluated`, `graph.build-props`). Residual aceptado.
+- **Relanzamientos (revisión posterior).** Hasta 16 (tantos como ficheros se pueden saltar). Si aun así cae, un último lanzamiento **no lee ningún `.cs`** (`--sources none`) y el grafo sale parcial con
+  cada proyecto marcado (`graph.limit`); el anfitrión se queda con el resultado de cualquier lanzamiento que termina bien. Solo falla el análisis (mensaje sin texto del repositorio) si el proceso cae también así.
+  Un analizador que no devuelve un fichero en 10 s (5 s de tiempo más 5 de gracia) hace que el proceso termine por sí mismo (código 6, `FileStuck`): el anfitrión lo lee como una caída en el último fichero y lo salta.
+- **El analizador corre en un hilo con 64 MB de pila** (un fichero de código real anida cientos de niveles, no millones) y delante hay un recuento general y conservador: corchetes anidados (> 256), una racha de un
+  mismo operador (> 256) o una sentencia sin `;`, `{` ni `}` de más de 400 000 caracteres. Lo que aun así agota la pila lo cubre el relanzamiento (medido: 20 000 casts, asignaciones, condicionales, `if`, `await` o lambdas
+  anidados tumban un hilo de 64 KB; con 64 MB se leen).
+- **Todo tope trunca con un hueco y sigue** (`AnalysisLimits`): nodos, relaciones, huecos, proyectos, entradas de la solución, ficheros `.cs`, paquetes y referencias por proyecto, ficheros por espacio de nombres y en
+  total, y espacios de nombres y `using` por fichero (que se comparten por referencia entre espacios de nombres hermanos). Ninguno lanza.
+- **Memoria.** El Job Object del proceso lleva un tope de 1,5 GB por proceso (`ProcessSpec.MemoryLimitBytes`, solo para quien lo pide: la verificación no cambia).
+- **Sin red, por construcción y no por el nivel de integridad.** La integridad baja no bloquea la red. `AgentStudio.GraphWorker` no tiene código de red: ninguna referencia directa a `System.Net.*` y ninguna mención en sus fuentes
+  (prueba de arquitectura). No hay en la verificación aislada un bloqueo de red que reutilizar. Residual aceptado: un fallo del propio analizador podría aprovecharlo.
+- **«Proponer relaciones»:** el prompt lleva nombres del repositorio como datos citados (`PromptData`), con la regla fija de que no son instrucciones; el lanzador exige las tres herramientas de lectura (`AuxiliaryAgentRunner` no admite una lista vacía)
+  y la carpeta de trabajo está vacía, así que no ven nada. No se pudo quitar sin tocar la guarda del ejecutor auxiliar.
+- **Cancelar.** Cambiar de proyecto, pulsar «Actualizar» de nuevo o cerrar la pestaña cancela el análisis en curso: el proceso muere con su árbol (token del lanzador) y la copia se borra al liberarse.
 - **El anfitrión no usa `IProcessRunner.RunAsync`**: su tope es en caracteres, uno para las dos salidas, y un error estándar largo lo mataría aunque el proceso fuera legítimo. Lee
   la salida por bytes con su tope y el error estándar en líneas acotadas, sobre el mismo arranque a integridad baja (`ProcessLaunch`), con el ejecutable por ruta absoluta.
 - **La copia comparte el cerrojo de la verificación** porque usa la misma fábrica de áreas (`IIsolatedWorkAreaFactory`); no hay un segundo cerrojo.

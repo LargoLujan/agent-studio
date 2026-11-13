@@ -125,20 +125,24 @@ public sealed class GraphWorkerLocalToolsTests : IDisposable
             + "  <Project Path=\"src/App/App.csproj\" />\n  <Project Path=\"src/Gen/Gen.csproj\" />\n"
             + "  <Project Path=\"..\\..\\outside\\Evil.csproj\" />\n"
             + $"  <Project Path=\"{Path.Combine(Outside, "Evil.csproj")}\" />\n"
-            + "  <Project Path=\"\\\\localhost\\c$\\Evil.csproj\" />\n</Solution>");
+            + "  <Project Path=\"\\\\localhost\\c$\\Evil.csproj\" />\n"
+            + "  <Project Path=\"CON.csproj\" />\n  <Project Path=\"aux .csproj\" />\n  <Project Path=\"src/Dtd/Dtd.csproj\" />\n</Solution>");
+        Directory.CreateDirectory(Outside);
+        File.WriteAllText(Path.Combine(Outside, "secret.txt"), "TOP-SECRET-VALUE");
+        _repo.Write("src/Dtd/Dtd.csproj", "<?xml version=\"1.0\"?><!DOCTYPE p [<!ENTITY x SYSTEM \"" + Path.Combine(Outside, "secret.txt").Replace('\\', '/') + "\">]><Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><RootNamespace>&x;</RootNamespace></PropertyGroup></Project>");
 
         // Outside the copy: the sentinel that must never be opened, in the place that both the paths above name.
         Directory.CreateDirectory(Outside);
         File.WriteAllText(Path.Combine(Outside, "Evil.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\"/>");
         File.WriteAllText(Path.Combine(Outside, "Evil.cs"), "namespace Sentinel.Outside.MustNeverAppear { }");
 
-        // Files that hurt a parser: one over the cap, one nested by expression, and one nested by generics, which really exhausts the stack of the process.
+        // Files that hurt a parser: one over the cap, one nested by expression, and one nested by casts, which really exhausts the stack of the parser (the test gives it a small one).
         _repo.Write("src/App/Huge.cs", "namespace Hostile.Huge { }\n" + new string('/', 1_200_000));
         _repo.Write("src/App/Expr.cs", "namespace Hostile.Expr { class C { int X = " + new string('(', 20_000) + "1" + new string(')', 20_000) + "; } }");
-        _repo.Write("src/App/Generics.cs", "namespace Hostile.Generics { class C { " + string.Concat(Enumerable.Repeat("A<", 3_000)) + "int" + new string('>', 3_000) + " f; } }");
+        _repo.Write("src/App/Cast.cs", "namespace Hostile.Cast { class C { int Y(int a) => " + string.Concat(Enumerable.Repeat("(int)", 20_000)) + "a; } }");
         Commit("hostile");
         var commit = _repo.Head;
-        var launcher = new RecordingLauncher(new LowIntegrityGraphWorkerLauncher());
+        var launcher = new RecordingLauncher(new LowIntegrityGraphWorkerLauncher(extraEnvironment: new Dictionary<string, string?> { ["AGENTSTUDIO_GRAPHWORKER_PARSE_STACK_KB"] = "64" }));
 
         await using var snapshot = await Snapshots(_repo.Root).OpenAsync(Project, commit, Ct);
         var area = Path.GetDirectoryName(snapshot.Root)!;
@@ -157,9 +161,12 @@ public sealed class GraphWorkerLocalToolsTests : IDisposable
         Assert.DoesNotContain("localhost", json, StringComparison.Ordinal);
         Assert.Equal(3, build.Graph.Gaps.Count(g => g is { Code: GraphGapCodes.OutsideRoot, Path: "Hostile.slnx" }) );
         Assert.Equal(2, build.Graph.Gaps.Count(g => g is { Code: GraphGapCodes.OutsideRoot, Path: "src/App/App.csproj" }));
+        Assert.Equal(2, build.Graph.Gaps.Count(g => g is { Code: GraphGapCodes.InvalidPath, Path: "Hostile.slnx" }));
+        Assert.Contains(build.Graph.Gaps, g => g is { Code: GraphGapCodes.FileSkipped, Path: "src/Dtd/Dtd.csproj" });
+        Assert.DoesNotContain("TOP-SECRET", json, StringComparison.Ordinal);
 
         // The files that hurt the parser are gaps and their project is partial; the rest of the graph is whole.
-        foreach (var skipped in new[] { "src/App/Huge.cs", "src/App/Expr.cs", "src/App/Generics.cs" })
+        foreach (var skipped in new[] { "src/App/Huge.cs", "src/App/Expr.cs", "src/App/Cast.cs" })
         {
             Assert.Contains(build.Graph.Gaps, g => g is { Code: GraphGapCodes.FileSkipped, NodeId: "src/App/App.csproj" } && g.Path == skipped);
         }
@@ -167,14 +174,79 @@ public sealed class GraphWorkerLocalToolsTests : IDisposable
         Assert.True(build.Graph.Nodes.Single(n => n.Id == "src/App/App.csproj").Partial);
         Assert.Contains(build.Graph.Nodes, n => n.Name == "Hostile.App");
         Assert.Contains(build.Graph.Nodes, n => n.Name == "Hostile.Gen");
-        Assert.DoesNotContain(build.Graph.Nodes, n => n.Name is "Hostile.Huge" or "Hostile.Expr" or "Hostile.Generics");
+        Assert.DoesNotContain(build.Graph.Nodes, n => n.Name is "Hostile.Huge" or "Hostile.Expr" or "Hostile.Cast");
         Assert.Contains(build.Graph.Gaps, g => g.Code == GraphGapCodes.BuildProps);
         Assert.Contains(build.Graph.Gaps, g => g.Code == GraphGapCodes.Unevaluated && g.Path == "src/App/App.csproj");
 
         // The only process launched is the analysis, and the generics file killed the first launch: the second one skipped it.
         Assert.True(launcher.Requests.Count >= 2, "the file that exhausts the stack was not relaunched");
-        Assert.Contains("src/App/Generics.cs", launcher.Requests[^1].Skipped);
+        Assert.Contains("src/App/Cast.cs", launcher.Requests[^1].Skipped);
         Assert.All(launcher.Requests, r => Assert.Equal(snapshot.Root, r.Root));
+    }
+
+    [Fact]
+    public async Task Six_files_that_kill_the_process_six_different_ways_give_a_partial_graph_with_six_gaps_and_the_rest_whole()
+    {
+        // A small stack for the parser (the variable the test gives the launcher) makes files of tens of thousands of characters exhaust it. None of them is turned
+        // away by the counts of the scanner: they have no nested brackets, no long run of one operator and no statement without an end.
+        var forms = new (string File, string Body)[]
+        {
+            ("Cast", "int Y(int a) => " + string.Concat(Enumerable.Repeat("(int)", 20_000)) + "a;"),
+            ("Assign", "int Y(int a) { var y = " + string.Concat(Enumerable.Repeat("a=", 20_000)) + "a; return y; }"),
+            ("Cond", "int Y(int a) { var y = " + string.Concat(Enumerable.Repeat("a?", 20_000)) + "a; return 0; }"),
+            ("Ifs", "void Y(int x) { " + string.Concat(Enumerable.Repeat("if(x)", 20_000)) + " ; }"),
+            ("Await", "async System.Threading.Tasks.Task Y(int x) { var y = " + string.Concat(Enumerable.Repeat("await ", 20_000)) + "x; }"),
+            ("Lambda", "void Y(int x) { var y = " + string.Concat(Enumerable.Repeat("x=>", 20_000)) + "x; }"),
+        };
+        _repo.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"/>");
+        _repo.Write("src/App/Normal.cs", "namespace Whole.Normal { public class Normal { } }");
+        foreach (var (file, body) in forms)
+        {
+            _repo.Write($"src/App/{file}.cs", "namespace Hostile." + file + " { class C { " + body + " } }");
+        }
+
+        Commit("six ways");
+        var launcher = new RecordingLauncher(new LowIntegrityGraphWorkerLauncher(extraEnvironment: new Dictionary<string, string?> { ["AGENTSTUDIO_GRAPHWORKER_PARSE_STACK_KB"] = "64" }));
+
+        await using var snapshot = await Snapshots(_repo.Root).OpenAsync(Project, _repo.Head, Ct);
+        var build = await new GraphWorkerHost(launcher).BuildAsync(snapshot, Ct);
+
+        var gaps = build.Graph.Gaps.Where(g => g.Code == GraphGapCodes.FileSkipped).Select(g => g.Path).Order(StringComparer.Ordinal).ToList();
+        Assert.Equal(forms.Select(f => $"src/App/{f.File}.cs").Order(StringComparer.Ordinal), gaps);
+        Assert.True(build.Graph.Nodes.Single(n => n.Id == "src/App/App.csproj").Partial);
+        Assert.Contains(build.Graph.Nodes, n => n.Name == "Whole.Normal");
+        Assert.DoesNotContain(build.Graph.Nodes, n => n.Name.StartsWith("Hostile.", StringComparison.Ordinal));
+        Assert.Equal(forms.Length + 1, launcher.Requests.Count);
+        Assert.Equal(forms.Length, launcher.Requests[^1].Skipped.Count);
+        Assert.False(launcher.Requests[^1].WithoutSources);
+    }
+
+    [Fact]
+    public async Task A_symbolic_link_committed_to_the_repository_never_reaches_the_graph_either_the_copy_refuses_it_or_it_is_not_followed()
+    {
+        Directory.CreateDirectory(Outside);
+        File.WriteAllText(Path.Combine(Outside, "Linked.cs"), "namespace Sentinel.Through.TheLink { }");
+        _repo.Write("src/App/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"/>");
+        _repo.Write("src/App/Normal.cs", "namespace Whole.Normal { }");
+        var target = Path.Combine(_container, "link-target.txt");
+        File.WriteAllText(target, Outside.Replace('\\', '/'));
+        var blob = TempGitRepo.Git(_repo.Root, "hash-object", "-w", target).Trim();
+        TempGitRepo.Git(_repo.Root, "update-index", "--add", "--cacheinfo", $"120000,{blob},src/App/linked");
+        Commit("with a link");
+
+        string? json = null;
+        try
+        {
+            await using var snapshot = await Snapshots(_repo.Root).OpenAsync(Project, _repo.Head, Ct);
+            var build = await new GraphWorkerHost(new LowIntegrityGraphWorkerLauncher()).BuildAsync(snapshot, Ct);
+            json = CodeGraphJson.Serialize(build.Graph, build.Files);
+        }
+        catch (Exception ex) when (ex is IOException or ProcessIsolationException or InvalidOperationException or InvalidDataException)
+        {
+            // The copy refused the link: nothing was read, nothing ran.
+        }
+
+        Assert.True(json is null || !json.Contains("Sentinel", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -27,8 +27,22 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
     private static readonly string[] SkippedFolders = ["bin", "obj", "node_modules"];
 
+    private readonly AnalysisLimits _limits;
+    private readonly ScanOptions _scan;
+    private readonly Action<string> _onStuck;
+
+    /// <param name="limits">The caps of the analysis; the real ones by default. A test gives small ones so each cap can be reached.</param>
+    /// <param name="scan">How a file is parsed.</param>
+    /// <param name="onStuck">What happens when the parser does not return for a file: by default the process ends itself with <see cref="GraphWorkerExitCodes.FileStuck"/> and the host skips the file.</param>
+    public SolutionGraphAnalysis(AnalysisLimits? limits = null, ScanOptions? scan = null, Action<string>? onStuck = null)
+    {
+        _limits = limits ?? new AnalysisLimits();
+        _scan = scan ?? ScanOptions.Default;
+        _onStuck = onStuck ?? (_ => Environment.Exit(GraphWorkerExitCodes.FileStuck));
+    }
+
     public Task<GraphBuild> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct) =>
-        Task.FromResult(new Run(request, fileStarted, ct).Execute());
+        Task.FromResult(new Run(request, fileStarted, ct, _limits, _scan, _onStuck).Execute());
 
     /// <summary>One analysis: the state is here so the class that implements the port keeps none.</summary>
     private sealed class Run
@@ -38,6 +52,10 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
         private readonly CancellationToken _ct;
         private readonly RepositoryFiles _files;
         private readonly HashSet<string> _skipped;
+        private readonly AnalysisLimits _limits;
+        private readonly ScanOptions _scan;
+        private readonly Action<string> _onStuck;
+        private readonly HashSet<(string, string)> _limitGaps = [];
 
         private readonly Dictionary<string, GraphNode> _nodes = new(StringComparer.Ordinal);
         private readonly HashSet<string> _partial = new(StringComparer.Ordinal);
@@ -48,11 +66,13 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
         private readonly Dictionary<string, ProjectState> _projects = new(StringComparer.Ordinal);
         private readonly List<string> _projectOrder = [];
         private bool _gapLimitReported;
-        private bool _nodeLimitReported;
         private int _csFiles;
 
-        public Run(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct)
+        public Run(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct, AnalysisLimits limits, ScanOptions scan, Action<string> onStuck)
         {
+            _limits = limits;
+            _scan = scan;
+            _onStuck = onStuck;
             _request = request;
             _fileStarted = fileStarted;
             _ct = ct;
@@ -71,8 +91,16 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                     EnsureFolder(solutionId!, folder);
                 }
 
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var entries = 0;
                 foreach (var entry in solution.Projects)
                 {
+                    if (++entries > _limits.MaxSolutionEntries)
+                    {
+                        LimitGap(solutionId!, solutionId!);
+                        break;
+                    }
+
                     var problem = RepositoryFiles.TryResolve(solutionId!, entry.RawPath, out var relative);
                     if (problem != PathProblem.None)
                     {
@@ -85,7 +113,7 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                         continue;
                     }
 
-                    if (listed.Any(l => string.Equals(l.Path, relative, StringComparison.OrdinalIgnoreCase)))
+                    if (!seen.Add(relative))
                     {
                         Gap(solutionId!, GraphGapCodes.Duplicate, solutionId!, entry.Line, partial: false);
                         continue;
@@ -104,7 +132,7 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
             foreach (var (path, folder) in listed)
             {
-                if (_projects.Count >= MaxProjects)
+                if (_projects.Count >= _limits.MaxProjects)
                 {
                     Gap(solutionId ?? path, GraphGapCodes.Limit, solutionId ?? path, null, partial: solutionId is not null);
                     break;
@@ -125,7 +153,7 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
                 foreach (var target in state.Referenced)
                 {
-                    if (!_projects.ContainsKey(target) && _projects.Count < MaxProjects && _files.Probe(target, directory: false) == PathProblem.None)
+                    if (!_projects.ContainsKey(target) && _projects.Count < _limits.MaxProjects && _files.Probe(target, directory: false) == PathProblem.None)
                     {
                         AddProject(target, listedInSolution: false, solutionId, null);
                     }
@@ -189,7 +217,7 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
             var found = new List<string>();
             var pending = new Stack<string>();
             pending.Push(string.Empty);
-            while (pending.Count > 0 && found.Count < MaxProjects)
+            while (pending.Count > 0 && found.Count < _limits.MaxProjects)
             {
                 _ct.ThrowIfCancellationRequested();
                 var (folders, files, _) = _files.List(pending.Pop());
@@ -203,7 +231,7 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 }
             }
 
-            return found.OrderBy(f => f, StringComparer.Ordinal).Take(MaxProjects);
+            return found.OrderBy(f => f, StringComparer.Ordinal).Take(_limits.MaxProjects);
         }
 
         private void AddProject(string path, bool listedInSolution, string? solutionId, string? folder)
@@ -215,7 +243,12 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
             var name = Path.GetFileNameWithoutExtension(path);
             var node = new GraphNode(path, GraphNodeKind.Project, name, path, false);
-            AddNode(node);
+            if (!AddNode(node))
+            {
+                LimitGap(solutionId ?? _nodes.Keys.FirstOrDefault() ?? path, solutionId ?? path);
+                return;
+            }
+
             var state = new ProjectState(path);
             _projects.Add(path, state);
             _projectOrder.Add(path);
@@ -268,8 +301,15 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
             }
 
             state.Referenced = [];
+            var references = 0;
             foreach (var reference in description.ProjectReferences)
             {
+                if (++references > _limits.MaxReferencesPerProject)
+                {
+                    LimitGap(path, path);
+                    break;
+                }
+
                 var problem = RepositoryFiles.TryResolve(path, reference.Value, out var target);
                 if (problem == PathProblem.None && !target.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
                 {
@@ -293,11 +333,24 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
             foreach (var package in description.PackageReferences)
             {
+                if (state.Packages.Count >= _limits.MaxPackagesPerProject)
+                {
+                    LimitGap(path, path);
+                    break;
+                }
+
                 var id = "package:" + package.Value;
                 try
                 {
-                    AddNode(new GraphNode(id, GraphNodeKind.Package, package.Value, null, false));
-                    state.Packages.Add(id);
+                    if (AddNode(new GraphNode(id, GraphNodeKind.Package, package.Value, null, false)))
+                    {
+                        state.Packages.Add(id);
+                    }
+                    else
+                    {
+                        LimitGap(path, path);
+                        break;
+                    }
                 }
                 catch (ArgumentException)
                 {
@@ -345,7 +398,11 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 {
                     try
                     {
-                        AddNode(new GraphNode(id, GraphNodeKind.SolutionFolder, segments[i], null, false));
+                        if (!AddNode(new GraphNode(id, GraphNodeKind.SolutionFolder, segments[i], null, false)))
+                        {
+                            LimitGap(solutionId, solutionId);
+                            return parent;
+                        }
                     }
                     catch (ArgumentException)
                     {
@@ -369,6 +426,13 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 return;
             }
 
+            if (_request.WithoutSources)
+            {
+                // The last resort of the host: the projects are read and no source is, and each project says so.
+                Gap(project.Path, GraphGapCodes.Limit, project.Path, null, partial: true);
+                return;
+            }
+
             var folder = project.Path.Contains('/', StringComparison.Ordinal) ? project.Path[..project.Path.LastIndexOf('/')] : string.Empty;
             var pending = new Stack<string>();
             pending.Push(folder);
@@ -389,7 +453,7 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                         continue;
                     }
 
-                    if (_csFiles >= MaxCsFiles)
+                    if (_csFiles >= _limits.MaxCsFiles)
                     {
                         Gap(project.Path, GraphGapCodes.Limit, project.Path, null, partial: true);
                         return;
@@ -442,10 +506,22 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 return;
             }
 
-            if (CSharpSyntaxScanner.TryScan(text, CSharpSyntaxScanner.MaxParseTime, out var declarations) != ScanFailure.None)
+            var scanned = CSharpSyntaxScanner.TryScan(text, _scan, out var declarations);
+            if (scanned == ScanFailure.Stuck)
+            {
+                // The parser did not return and cannot be stopped: the process ends itself and the host skips this file (the last one named in the progress).
+                _onStuck(file);
+            }
+
+            if (scanned != ScanFailure.None)
             {
                 Gap(project.Path, GraphGapCodes.FileSkipped, file, null, partial: true);
                 return;
+            }
+
+            if (declarations.Truncated)
+            {
+                LimitGap(project.Path, file);
             }
 
             foreach (var declared in declarations.Namespaces)
@@ -453,20 +529,13 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 var id = project.Path + "|" + declared.Name;
                 if (!_nodes.ContainsKey(id))
                 {
-                    if (_nodes.Count >= CodeGraph.MaxNodes - 1)
-                    {
-                        if (!_nodeLimitReported)
-                        {
-                            _nodeLimitReported = true;
-                            Gap(project.Path, GraphGapCodes.Limit, project.Path, null, partial: true);
-                        }
-
-                        continue;
-                    }
-
                     try
                     {
-                        AddNode(new GraphNode(id, GraphNodeKind.Namespace, declared.Name, null, false));
+                        if (!AddNode(new GraphNode(id, GraphNodeKind.Namespace, declared.Name, null, false)))
+                        {
+                            LimitGap(project.Path, project.Path);
+                            continue;
+                        }
                     }
                     catch (ArgumentException)
                     {
@@ -487,8 +556,12 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 {
                     set.Add(file);
                 }
+                else
+                {
+                    LimitGap(project.Path, project.Path);
+                }
 
-                project.Usings.Add((declared.Name, declared.Usings));
+                project.Usings.Add((declared.Name, declared.Scope));
             }
         }
 
@@ -538,9 +611,9 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
                 _ct.ThrowIfCancellationRequested();
                 var project = _projects[path];
                 var reach = Reachable(path);
-                foreach (var (declaredName, usings) in project.Usings)
+                foreach (var (declaredName, scope) in project.Usings)
                 {
-                    foreach (var directive in usings)
+                    foreach (var directive in scope.All())
                     {
                         var target = Resolve(directive, declaredName, declaredIn);
                         if (target is null)
@@ -619,29 +692,52 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
             return seen;
         }
 
-        private void AddNode(GraphNode node)
+        /// <summary>Adds a node; false (and nothing added) when the cap of nodes is reached: a cap truncates, it never throws.</summary>
+        private bool AddNode(GraphNode node)
         {
-            if (_nodes.Count >= CodeGraph.MaxNodes)
+            if (_nodes.ContainsKey(node.Id))
             {
-                throw new ArgumentException("Too many nodes.");
+                return true;
             }
 
-            _nodes.TryAdd(node.Id, node);
+            if (_nodes.Count >= Math.Min(_limits.MaxNodes, CodeGraph.MaxNodes))
+            {
+                return false;
+            }
+
+            _nodes.Add(node.Id, node);
+            return true;
         }
 
         private void AddEdge(string from, string to, GraphEdgeKind kind)
         {
-            if (_edges.Count >= CodeGraph.MaxEdges || from == to || !_edgeKeys.Add((from, to, kind)))
+            if (from == to || !_nodes.ContainsKey(from) || !_nodes.ContainsKey(to) || _edgeKeys.Contains((from, to, kind)))
             {
                 return;
             }
 
+            if (_edges.Count >= Math.Min(_limits.MaxEdges, CodeGraph.MaxEdges))
+            {
+                LimitGap(_nodes.Keys.FirstOrDefault(k => _nodes[k].Kind == GraphNodeKind.Solution) ?? from, _nodes.Values.FirstOrDefault(n => n.Kind == GraphNodeKind.Solution)?.Path ?? (_nodes.TryGetValue(from, out var user) ? user.Path : null));
+                return;
+            }
+
+            _edgeKeys.Add((from, to, kind));
             _edges.Add(new GraphEdge(from, to, kind, GraphEdgeOrigin.Static));
+        }
+
+        /// <summary>A cap was reached: a gap that says so, once for each node, and the node is partial. <paramref name="path"/> is the file that tells it; none is no gap.</summary>
+        private void LimitGap(string nodeId, string? path)
+        {
+            if (path is not null && RepositoryPaths.IsSafeRelative(path) && _limitGaps.Add((nodeId, path)))
+            {
+                Gap(nodeId, GraphGapCodes.Limit, path, null, partial: true);
+            }
         }
 
         private void Gap(string nodeId, string code, string path, int? line, bool partial)
         {
-            if (_gaps.Count >= CodeGraph.MaxGaps - 1)
+            if (_gaps.Count >= Math.Min(_limits.MaxGaps, CodeGraph.MaxGaps) - 1)
             {
                 if (!_gapLimitReported)
                 {
@@ -667,15 +763,34 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
         private GraphBuild Assemble()
         {
+            // The files that declare the namespaces: cut at the cap of the list, never failing; a gap says so.
+            var files = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+            var total = 0;
+            var cap = Math.Min(_limits.MaxNamespaceFilesTotal, NamespaceFiles.MaxTotal);
+            foreach (var (id, paths) in _namespaceFiles.Where(e => _nodes.ContainsKey(e.Key)).OrderBy(e => e.Key, StringComparer.Ordinal))
+            {
+                if (total + paths.Count > cap)
+                {
+                    var solution = _nodes.Values.FirstOrDefault(n => n.Kind == GraphNodeKind.Solution);
+                    var owner = solution ?? _nodes.Values.FirstOrDefault(n => n.Kind == GraphNodeKind.Project);
+                    if (owner?.Path is { } ownerPath)
+                    {
+                        LimitGap(owner.Id, ownerPath);
+                    }
+
+                    break;
+                }
+
+                total += paths.Count;
+                files[id] = [.. paths];
+            }
+
             var nodes = _nodes.Values.Select(n => _partial.Contains(n.Id) ? new GraphNode(n.Id, n.Kind, n.Name, n.Path, true) : n).ToList();
 
             // A partial node always has a gap that says why; a node whose gap was dropped at the cap keeps its mark only if one remained.
             var gapped = _gaps.Select(g => g.NodeId).ToHashSet(StringComparer.Ordinal);
             nodes = [.. nodes.Select(n => n.Partial && !gapped.Contains(n.Id) ? new GraphNode(n.Id, n.Kind, n.Name, n.Path, false) : n)];
             var graph = new CodeGraph(_request.Commit, GeneratorVersion, nodes, _edges, _gaps);
-            var files = _namespaceFiles
-                .Where(e => _nodes.ContainsKey(e.Key))
-                .ToDictionary(e => e.Key, e => (IReadOnlyList<string>)[.. e.Value], StringComparer.Ordinal);
             return new GraphBuild(graph, new NamespaceFiles(files));
         }
     }
@@ -692,6 +807,6 @@ internal sealed class SolutionGraphAnalysis : IGraphAnalysis
 
         public SortedSet<string> Namespaces { get; } = new(StringComparer.Ordinal);
 
-        public List<(string Namespace, IReadOnlyList<UsingDirective> Usings)> Usings { get; } = [];
+        public List<(string Namespace, UsingScope Scope)> Usings { get; } = [];
     }
 }

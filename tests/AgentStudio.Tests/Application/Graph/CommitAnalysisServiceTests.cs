@@ -190,6 +190,27 @@ public sealed class CommitAnalysisServiceTests
     }
 
     [Fact]
+    public async Task A_cancelled_analysis_closes_the_copy_caches_nothing_and_lets_the_next_one_run()
+    {
+        var log = new List<string>();
+        var snapshots = new Snapshots(log);
+        var cache = new MemoryCache();
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancel = new CancellationTokenSource();
+        var service = new CommitAnalysisService(snapshots, new Builder(log, gate: gate.Task.WaitAsync(cancel.Token)), cache);
+
+        var running = service.AnalyzeAsync(Project, CommitA, cancel.Token);
+        await Task.Delay(50, Ct);
+        await cancel.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => running);
+        Assert.Equal(1, snapshots.Disposed);
+        Assert.Empty(cache.Entries);
+        var next = await new CommitAnalysisService(snapshots, new Builder(log), cache).AnalyzeAsync(Project, CommitA, Ct);
+        Assert.Equal(CommitA, next.Commit);
+    }
+
+    [Fact]
     public async Task A_second_analysis_of_the_same_commit_asked_while_the_first_runs_takes_its_result_instead_of_reading_the_commit_again()
     {
         var log = new List<string>();

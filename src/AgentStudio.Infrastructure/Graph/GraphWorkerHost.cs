@@ -40,10 +40,11 @@ public sealed class GraphWorkerHost(IGraphWorkerLauncher launcher) : ICodeGraphB
         }
 
         var skipped = new List<string>();
+        var withoutSources = false;
         for (var launchNumber = 0; ; launchNumber++)
         {
             ct.ThrowIfCancellationRequested();
-            var request = new GraphWorkerRequest(snapshot.Root, snapshot.Commit, skipped);
+            var request = new GraphWorkerRequest(snapshot.Root, snapshot.Commit, skipped, withoutSources);
             var launch = await launcher.LaunchAsync(request, area, temp, ct).ConfigureAwait(false);
 
             if (launch.TimedOut)
@@ -56,6 +57,7 @@ public sealed class GraphWorkerHost(IGraphWorkerLauncher launcher) : ICodeGraphB
                 throw new GraphAnalysisException("The analysis wrote more than it is allowed to.");
             }
 
+            // A launch that ends well is kept, however many launches it took to get there.
             if (launch.ExitCode == GraphWorkerExitCodes.Completed)
             {
                 return Parse(launch.Output, snapshot.Commit);
@@ -66,14 +68,22 @@ public sealed class GraphWorkerHost(IGraphWorkerLauncher launcher) : ICodeGraphB
                 throw new GraphAnalysisException(string.Create(CultureInfo.InvariantCulture, $"The analysis ended with its code {launch.ExitCode}."));
             }
 
-            // Any other end is a crash. The file it was on is skipped, and the process is launched again, at most MaxRelaunches times.
-            if (launchNumber >= GraphWorkerProtocol.MaxRelaunches || launch.LastProgress is null
-                || skipped.Contains(launch.LastProgress, StringComparer.OrdinalIgnoreCase))
+            // Any other end is a crash. The file it was on is skipped and the process is launched again, up to MaxRelaunches times.
+            var canSkip = launchNumber < GraphWorkerProtocol.MaxRelaunches && launch.LastProgress is not null
+                && !skipped.Contains(launch.LastProgress, StringComparer.OrdinalIgnoreCase) && skipped.Count < GraphWorkerProtocol.MaxSkipped;
+            if (canSkip)
             {
-                throw new GraphAnalysisException(string.Create(CultureInfo.InvariantCulture, $"The analysis process died with {launchNumber + 1} launches and no file left to skip."));
+                skipped.Add(launch.LastProgress!);
+                continue;
             }
 
-            skipped.Add(launch.LastProgress);
+            // Nothing more can be skipped: one last launch reads no source file at all, so the graph is partial with every project marked.
+            if (withoutSources)
+            {
+                throw new GraphAnalysisException(string.Create(CultureInfo.InvariantCulture, $"The analysis process died with {launchNumber + 1} launches, also without reading sources."));
+            }
+
+            withoutSources = true;
         }
     }
 
@@ -91,10 +101,10 @@ public sealed class GraphWorkerHost(IGraphWorkerLauncher launcher) : ICodeGraphB
                 ? build
                 : throw new GraphAnalysisException("The analysis described another commit than the one asked.");
         }
-        catch (InvalidDataException ex)
+        catch (InvalidDataException)
         {
             // The text of the process is data that is not trusted: nothing of it, not even the message of the exception, goes on.
-            throw new GraphAnalysisException("The analysis wrote something that is not a model.", new InvalidDataException(ex.Message));
+            throw new GraphAnalysisException("The analysis wrote something that is not a model.");
         }
     }
 }

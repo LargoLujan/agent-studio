@@ -100,6 +100,7 @@ public sealed partial class GraphMapSection : GraphSection
     private CodeGraph? _pendingGraph;
     private int _selectionGeneration;
     private int _loadGeneration;
+    private CancellationTokenSource? _loadCts;
 
     public GraphMapSection(GraphBackend backend, TimeProvider? time = null, IUiTextProvider? texts = null)
         : base("Info_Graph_Map")
@@ -237,8 +238,26 @@ public sealed partial class GraphMapSection : GraphSection
 
     public bool IsAvailable => CanAnalyze;
 
+    public override void CancelPending()
+    {
+        var pending = _loadCts;
+        _loadCts = null;
+        if (pending is not null)
+        {
+            try
+            {
+                pending.Cancel();
+            }
+            finally
+            {
+                pending.Dispose();
+            }
+        }
+    }
+
     protected override void ProjectChanged()
     {
+        CancelPending();
         // What an earlier load or proposal is still waiting for is not this project's: it will find itself stale and show nothing.
         _loadGeneration++;
         IsBusy = false;
@@ -273,6 +292,13 @@ public sealed partial class GraphMapSection : GraphSection
 
         var generation = ++_loadGeneration;
         bool Stale() => generation != _loadGeneration;
+
+        // A newer load, a project that changed or a document that closed cancels this one: the analysis behind it kills its process and deletes its copy.
+        CancelPending();
+        _loadCts = new CancellationTokenSource();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _loadCts.Token);
+        var callerToken = ct;
+        ct = linked.Token;
         IsBusy = true;
         Error = null;
         try
@@ -311,12 +337,15 @@ public sealed partial class GraphMapSection : GraphSection
         }
         catch (OperationCanceledException)
         {
+            // Cancelled by us (a newer load, another project, the tab closed): nothing to say. Cancelled by the caller: it is told.
             if (!Stale())
             {
                 Status = null;
+                if (callerToken.IsCancellationRequested)
+                {
+                    throw;
+                }
             }
-
-            throw;
         }
 #pragma warning disable CA1031 // The analysis is behind a port: why it failed is said, never thrown into the UI.
         catch (Exception ex) when (ex is not OperationCanceledException)
