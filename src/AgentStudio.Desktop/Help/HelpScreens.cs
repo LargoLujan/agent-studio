@@ -56,6 +56,7 @@ public static class HelpScreens
         MemoryViewModel => Memory,
         SkillsDocumentViewModel => Skills,
         UsageDashboardViewModel => Consumption,
+        RepositoryViewModel { SelectedSection.Value: RepositorySection.PullRequests } => Publishing,
         RepositoryViewModel => Repository,
         SettingsDocumentViewModel => Settings,
         WorkDocumentViewModel => Work,
