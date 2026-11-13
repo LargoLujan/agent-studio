@@ -180,6 +180,22 @@ public sealed class DoctorEnvironmentTextsTests
     }
 
     [Fact]
+    public void The_phrases_the_comparer_writes_are_the_shared_constants_and_the_evidence_text_did_not_change()
+    {
+        Assert.Equal("docker running (client 27.0.1, engine 27.0.2)", EnvironmentPhrases.DockerRunning("27.0.1", "27.0.2"));
+        Assert.Equal("docker engine stopped (client 27.0.1)", EnvironmentPhrases.DockerStopped("27.0.1"));
+        Assert.Equal("compose size 120 bytes", EnvironmentPhrases.ComposeSize("120"));
+        Assert.Equal("image redis:7", EnvironmentPhrases.Labelled(EnvironmentPhrases.ImageLabel, "redis:7"));
+        Assert.Equal("compose file docker-compose.yml", EnvironmentPhrases.Labelled(EnvironmentPhrases.ComposeFileLabel, "docker-compose.yml"));
+        Assert.Equal(["none", "absent", "store-alias", "in the NuGet cache", "not in the NuGet cache", "not checked", "docker not installed"],
+            [EnvironmentPhrases.None, EnvironmentPhrases.Absent, EnvironmentPhrases.StoreAlias, EnvironmentPhrases.InNuGetCache, EnvironmentPhrases.NotInNuGetCache, EnvironmentPhrases.NotChecked, EnvironmentPhrases.DockerNotInstalled]);
+
+        // What the panel recognises is what the builders write: the compose size is painted too.
+        var check = new DoctorCheck(EnvironmentCheckCodes.Containers, DoctorSection.DeclaredEnvironment, DoctorStatus.Ok, [DoctorFact.Of(DoctorFactNames.Declared, EnvironmentPhrases.ComposeSize("120"))]);
+        Assert.NotEqual("compose size 120 bytes", DoctorTexts.FactValue(Spanish, check, check.Facts[0]));
+    }
+
+    [Fact]
     public void The_values_that_came_from_a_file_are_data_and_a_fact_of_another_section_is_never_touched()
     {
         var declared = new DoctorCheck(EnvironmentCheckCodes.NodeEngine, DoctorSection.DeclaredEnvironment, DoctorStatus.Ok, [DoctorFact.Of(DoctorFactNames.Declared, "none"), DoctorFact.Of(DoctorFactNames.Installed, "22.11.0")]);
