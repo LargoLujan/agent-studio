@@ -28,6 +28,9 @@ internal readonly record struct FlowResult(FlowEnd End, PendingReason? Reason = 
 
     public static FlowResult Failed(string code) => new(FlowEnd.Failed, Message: UserText.Of(code));
 
+    /// <summary>Nothing left to do, with something to say: the fact was done by another way, so this flow credits itself with nothing.</summary>
+    public static FlowResult DoneWith(string code) => new(FlowEnd.Done, Message: UserText.Of(code));
+
     public static FlowResult WaitForProject() => new(FlowEnd.WaitProject, PendingReason.ProjectBusy);
 
     public static FlowResult WaitForSync(PendingReason reason, TimeSpan retryIn, string? code = null) =>
@@ -115,6 +118,8 @@ public static class PublicationCodes
     public const string PullRequestUnreadable = "hosting.refused.pr-unreadable";
     public const string BaseChanged = "hosting.refused.base-changed";
     public const string AnnotationPending = "hosting.pending.annotation";
+    public const string AlreadyMerged = "hosting.done.already-merged";
+    public const string AlreadyClosed = "hosting.done.already-closed";
     public const string HistoryUnreadable = "hosting.refused.history-unreadable";
 
     public const string PushRefused = "hosting.failed.push";
@@ -138,6 +143,9 @@ public static class PublicationCodes
 
     /// <summary>How often the mailbox asks whether the project got free: <c>IProjectActivity</c> has no events (docs/21 D-25).</summary>
     public static readonly TimeSpan RetryInterval = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>The most the last attempt of an orderly close waits to write what is parked (docs/21 D-25).</summary>
+    public static readonly TimeSpan ClosingLimit = TimeSpan.FromSeconds(5);
 
     /// <summary>The courtesy after letting the project go, so that whoever waited gets in (docs/21 D-25).</summary>
     public static readonly TimeSpan Courtesy = TimeSpan.FromSeconds(1);

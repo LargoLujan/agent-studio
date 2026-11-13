@@ -281,10 +281,18 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
         return Task.FromResult(new HostingResult<bool>(HostingOutcome.Ok, true));
     }
 
-    public Task<HostingResult<PullRequestObservation>> ObserveAsync(PullRequestRef pullRequest, ObservationCursor? cursor, CancellationToken ct)
+    /// <summary>A long call of the platform: it ends only when the token it is given is cancelled (no wall clock is involved).</summary>
+    public Func<CancellationToken, Task>? ObserveDelay { get; set; }
+
+    public async Task<HostingResult<PullRequestObservation>> ObserveAsync(PullRequestRef pullRequest, ObservationCursor? cursor, CancellationToken ct)
     {
         Outside("observe");
-        return Task.FromResult(Observe(pullRequest, cursor));
+        if (ObserveDelay is { } delay)
+        {
+            await delay(ct);
+        }
+
+        return Observe(pullRequest, cursor);
     }
 
     public Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string statusDescription, string commentBody, long? commentId, CancellationToken ct)
@@ -383,7 +391,7 @@ internal sealed class RigVerdicts : IVerdictStore
 
 internal sealed class RigHistory(RigActivity activity) : IRepositoryHistoryReader
 {
-    public IReadOnlyList<CommitNode> Graph { get; set; } = [];
+    public IReadOnlyList<CommitNode> Graph { get; set; } = [new CommitNode(new string('a', 40), [], new DateTimeOffset(2026, 11, 13, 10, 0, 0, TimeSpan.Zero), "subject", "author", [])];
 
     public bool Fails { get; set; }
 

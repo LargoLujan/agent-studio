@@ -41,7 +41,7 @@ public sealed class RemoteSyncStore(RemoteSyncStoreOptions options) : IRemoteSyn
 
     public const int MaxFollowed = 100;
     public const int MaxPending = 100;
-    public const int MaxRevocations = 50;
+    public const int MaxRevocations = 200;
 
     private const int MaxText = 256;
     private const int MaxFailingNames = 20;

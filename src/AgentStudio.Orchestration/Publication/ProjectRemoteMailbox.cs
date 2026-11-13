@@ -251,6 +251,15 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             return true;
         }
 
+        // The file is not trusted and writes no history: a revocation is written only for a grant that is active in the verified log. An id that matches none (invented, or of a grant
+        // already withdrawn) is dropped without an entry.
+        if (!HostingPolicyGate.ActiveGrants(log.Entries).Any(g => string.Equals(g.GrantId, grantId, StringComparison.Ordinal)))
+        {
+            _revocations = _revocations.Remove(grantId);
+            _dirty = true;
+            return true;
+        }
+
         await _services.Recorder.RecordAsync(
             Project.ProjectId,
             new Actor(ActorKind.User, "user"),
@@ -598,7 +607,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         switch (result.End)
         {
             case FlowEnd.Done:
-                SetStatus(flow.Ticket, RemoteWorkState.Done, null, null, null);
+                SetStatus(flow.Ticket, RemoteWorkState.Done, null, null, result.Message);
                 Unpark(parked);
                 break;
             case FlowEnd.Failed:
@@ -1177,30 +1186,34 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        // The last attempt of an orderly close: what is parked in memory (the notes of what was done on the platform, the observations) is written if the project can be taken now. The courtesy
-        // second is waived, and the runs are already suspended in the managed exit. What cannot be written is a residual: the next observation records the fact, but not what approved it.
-        if (!_stopped)
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
-            try
-            {
-                var flushed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                Post(new FlushMessage(flushed));
-                await flushed.Task.ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException)
-            {
-                // closed already
-            }
+            return;
         }
 
+        // The order of an orderly close: first no new work is accepted and what can be cancelled is (the reads of the platform, the poll, the timers); a stretch of git already running is the
+        // only thing that is let finish (a push is not cut: git never gets a token). Only then the last attempt to write what is parked, with a short limit. What cannot be written is a
+        // residual: the next observation records the fact, but not what approved it.
         _stopped = true;
-        await _stopping.CancelAsync().ConfigureAwait(false);
+        _channel.Writer.TryComplete();
         _pollTimer?.Dispose();
         _retryTimer?.Dispose();
-        _channel.Writer.TryComplete();
+        await _stopping.CancelAsync().ConfigureAwait(false);
         await _consumer.ConfigureAwait(false);
+
+        try
+        {
+            await FlushAsync().WaitAsync(PublicationCodes.ClosingLimit, _services.Time).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            // it could not be done in time: it is a residual, and the close goes on
+        }
+
         _stopping.Dispose();
     }
+
+    private int _disposed;
 
     private sealed class Parked
     {
@@ -1274,7 +1287,7 @@ internal static class RemoteSyncLimits
 {
     public const int MaxFollowed = 100;
     public const int MaxPending = 100;
-    public const int MaxRevocations = 50;
+    public const int MaxRevocations = 200;
 
     /// <summary>The id of a grant: up to 64 letters, digits and '-' (the same rule the store applies to what it reads).</summary>
     public static bool IsId(string? id) => id is { Length: > 0 and <= 64 } && id.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
