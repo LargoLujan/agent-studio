@@ -3454,4 +3454,142 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Agent Studio está sincronizando con GitHub. Prueba otra vez en unos segundos.</value>
     <comment>Code project.busy-remote (docs/21 D-25): the project stayed held by a remote operation past the wait. One key for every screen that paints it (a key lives in one file only): the orchestrator, the debates, the audit.</comment>
   </data>
+  <data name="Text_hosting_refused_log_not_verified" xml:space="preserve">
+    <value>El registro de decisiones no se verifica. No se hace nada en el remoto.</value>
+  </data>
+  <data name="Text_hosting_refused_verdict_not_approved" xml:space="preserve">
+    <value>El revisor independiente no ha aprobado esta ejecución.</value>
+  </data>
+  <data name="Text_hosting_refused_no_verdict" xml:space="preserve">
+    <value>No hay un veredicto válido que publicar.</value>
+  </data>
+  <data name="Text_hosting_refused_commit_not_judged" xml:space="preserve">
+    <value>El commit no es el que juzgó el revisor independiente.</value>
+  </data>
+  <data name="Text_hosting_refused_config_refused" xml:space="preserve">
+    <value>La configuración de git del proyecto no pasa la inspección. No se publica.</value>
+  </data>
+  <data name="Text_hosting_refused_no_provider" xml:space="preserve">
+    <value>No hay un proveedor para este repositorio.</value>
+  </data>
+  <data name="Text_hosting_refused_capability_missing" xml:space="preserve">
+    <value>Esta versión de la herramienta de la plataforma no permite esa operación.</value>
+  </data>
+  <data name="Text_hosting_refused_merge_method" xml:space="preserve">
+    <value>El repositorio no admite ese modo de fusión.</value>
+  </data>
+  <data name="Text_hosting_refused_not_approved" xml:space="preserve">
+    <value>No se aprobó la operación.</value>
+  </data>
+  <data name="Text_hosting_refused_approval_mismatch" xml:space="preserve">
+    <value>La aprobación recibida no es la de esta operación.</value>
+  </data>
+  <data name="Text_hosting_refused_state_changed" xml:space="preserve">
+    <value>El estado cambió mientras decidías. Vuelve a empezar.</value>
+  </data>
+  <data name="Text_hosting_refused_needs_approval" xml:space="preserve">
+    <value>Esta operación necesita tu aprobación y no se ha dado.</value>
+  </data>
+  <data name="Text_hosting_refused_project_busy" xml:space="preserve">
+    <value>El proyecto está ocupado con una ejecución. Inténtalo cuando termine.</value>
+  </data>
+  <data name="Text_hosting_refused_no_remote" xml:space="preserve">
+    <value>El proyecto no tiene un remoto de GitHub reconocido.</value>
+  </data>
+  <data name="Text_hosting_refused_other_repository" xml:space="preserve">
+    <value>El remoto del proyecto no es el repositorio de la operación.</value>
+  </data>
+  <data name="Text_hosting_refused_unknown_pull_request" xml:space="preserve">
+    <value>Ese PR no consta en el historial del proyecto.</value>
+  </data>
+  <data name="Text_hosting_refused_branch_moved" xml:space="preserve">
+    <value>La cabeza del PR ya no es el commit que juzgó el revisor.</value>
+  </data>
+  <data name="Text_hosting_failed_push" xml:space="preserve">
+    <value>No se pudo publicar la rama.</value>
+  </data>
+  <data name="Text_hosting_failed_push_rejected" xml:space="preserve">
+    <value>El remoto tiene cambios que no están aquí. No se fuerza nada.</value>
+  </data>
+  <data name="Text_hosting_failed_credentials" xml:space="preserve">
+    <value>Tu gestor de credenciales no tiene acceso a GitHub por HTTPS.</value>
+  </data>
+  <data name="Text_hosting_failed_unreachable" xml:space="preserve">
+    <value>Sin conexión con GitHub. Queda pendiente de sincronizar.</value>
+  </data>
+  <data name="Text_hosting_failed_sign_in" xml:space="preserve">
+    <value>Inicia sesión con gh auth login.</value>
+  </data>
+  <data name="Text_hosting_failed_rate_limited" xml:space="preserve">
+    <value>GitHub pide esperar antes de la siguiente petición.</value>
+  </data>
+  <data name="Text_hosting_failed_redirected" xml:space="preserve">
+    <value>El repositorio cambió de dirección. Actualiza tu remoto.</value>
+  </data>
+  <data name="Text_hosting_failed_merge_blocked" xml:space="preserve">
+    <value>GitHub no permitió la fusión.</value>
+  </data>
+  <data name="Text_hosting_failed_provider_refused" xml:space="preserve">
+    <value>GitHub rechazó la petición.</value>
+  </data>
+  <data name="Text_hosting_failed_internal" xml:space="preserve">
+    <value>Algo falló al sincronizar con GitHub.</value>
+  </data>
+  <data name="Text_hosting_expired" xml:space="preserve">
+    <value>Caducó: llevaba más de 24 horas pendiente.</value>
+  </data>
+  <data name="Text_hosting_verdict_status_approved" xml:space="preserve">
+    <value>Revisor independiente (juez): aprobado</value>
+  </data>
+  <data name="Text_hosting_verdict_status_rejected" xml:space="preserve">
+    <value>Revisor independiente (juez): no aprobado</value>
+  </data>
+  <data name="Text_hosting_verdict_status_in_review" xml:space="preserve">
+    <value>Revisor independiente (juez): en revisión</value>
+  </data>
+  <data name="Text_hosting_pr_title" xml:space="preserve">
+    <value>Agent Studio · {0}</value>
+  </data>
+  <data name="Text_hosting_pr_body_run" xml:space="preserve">
+    <value>Ejecución {0}, commit {1}.</value>
+  </data>
+  <data name="Text_hosting_pr_body_requirement_met" xml:space="preserve">
+    <value>Requisito {0}: cumplido.</value>
+  </data>
+  <data name="Text_hosting_pr_body_requirement_unmet" xml:space="preserve">
+    <value>Requisito {0}: no cumplido.</value>
+  </data>
+  <data name="Text_hosting_pr_body_requirement_unverifiable" xml:space="preserve">
+    <value>Requisito {0}: no se pudo verificar.</value>
+  </data>
+  <data name="Text_hosting_pr_body_judge" xml:space="preserve">
+    <value>Decisión del juez: {0}. Juzgó {1} con el modelo {2}.</value>
+  </data>
+  <data name="Text_hosting_pr_body_verification" xml:space="preserve">
+    <value>Pruebas: {0} pasan, {1} fallan, {2} omitidas.</value>
+  </data>
+  <data name="Text_hosting_pr_body_evidence" xml:space="preserve">
+    <value>Evidencia {0}, huella {1}.</value>
+  </data>
+  <data name="Text_hosting_pr_body_footer" xml:space="preserve">
+    <value>Publicado con Agent Studio. El veredicto de un juez de IA no es una revisión de GitHub.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_approved" xml:space="preserve">
+    <value>Decisión del juez independiente: aprobado. Commit juzgado: {0}.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_rejected" xml:space="preserve">
+    <value>Decisión del juez independiente: no aprobado. Commit juzgado: {0}.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_in_review" xml:space="preserve">
+    <value>Decisión del juez independiente: en revisión. Commit juzgado: {0}.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_judge" xml:space="preserve">
+    <value>Juzgó {0} con el modelo {1}. El juez no produjo el trabajo.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_head_moved" xml:space="preserve">
+    <value>La cabeza del PR ya no es el commit que juzgó el juez.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_footer" xml:space="preserve">
+    <value>Esto no es una revisión de GitHub ni una aprobación de la cuenta que lo publica.</value>
+  </data>
 </root>
