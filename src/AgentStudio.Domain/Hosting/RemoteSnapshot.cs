@@ -229,11 +229,7 @@ public static class RemoteReconciler
             return new ReconcileResult(false, []);
         }
 
-        if (observed.UpdatedAt < lastRecorded.UpdatedAt
-            || (lastRecorded.State == PullRequestState.Merged && observed.State != PullRequestState.Merged)
-            || observed.ForcePushes < lastRecorded.ForcePushes
-            || observed.RevertCommits.Count < lastRecorded.RevertCommits.Count
-            || (observed.Deployment is { } later && lastRecorded.Deployment is { } earlier && later.Id < earlier.Id))
+        if (GoesBackwards(lastRecorded, observed))
         {
             return new ReconcileResult(true, []);
         }
@@ -290,6 +286,20 @@ public static class RemoteReconciler
 
         return new ReconcileResult(false, changes);
     }
+
+    /// <summary>
+    /// The guard of each resource (docs/21 D-23): a lagging replica of the platform may answer with data older than what is recorded. The pull request is guarded by its
+    /// <c>updated_at</c> and merged is terminal; the commits and the timeline only grow (a shorter list for the same head is an old answer); the deployments only advance in
+    /// their id; the commits of the base branch since the merge (the reverts) only grow. The checks and the reviews carry no reliable mark: the mailbox asks them to repeat in two rounds.
+    /// </summary>
+    private static bool GoesBackwards(RemoteSnapshot last, RemoteSnapshot observed) =>
+        observed.UpdatedAt < last.UpdatedAt
+        || (last.State == PullRequestState.Merged && observed.State != PullRequestState.Merged)
+        || observed.ForcePushes < last.ForcePushes
+        || observed.RevertCommits.Count < last.RevertCommits.Count
+        || (observed.Deployment is { } later && last.Deployment is { } earlier && later.Id < earlier.Id)
+        || (string.Equals(last.HeadCommit, observed.HeadCommit, StringComparison.Ordinal)
+            && (observed.OriginalCommits.Count < last.OriginalCommits.Count || observed.ResultCommits.Count < last.ResultCommits.Count));
 
     private static bool SameReviews(ReviewsSummary a, ReviewsSummary b) =>
         a.Approved == b.Approved && a.ChangesRequested == b.ChangesRequested && a.Commented == b.Commented
