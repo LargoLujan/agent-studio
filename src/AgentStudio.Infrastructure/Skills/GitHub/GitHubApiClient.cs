@@ -197,11 +197,25 @@ public sealed class GitHubApiClient : IAsyncDisposable, IDisposable
                     // The exception is dropped on purpose: its message is not ours and could carry what was sent.
                     pending.Result.TrySetException(new GitHubApiException(SkillHealthFailure.NoNetwork));
                 }
+                catch (Exception)
+                {
+                    // Anything else (an argument, an address that does not parse): the same, and above all the consumer stays alive. If it died, this request and
+                    // every later one would wait forever.
+                    pending.Result.TrySetException(new GitHubApiException(SkillHealthFailure.UnreadableResponse));
+                }
             }
         }
         catch (OperationCanceledException)
         {
             // Disposed.
+        }
+        finally
+        {
+            // Whoever is still queued is told, instead of waiting for an answer that will not come.
+            while (_queue.Reader.TryRead(out var left))
+            {
+                left.Result.TrySetException(new GitHubApiException(SkillHealthFailure.NoNetwork));
+            }
         }
     }
 

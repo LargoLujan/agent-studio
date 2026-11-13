@@ -130,6 +130,12 @@ public sealed class GitHubSkillHealthChecker(
             return new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "La rama de origen ya no existe: revisa la skill antes de usarla.");
         }
 
+        if (pinnedSha is null && branchSha is null)
+        {
+            // Both answers are empty: nothing touched the folder, so it is not there. Two empty answers are not «sin novedades».
+            return new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "No se encontró la carpeta de la skill en el origen: revisa si cambió de sitio.");
+        }
+
         return string.Equals(pinnedSha, branchSha, StringComparison.Ordinal)
             ? new(SkillHealthCodes.Upstream, SkillHealthStatus.Healthy, "Sin novedades en su carpeta desde el commit fijado.")
             : new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "Actualización por revisar: su carpeta cambió en el origen desde el commit fijado.");
@@ -247,7 +253,7 @@ public sealed class GitHubSkillHealthChecker(
 
     private static string Message(SkillHealthFailure failure, DateTimeOffset? resetsAt) => failure switch
     {
-        SkillHealthFailure.NetworkNotAllowed => "Sin comprobar: la comprobación en GitHub está apagada en Ajustes.",
+        SkillHealthFailure.NetworkNotAllowed => "Sin comprobar: la comprobación en GitHub está apagada (se enciende en la pantalla de Skills).",
         SkillHealthFailure.InvalidOrigin => "Sin comprobar: origen no válido (o sin commit fijado). No se preguntó nada a GitHub.",
         SkillHealthFailure.NoNetwork => "Sin comprobar: no hay conexión con GitHub.",
         SkillHealthFailure.Forbidden => "Sin comprobar: GitHub no dejó leer este repositorio.",

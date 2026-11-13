@@ -55,7 +55,7 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
 
         if (scripts is null)
         {
-            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no hay lector de scripts en esta composición.");
+            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no hay lector de scripts disponible.");
         }
 
         try

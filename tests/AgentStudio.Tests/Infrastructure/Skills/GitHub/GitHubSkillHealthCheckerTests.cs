@@ -77,6 +77,33 @@ public sealed class GitHubSkillHealthCheckerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Two_empty_answers_are_a_folder_that_is_not_there_never_a_healthy_upstream()
+    {
+        var (checker, _, _) = Rig(sent => sent.Url == Repo ? Healthy(sent) : FakeGitHubTransport.Fixture("commits-empty.json"));
+
+        var entry = Assert.Single((await checker.CheckAsync([Skill()], Ct)).Entries);
+
+        var upstream = Check(entry, SkillHealthCodes.Upstream);
+        Assert.Equal(SkillHealthStatus.Warning, upstream.Status);
+        Assert.Contains("No se encontró la carpeta", upstream.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_exception_of_any_type_fails_that_request_but_the_queue_keeps_answering_and_the_text_does_not_leak()
+    {
+        const string sentinel = "sentinel-in-an-unlisted-exception";
+        var calls = 0;
+        var (checker, transport, _) = Rig(sent => Interlocked.Increment(ref calls) == 1 ? throw new ArgumentException(sentinel) : Healthy(sent));
+
+        var result = await checker.CheckAsync([Skill("a"), Skill("b")], Ct);
+
+        Assert.Equal(SkillHealthFailure.UnreadableResponse, result.Entries[0].Failure);
+        Assert.Null(result.Entries[1].Failure);
+        Assert.Equal(4, transport.Sent.Count);
+        Assert.DoesNotContain(sentinel, string.Join('\n', result.Entries.SelectMany(e => e.Report.Checks).Select(c => c.Message)), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task An_archived_repository_is_critical()
     {
         var (checker, _, _) = Rig(sent => sent.Url == Repo ? FakeGitHubTransport.Fixture("repo-archived.json") : Healthy(sent));

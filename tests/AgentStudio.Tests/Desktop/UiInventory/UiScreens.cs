@@ -81,8 +81,11 @@ internal static class UiScreens
         Screen("Settings", () => Document(SettingsDocument())),
         ScreenAsync("Skills", async () =>
         {
-            var document = new SkillsWorld().Document();
+            // With the doctor wired and a skill selected, so the panels of the access key and of the scripts are in the inventory too.
+            var world = new SkillsWorld();
+            var document = world.Document(world.DoctorBackend());
             await document.OpenAsync(CancellationToken.None);
+            document.Sectors.SelectMany(sector => sector.Skills).First().IsSelected = true;
             return Document(document);
         }),
         Screen("Help", () => Document(new HelpDocumentViewModel(new HelpBackend(HelpCorpus.FromAssembly(), new HelpSearch(HelpCorpus.FromAssembly()), new HelpActionCatalog())))),

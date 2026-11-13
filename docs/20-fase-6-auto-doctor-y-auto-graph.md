@@ -1144,6 +1144,11 @@ automático.
 
 ### 6.3 Ajustes
 
+> **Corregido por WP-S (2026-11-13):** el permiso y la clave de acceso se manejan en la propia pantalla de Skills (la petición de WP-S lo pidió así), no solo en Ajustes. El permiso vive en
+> `AppSettings.SkillsDoctorNetworkEnabled` y la clave en la bóveda; el lead puede repetirlos en Ajustes sobre `ISkillsDoctorNetworkSetting` e `ISkillsDoctorTokenManager`, que ya existen.
+> **Auto Doctor no aloja ninguna comprobación de skills:** D-01 fija cinco secciones (proveedores, herramientas, proyecto, entorno declarado y contenedores) y D-10 solo nombra los arreglos
+> «Ver la skill» y «Desactivar la skill archivada», que §9.8 deja al lead («cruzan paquetes»). WP-S no añadió una fuente a `IDoctorService`.
+
 - El permiso «Comprobar las skills en GitHub» (apagado), y debajo «Token de GitHub (opcional)»: guardar, sustituir y borrar,
   cada uno con Hello. El token nunca se vuelve a mostrar: solo «hay un token guardado». Un texto avisa de que, con token,
   cada comprobación pedirá Hello (D-15).
