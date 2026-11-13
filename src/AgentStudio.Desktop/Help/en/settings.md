@@ -1,7 +1,7 @@
 ---
 title: Settings
 screens: settings
-info: Info_Language, Info_Unattended, Info_ContextSettings
+info: Info_Language, Info_Unattended, Info_ContextSettings, Info_RemoteSync
 ---
 Here you change how Agent Studio works. Everything is saved with a single button, Save.
 
@@ -10,6 +10,7 @@ Here you change how Agent Studio works. Everything is saved with a single button
 - **Unattended work**: what happens when you close the window and whether the computer stays awake while there is work.
 - **Windows Hello and lock**: confirming it is you and locking the app.
 - **Project memory** and **Motion**.
+- **Remote Git**: how often GitHub is looked at, and the projects where you allowed it. It only reads.
 - **Language**: it applies on restart.
 
 ## Tips

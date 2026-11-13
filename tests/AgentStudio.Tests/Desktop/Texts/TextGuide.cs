@@ -35,6 +35,7 @@ internal static partial class TextGuide
         "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
         "ControlsStrings", "ServicesStrings", "UsageStrings", "RepositoryStrings", "WorkStrings",
         "HelpStrings", "DocumentsStrings", "DoctorStrings", "GraphStrings", "DocsStrings", "HostingStrings",
+        "RemoteSyncStrings",
     ];
 
     /// <summary>
