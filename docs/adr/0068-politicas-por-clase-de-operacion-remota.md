@@ -33,10 +33,13 @@
      ser otro, deja de aplicar. Vale para el proyecto, no caduca sola y se ve y se retira en la pantalla.
   4. **Una sola compuerta** (`IHostingPolicyGate`): toda operación remota pasa por ella antes de ejecutarse, y solo el
      servicio de publicación tiene los puertos del ejecutor remoto y del proveedor (una prueba de arquitectura lo vigila).
-  5. **Cada uso exige, con o sin permiso guardado:** que el registro verifique; que la ejecución esté lista para entregar
-     según `IDeliveryService.CheckAsync` y el commit sea el juzgado (salvo para cerrar y borrar); que el destino sea el
-     de la autorización o la aprobación; que la configuración pase la inspección del ejecutor remoto; y que la capacidad
-     esté declarada.
+  5. **Cada uso exige, con o sin permiso guardado:** que el registro verifique; que el destino sea el de la autorización
+     o la aprobación; que la configuración pase la inspección del ejecutor remoto; y que la capacidad esté declarada. **El
+     veredicto se exige por operación, no por clase** (`HostingPolicy.RequiresApprovedVerdict`): publicar la rama, abrir o
+     actualizar el PR, pedir revisores y fusionar exigen que la ejecución esté lista para entregar según
+     `IDeliveryService.CheckAsync` y que el commit sea el juzgado; **publicar el veredicto** (estado y comentario) solo
+     exige el registro verificado, porque tiene que poder decir «no aprobado» y «en revisión»; cerrar y borrar no lo
+     exigen.
   6. **«Por uso» es `IApprovalGate` con una petición atada** (`ApprovalRequest.Binding`) al repositorio, el número de PR,
      el commit de cabeza, el modo y la rama base. La respuesta tiene que contestar a esa atadura y el estado se relee
      después de aprobar, como en la entrega.

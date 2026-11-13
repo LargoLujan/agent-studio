@@ -392,7 +392,10 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   - `PATH`, ya filtrado;
   - `TEMP` y `TMP`, en una carpeta propia (`%LOCALAPPDATA%\AgentStudio\hosting\tmp`);
   - y las que pone el ejecutor: `GIT_TERMINAL_PROMPT=0`, `GIT_OPTIONAL_LOCKS=0`, `GIT_PAGER=cat`, `GIT_NO_LAZY_FETCH=1`,
-    `GIT_ALLOW_PROTOCOL=https` y `GCM_INTERACTIVE=never` (decisión 5).
+    `GIT_ALLOW_PROTOCOL=https` y `GCM_INTERACTIVE=never` (decisión 5). Esta última solo la entiende Git Credential
+    Manager. Si tu ayudante global es otro (el de `gh`, que deja `gh auth setup-git`, pasó la inspección de la capa
+    interna en este equipo según ADR-0012), no hay ventana que evitar: `git` lo lanza con este mismo entorno, sin
+    `GH_TOKEN`, y usa la sesión guardada de `gh`.
   - Todo lo demás no pasa: ni `GIT_SSH_COMMAND`, ni `GIT_ASKPASS`, ni `GIT_CONFIG_*`, ni `GIT_TRACE*`, ni
     `GIT_CURL_VERBOSE`, ni `GCM_TRACE`, ni un `HTTPS_PROXY` heredado. Un proxy que necesites va en tu configuración
     global de git (`http.proxy`), que sí cuenta.
@@ -424,7 +427,7 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   GitHub», con la lista. Se calcula con la cabeza de la rama base en el remoto (`ls-remote`) y la historia local (capa
   interna, solo lectura). Si esa cabeza no está en tu equipo, se dice que no se puede saber, y decides tú.
 - **Git LFS:** si el repositorio usa LFS (`filter.lfs.*` en la configuración efectiva y algún fichero de lo que se publica
-  con ese filtro), **no se publica** y se explica: sin el hook `pre-push` los objetos no subirían y el PR quedaría con
+  con ese filtro), **no se publica** (decisión 16) y se explica: sin el hook `pre-push` los objetos no subirían y el PR quedaría con
   punteros rotos. El camino es publicar esa rama con tu cliente git. Ante la duda, se rechaza.
 - **Después, se comprueba:** `ls-remote` de la rama tiene que dar exactamente el commit publicado. Si no, el resultado es
   «no confirmado», no «publicado».
@@ -498,15 +501,20 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
 
 - **Cómo se construye una ruta:** un solo constructor (`GitHubApiPath`). Cada segmento sale de un tipo validado
   (`RemoteRepository`, un número de PR positivo, un commit de 40 hexadecimales, una rama de `agentstudio/run-…` o una rama
-  base validada), se escapa con `Uri.EscapeDataString` y la ruta final se comprueba contra la plantilla. Nunca empieza por
-  `-`: siempre por `/repos/` o es `/user`.
+  base validada), se escapa con `Uri.EscapeDataString` **segmento a segmento** y la ruta final se comprueba contra la
+  plantilla. Una rama lleva barras (`agentstudio/run-…`): se parte por ellas y cada trozo se escapa aparte, de modo que la
+  barra queda literal y nunca `%2F` (sin verificar que los tres puntos con rama en la ruta la quieran así: §13). Nunca
+  empieza por `-`: siempre por `/repos/` o es `/user`.
 - **Nunca** `-f`, `-F`, `--field` ni `--raw-field` (un valor que empiece por `@` leería un fichero); nunca los marcadores
   `{owner}`, `{repo}` ni `{branch}` de `gh`; nunca `--paginate`, `--cache`, `--jq`, `--template` ni `--verbose`.
 - **Los datos de una escritura van en un JSON por la entrada estándar** (`--input -`), escrito con `Utf8JsonWriter` desde
   tipos: el título, el cuerpo, la rama base, los revisores. Ningún texto libre llega a ser un argumento (los shims `.cmd` y
   la regla del proyecto). `gh.exe` es un ejecutable, no un shim; la regla se cumple igual.
-- **Las cabeceras** son constantes del adaptador, salvo `If-None-Match`, cuyo valor (un `ETag` guardado) se valida: ASCII
-  visible, 200 caracteres como mucho, sin saltos de línea.
+- **Las cabeceras** son constantes del adaptador, salvo `If-None-Match`. Su valor es un `ETag` que dio el remoto: **es el
+  único dato del remoto que llega a ser un argumento,** y la segunda excepción a «ningún dato no fiable en los
+  argumentos» junto a la ruta validada. Solo se acepta con la forma exacta de un `ETag` (`W/` opcional y, entre comillas
+  dobles, de 1 a 128 caracteres ASCII visibles sin comillas ni espacios); lo que no la tiene se descarta y la petición va
+  sin condición.
 - **Por qué no las órdenes de alto nivel** (`gh pr create`, `gh pr view --json`, `gh pr merge`): reciben el título como
   argumento; no enseñan `ETag`, 304, 429 ni `retry-after`; y trabajan sobre «el repositorio de la carpeta actual»,
   lanzando `git` dentro de él, que es justo la configuración no fiable. Con `gh api` y la ruta completa, `gh` no necesita
@@ -593,8 +601,12 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
   puede construir (su fábrica lo valida).
 - **Qué exige cada uso, con o sin autorización persistente:**
   1. el registro verifica contra su ancla;
-  2. para publicar, escribir en el PR y fusionar: `IDeliveryService.CheckAsync` da la ejecución por lista y el commit es
-     el juzgado. Cerrar un PR y borrar su rama no lo exigen (se cierra justo lo que no se aprobó);
+  2. **el veredicto, según la operación** (`HostingPolicy.RequiresApprovedVerdict`, por operación y no por clase):
+     - publicar la rama, abrir o actualizar el PR, pedir revisores y fusionar: `IDeliveryService.CheckAsync` da la
+       ejecución por lista y el commit es el juzgado;
+     - **publicar el veredicto** (el estado y el comentario): solo que el registro verifique y que haya un veredicto que
+       contar. Tiene que poder decir «no aprobado» y «en revisión», que es justo cuando `CheckAsync` dice que no (D-22);
+     - cerrar un PR y borrar su rama: no lo exigen (se cierra justo lo que no se aprobó);
   3. el destino coincide con el identificador de la autorización, o de la aprobación;
   4. la configuración pasa la inspección (D-05), para lo que use git;
   5. la capacidad está declarada (D-09).
@@ -639,7 +651,8 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 **D-18 · «Publicar y abrir PR»: un flujo en pasos, idempotente.**
 
 1. **Tarjeta de publicación** (`PublicationPreview`): destino, commits que suben (D-08), rama base (por defecto la del
-   repositorio en GitHub), protecciones (D-17), título y cuerpo (D-19), y qué autorización lo ampara.
+   repositorio en GitHub), protecciones (D-17), título y cuerpo (D-19), y qué autorización lo ampara. Se calcula dentro del
+   buzón, con el proyecto tomado (D-25): con una ejecución en marcha no se puede publicar, y la tarjeta lo dice.
 2. **Tu clic.** Si no hay autorización persistente para alguna clase, la compuerta pide la aprobación, con Hello.
 3. **El buzón** (D-25) toma el proyecto y, en orden: inspecciona la configuración → `push` → `ls-remote` → busca un PR
    abierto desde esa rama (`FindPullRequest`) → lo abre si no existe, o lo actualiza → publica el veredicto (D-21) → empieza a
@@ -654,7 +667,7 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
   con la rama pendiente de publicar).
 - **La entrega local y el PR no se excluyen.** Son dos caminos a «integrado»; el tablero acepta cualquiera (D-29).
 
-**D-19 · El título y el cuerpo los compone el sistema; tú puedes cambiarlos; ningún agente escribe en ellos.**
+**D-19 · El título y el cuerpo los compone el sistema; tú puedes cambiarlos; ningún agente escribe en ellos** (decisión 9).
 
 - **Por qué:** GitHub interpreta el cuerpo. Un `@alguien` avisa a esa persona, un `Closes #12` cierra una incidencia al
   fusionar, una imagen se carga desde donde diga su dirección. Texto de un agente ahí sería darle una vía para actuar
@@ -700,9 +713,9 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 
   | Veredicto en vigor | `state` | Descripción (fija, del sistema) |
   |---|---|---|
-  | Aprobado y válido | `success` | «Juez independiente: aprobado» |
-  | Rechazado | `failure` | «Juez independiente: no aprobado» |
-  | Impugnado, en revisión, o lo decide una persona | `pending` | «Juez independiente: en revisión» |
+  | Aprobado y válido | `success` | «Revisor independiente (juez): aprobado» |
+  | Rechazado | `failure` | «Revisor independiente (juez): no aprobado» |
+  | Impugnado, en revisión, o lo decide una persona | `pending` | «Revisor independiente (juez): en revisión» |
   | El registro no verifica | No se publica nada | — |
 
 - **El comentario** lo compone el sistema (D-19): la decisión, el commit juzgado, el recuento por requisito con sus ids, qué
@@ -754,10 +767,20 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
   durante 30 días, más despacio, por si hay un revert o un despliegue. «Dejar de seguir» lo corta.
 - **Cadencia:** cada 5 minutos por defecto (2, 5, 15 o 60, en Ajustes), a intervalo fijo, solo con la app abierta y el
   permiso dado. Un fusionado, cada hora. Si GitHub da `x-poll-interval`, se respeta el mayor.
-- **Condicional:** cada lectura va con `If-None-Match` y el `ETag` de la anterior. **304:** nada cambió; no se lee nada más
-  de ese PR en esa vuelta, y no cuenta contra el límite principal de GitHub (según sus buenas prácticas).
-- **Coste:** un PR sin cambios cuesta una petición por vuelta, y esa es un 304. Los checks y las revisiones solo se releen
-  si el PR cambió o si había checks pendientes.
+- **Condicional, y por recurso.** Cada lectura va con `If-None-Match` y el `ETag` de **ese mismo recurso** en la vuelta
+  anterior. Un 304 dice que ese recurso no cambió; **no dice nada de los demás:** los checks, un revert en la rama base o
+  un despliegue cambian sin que cambie el `ETag` del PR. Por eso cada recurso tiene su `ETag` y su 304:
+
+  | Estado del PR | Qué se pregunta en cada vuelta | Solo si cambió la cabeza |
+  |---|---|---|
+  | Abierto o borrador | El PR; los checks y el estado combinado de su cabeza; sus revisiones | Sus commits y sus eventos |
+  | Fusionado (30 días) | Los commits de la rama base desde la fusión; los despliegues del commit resultante | — |
+  | Recién fusionado o cerrado (una vez) | El PR, sus commits y el commit de la fusión | — |
+
+- **La instantánea se compone** con lo nuevo de los recursos que cambiaron y lo último conocido de los que dieron 304. Si
+  todos dieron 304, no hay instantánea nueva ni entrada.
+- **Coste:** un PR abierto sin cambios cuesta cuatro peticiones por vuelta, las cuatro con 304, que no cuentan contra el
+  límite principal de GitHub (según sus buenas prácticas; sin verificar con `gh`, §13). Uno fusionado, dos por hora.
 - **Límites:**
   - 429, o 403 con `x-ratelimit-remaining: 0` o con `retry-after`: no se lanza nada a ese host hasta la hora que digan
     `retry-after` o `x-ratelimit-reset`;
@@ -775,14 +798,31 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
   vez en toda la app, que es lo que GitHub pide (peticiones en serie) y donde vive el estado de los límites.
 - **El proyecto ocupado.** Tres reglas:
   1. **Leer por `gh` no toca ni git ni el registro:** el sondeo sigue aunque haya una ejecución en marcha.
-  2. **Para tocar git** (`push`, `ls-remote`, la inspección) **o escribir en el registro,** el buzón toma el proyecto con
+  2. **Para lanzar `git`, sea cual sea la orden, o escribir en el registro,** el buzón toma el proyecto con
      `IProjectActivity.TryEnter(proyecto, ProjectActivityKind.RemoteOperation)`. Si devuelve nulo, hay otra actividad: el
      mensaje se queda en el buzón y se reintenta cuando el proyecto quede libre. No es «mirar y luego actuar»: es entrar
-     o no entrar.
-  3. **Mientras el buzón lo tiene,** una ejecución, un debate o una auditoría que quieran empezar reciben el motivo de
-     siempre («el proyecto está ocupado: sincronizando con GitHub») y esperan unos segundos: el buzón lo suelta tras cada
-     mensaje.
-- **`ProjectActivityKind.RemoteOperation`** se añade al final del enum. No comparte el proyecto con nada.
+     o no entrar. «Sea cual sea» incluye lo que solo lee: `push`, `ls-remote`, la inspección de la configuración (D-05) y
+     el recuento de commits de la tarjeta de publicación (D-08), que pide historia a la capa interna.
+  3. **Todo el `git` de esta fase pasa por el buzón.** No hay ningún camino lateral:
+     - la tarjeta de publicación (`PreviewAsync`) se calcula dentro del buzón; con el proyecto ocupado no lanza nada y
+       dice «El proyecto está ocupado: podrás publicar cuando termine lo que está en marcha»;
+     - las dos líneas de Auto Doctor que necesitan la inspección (`doctor.remote.config` y `doctor.remote.lfs`) la piden
+       al buzón, y con el proyecto ocupado salen «sin comprobar»;
+     - **el sondeo no lanza `git` nunca:** el identificador del remoto se guarda al empezar a seguir un PR, y un
+       force-push se reconoce por la plataforma, no por la historia local (D-27).
+  4. **Mientras el buzón lo tiene,** una ejecución, un debate o una auditoría que quieran empezar **se rechazan** con su
+     motivo, como hoy cuando un debate tiene el proyecto: `Orchestrator.Enter` lanza si `TryEnter` da nulo; no espera.
+     Por eso el buzón lo tiene lo mínimo: lo toma y lo suelta en cada mensaje (unos milisegundos para una entrada del
+     registro; hasta 120 segundos para un `push`, que acabas de pedir tú). El motivo dice «Sincronizando con GitHub:
+     inténtalo en unos segundos».
+  5. **Lo que queda por comprobar** (§13): qué hace la reanudación automática de la Fase 8 si, al arrancar la app,
+     encuentra el proyecto tomado. Para no cruzarse con ella, el buzón no empieza hasta que esa reanudación ha terminado.
+- **`ProjectActivityKind.RemoteOperation`** se añade al final del enum. No comparte el proyecto con nada: en
+  `OrchestrationActivity.TryAdd` (`Orchestration/Engine/Orchestrator.cs`) entra en la rama de `Debate` y `Audit`.
+- **No es trabajo con agentes:** no gana un valor en `BackgroundWorkKind` ni aparece en la bandeja como una ejecución.
+- **Lo que ya había y no cambia:** las pantallas de las Fases 6 y 9 que leen por la capa interna (los remotos, la
+  historia) siguen como están; esta fase no les añade ni les quita nada. La regla de arriba es para el `git` que lanza
+  esta fase.
 - **Las observaciones que esperan** viven en memoria y en el fichero de pendientes (§6): si cierras la app, se releen al
   volver; no hay nada que perder, porque el estado se vuelve a observar.
 - **Una acción tuya pasa delante** del sondeo en el buzón.
@@ -814,7 +854,7 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 | Cerrado sin fusionar, reabierto | `state` y `merged` | Hecho |
 | Rama borrada | La rama de cabeza ya no existe (404 al leerla) | Hecho |
 | Cabeza movida | `head.sha` distinto del anterior | Hecho |
-| Force-push | El número de eventos `head_ref_force_pushed` del PR creció; o, si los dos commits están en tu equipo, la cabeza nueva no desciende de la anterior (capa interna, solo lectura) | Hecho; se cuenta, no se aplica |
+| Force-push | El número de eventos `head_ref_force_pushed` del PR creció. No se mira la historia local: el sondeo no lanza `git` (D-25) | Hecho de la plataforma; se cuenta, no se aplica |
 | Checks | El resumen cambió (pasan, fallan, esperan) | Hecho; los nombres no van al registro |
 | Revisiones | El resumen cambió | Hecho |
 | Revert | En la rama base, después de la fusión, hay un commit cuyo mensaje tiene la línea estándar de git `This reverts commit <commit de la fusión>.` | **Deducido de un texto:** se enseña «posible reversión (por el mensaje del commit)» y propone reabrir el hito; reabrirlo es decisión tuya |
@@ -847,7 +887,7 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **Descartado:** inferir la unión de los trailers de los commits. Tras un squash dependen de la plataforma (docs/16 D-30);
   siguen siendo una ayuda para sugerir, nunca la fuente.
 
-**D-29 · «Integrado» por PR exige que lo fusionado sea lo juzgado; «desplegado», que la plataforma lo diga.**
+**D-29 · «Integrado» por PR exige que lo fusionado sea lo juzgado; «desplegado», que la plataforma lo diga** (decisión 15).
 
 - **«Integrado»** (la columna del tablero y el estado del requisito en el informe del hito) se alcanza por cualquiera de dos
   hechos del registro:
@@ -889,7 +929,9 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **Los arreglos son de «ir» o de «guía»:** «Ir a Repositorio › PR», «Instala la CLI de GitHub» (con la orden de `winget`
   para copiar), «Inicia sesión con `gh auth login`» (para copiar; la app no la ejecuta).
 - **La inspección de D-05 usa git dentro del repositorio,** por el ejecutor remoto y sin transporte: es la misma excepción
-  que ya aceptaste para la sección «Proyecto» (decisión 13 de docs/20).
+  que ya aceptaste para la sección «Proyecto» (decisión 13 de docs/20). Se pide al buzón, que toma el proyecto: con una
+  ejecución, un debate o una auditoría en marcha, `doctor.remote.config` y `doctor.remote.lfs` salen «sin comprobar: el
+  proyecto está ocupado» (D-25).
 
 ---
 
@@ -956,7 +998,9 @@ public static class HostingPolicy
 {
     public static HostingOperationClass ClassOf(HostingOperationKind operation);
     public static bool CanBePersistent(HostingOperationClass @class);      // false for MergePullRequest and Destructive
-    public static bool RequiresApprovedVerdict(HostingOperationClass @class);   // false only for Destructive
+    /// By operation, not by class: false for PublishVerdictStatus and PublishVerdictComment (they must be able to say
+    /// «not approved» and «in review») and for ClosePullRequest and DeleteRemoteBranch; true for everything else.
+    public static bool RequiresApprovedVerdict(HostingOperationKind operation);
 }
 
 /// A standing grant as the log holds it (D-16). Matches only the same class and the same repository (and base branch, when it names one).
@@ -1078,7 +1122,10 @@ public sealed record BranchRules(bool Readable, IReadOnlyList<BranchRule> Rules)
 
 public sealed record PullRequestText(string Title, string Body);          // sent through standard input, never as an argument
 public sealed record PullRequestDraft(RemoteRepository Repository, RemoteBranch Head, RemoteBranch Base, PullRequestText Text, bool Draft);
-public sealed record ObservationCursor(string? PullRequestETag, string? ChecksETag, bool ChecksWerePending);
+public enum ObservedResource { PullRequest, Commits, Events, Reviews, CheckRuns, CombinedStatus, WorkflowRuns, MergeCommit, BaseCommits, Deployments }
+/// One ETag per resource (D-24): a 304 of the pull request says nothing of its checks, of the base branch or of the deployments.
+public sealed record ObservationCursor(IReadOnlyDictionary<ObservedResource, string> ETags, RemoteSnapshot? LastSnapshot);
+/// The snapshot composed from the resources that changed and the last known of those that answered 304. Outcome NotModified: every resource answered 304.
 public sealed record PullRequestObservation(RemoteSnapshot Snapshot, ObservationCursor Cursor, RemoteDisplayTexts Display);
 
 /// Texts of the remote for the screen only (D-12): bounded, cleaned, kept in the local cache, never written to the log.
@@ -1182,8 +1229,10 @@ public sealed record PublicationPreview(bool Ready, UserText? NotReadyReason, Re
 public sealed record PublicationRequest(ProjectContext Project, RunId Run, RemoteBranch BaseBranch, PullRequestText Text, bool Draft);
 
 /// What the person asks for (D-18 and D-20). Each call enqueues work in the mailbox of the project and returns its ticket.
+/// PreviewAsync and InspectAsync run inside the mailbox too, holding the project: with the project busy they launch nothing and say so.
 public interface IPublicationService
 {
+    Task<RemoteGitInspection?> InspectAsync(ProjectContext project, CancellationToken ct);   // for Auto Doctor; null when the project is busy
     Task<PublicationPreview> PreviewAsync(ProjectContext project, RunId run, RemoteBranch? baseBranch, CancellationToken ct);
     Task<RemoteWorkTicket> PublishAsync(PublicationRequest request, CancellationToken ct);
     Task<RemoteWorkTicket> UpdateVerdictAsync(ProjectContext project, PullRequestRef pullRequest, CancellationToken ct);
@@ -1243,7 +1292,8 @@ public interface IRemoteSyncStore
 - `IHostingProvider` no tiene ningún miembro que envíe una revisión: es la garantía de D-21.
 - `IHostingPolicyGate` es el único camino: `PublicationService` no recibe los dos puertos de arriba directamente, sino
   detrás de la compuerta (una prueba de arquitectura exige que `IHostingProvider` e `IRemoteGitRunner` solo se inyecten
-  en `Orchestration/Publication/**` y en la fuente de Auto Doctor).
+  en `Orchestration/Publication/**`; la fuente de Auto Doctor usa `IDoctorToolRunner` para la versión de `gh` e
+  `IPublicationService.InspectAsync` y `IRemoteSync.Health` para lo demás).
 - Los contratos que ya existen y cambian: `ParticipationSources` gana `RemotePublication`, `RemoteReview` y `RemoteMerge`;
   `CommitAnnotation` gana un `CommitSuccessor?` opcional al final.
 
@@ -1395,27 +1445,38 @@ Las líneas de D-31, en sus secciones «Herramientas» y «Proyecto». Sin panta
 
 ### 7.7 Textos y sus ⓘ
 
-En castellano llano; la versión inglesa va en el `.en.resx`. Algunos, como referencia para el P0 y WP5:
+Siguen la guía de textos de ADR-0054 (punto 9): frases de 20 palabras como mucho, una idea por frase, de tú; botones con
+verbo y objeto; un error dice qué pasó, por qué y qué hacer. Y su glosario: «versión guardada (commit)» la primera vez,
+«revisor independiente (juez)», «prueba guardada», «huella», «pasar a tu rama». Dos términos nuevos para el glosario, que
+el P0 propone y WP5 fija: **«petición de fusión (PR)»** y **«publicar»** (subir la rama a GitHub).
 
-| Clave | Texto | ⓘ |
+Cada apartado con ⓘ lleva sus tres textos (`<InfoKey>_Title`, `_What` y `_Actions`); la tabla da el texto visible y el
+«qué es esto». La versión inglesa va en el `.en.resx`. Como referencia para el P0 y WP5:
+
+| Clave | Texto | ⓘ («Qué es esto») |
 |---|---|---|
-| `Hosting_Publish_Button` | Publicar y abrir PR | Sube la rama de esta ejecución a GitHub y abre una petición de fusión. No cambia tu rama. |
-| `Hosting_Publish_Uploads` | Se publican {0} commits: {1} de Agent Studio y {2} tuyos que aún no están en GitHub. | La rama de la ejecución sale de la tuya: lo que tenías sin publicar sube con ella. |
-| `Hosting_Publish_NotReady` | Esta ejecución aún no se puede publicar: {0} | Solo se publica el trabajo que un juez aprobó, igual que al entregar. |
-| `Hosting_Verdict_NotApproval` | El veredicto se publica como un estado y un comentario. No es una aprobación tuya. | Agent Studio nunca aprueba un PR con tu cuenta: la revisión de una persona sigue siendo de una persona. |
-| `Hosting_Head_Moved` | La cabeza del PR cambió después del veredicto. | Alguien subió commits que el juez no vio. Si se fusionan, este trabajo no contará como integrado. |
-| `Hosting_Merge_Hello` | Fusionar cambia la rama {0} de GitHub. Se pide Windows Hello cada vez. | Fusionar y borrar en el remoto no admiten un permiso guardado. |
-| `Hosting_Rules_Unreadable` | No se pudieron leer las protecciones de {0}. GitHub las aplicará igualmente. | Tu cuenta no tiene permiso para verlas, o GitHub no las expone. |
-| `Hosting_Pending_Offline` | Pendiente de sincronizar: sin conexión. Se reintentará a las {0}. | Nada se da por hecho hasta que GitHub lo confirma. |
-| `Hosting_SignIn` | No hay sesión de GitHub. Abre una terminal y ejecuta: gh auth login | Agent Studio usa la sesión del programa `gh`. Nunca ve ni guarda tu clave de acceso. |
-| `Hosting_Credentials` | Tu gestor de credenciales de git no tiene acceso a GitHub por HTTPS. | El envío lo hace git con tu gestor de credenciales. Agent Studio no ve la clave. |
-| `Hosting_RateLimited` | GitHub pide esperar hasta las {0}. | Es el límite de uso de la API de GitHub para tu cuenta. No se insiste. |
-| `Hosting_Config_Refused` | No se puede publicar: este repositorio define {0} en {1}. | La configuración del repositorio no puede decidir adónde se envía ni cómo te identificas. Quita esa línea o publica con tu cliente git. |
-| `Hosting_Lfs_Refused` | Este proyecto usa Git LFS: Agent Studio no sube esos ficheros. Publica la rama con tu cliente git. | Subirlos exige ejecutar un programa del repositorio durante el envío. |
-| `Hosting_Sync_Permission` | Sincronizar con GitHub | Cada pocos minutos, pregunta a GitHub por el estado de tus PR. Sale el nombre del repositorio y los números de tus PR; nada más del proyecto. |
+| `Hosting_Publish_Button` | Publicar y abrir la petición de fusión | Sube a GitHub la rama de esta ejecución y abre una petición de fusión (PR). Tu rama no cambia. |
+| `Hosting_Publish_Uploads` | Se publican {0} versiones guardadas (commits): {1} de Agent Studio y {2} tuyas. | La rama de la ejecución sale de la tuya. Lo que tenías sin publicar sube con ella. |
+| `Hosting_Publish_NotReady` | Esta ejecución aún no se puede publicar. Motivo: {0} | Solo se publica el trabajo que aprobó un revisor independiente (juez), igual que al pasarlo a tu rama. |
+| `Hosting_Publish_Busy` | El proyecto está ocupado. Podrás publicar cuando termine lo que está en marcha. | Agent Studio no toca tu repositorio mientras trabaja una ejecución, un debate o una auditoría. |
+| `Hosting_Verdict_NotApproval` | El resultado de la revisión se publica como un estado y un comentario. No es una aprobación tuya. | Agent Studio nunca aprueba una petición de fusión con tu cuenta. Aprobar sigue siendo cosa de una persona. |
+| `Hosting_Head_Moved` | La petición de fusión cambió después de la revisión. | Alguien subió cambios que el revisor independiente no vio. Si se fusionan, este trabajo no contará como integrado. |
+| `Hosting_Merge_Hello` | Fusionar cambia la rama {0} de GitHub. Se pide Windows Hello cada vez. | Fusionar y borrar en GitHub no admiten un permiso guardado. |
+| `Hosting_Rules_Unreadable` | No se pudieron leer las protecciones de {0}. GitHub las aplicará igualmente. | Tu cuenta no tiene permiso para verlas, o GitHub no las enseña. |
+| `Hosting_Pending_Offline` | Pendiente de sincronizar: no hay conexión. Se volverá a intentar a las {0}. | Nada se da por hecho hasta que GitHub lo confirma. |
+| `Hosting_SignIn` | No hay sesión de GitHub. Abre una terminal y escribe: gh auth login | Agent Studio usa la sesión del programa `gh`. Nunca ve ni guarda tu clave de acceso. |
+| `Hosting_Credentials` | Git no pudo identificarse en GitHub. Comprueba tu gestor de credenciales. | El envío lo hace git con tu gestor de credenciales. Agent Studio no ve la clave. |
+| `Hosting_RateLimited` | GitHub pide esperar hasta las {0}. | Es el límite de uso de GitHub para tu cuenta. Agent Studio no insiste. |
+| `Hosting_Config_Refused` | No se puede publicar: el repositorio define {0} en {1}. Quita esa línea o publica con tu programa de git. | La configuración del repositorio no puede decidir adónde se envía ni cómo te identificas. |
+| `Hosting_Lfs_Refused` | Este proyecto usa Git LFS y Agent Studio no sube esos ficheros. Publica la rama con tu programa de git. | Subirlos exige ejecutar un programa del repositorio durante el envío. |
+| `Hosting_Sync_Permission` | Sincronizar con GitHub | Cada pocos minutos pregunta a GitHub por tus peticiones de fusión. Sale el nombre del repositorio y sus números; nada más del proyecto. |
 | `Hosting_Deployed` | Desplegado | Lo dice GitHub. Agent Studio no despliega nada. |
-| `Hosting_Revert_Suspected` | Posible reversión (por el mensaje de un commit) | Es una deducción. Si es cierta, puedes reabrir el hito. |
+| `Hosting_Revert_Suspected` | Posible reversión, por el mensaje de una versión guardada | Es una deducción. Si es cierta, puedes reabrir el hito. |
 
+- Los nombres de la pantalla siguen la misma regla: la sección se llama «Peticiones de fusión (PR)» y, en lo que sigue de
+  este documento, «PR» es la abreviatura de trabajo.
+- Lo que se publica **en GitHub** (el cuerpo del PR, el comentario y la descripción del estado) también sale de recursos,
+  en el idioma de la app, y sigue la guía.
 ---
 
 ## 8. Seguridad frente a ADR-0018
@@ -1469,9 +1530,9 @@ sin cambiar su texto. Aquí se concreta la prueba de cada uno.
 | F10-1 | Pruebas de ViewModel con un proveedor de prueba: sin `Merge`, no hay orden «Fusionar»; con solo `Squash`, el selector tiene un modo; sin `ReadDeployments`, no hay columna «Despliegue»; sin `CommitStatus`, el veredicto sale solo como comentario; versión no probada, aviso. Y del dominio: `NarrowedBy` nunca añade capacidades | `tests/.../Domain/Hosting/**`, `tests/.../Desktop/Repository/PullRequests/**` |
 | F10-2 | El adaptador contra respuestas grabadas (abajo) con un `IProcessRunner` que registra cada `ProcessSpec`: repositorio y reglas de rama; buscar, abrir y actualizar un PR; pedir revisores; leer revisiones, checks y Actions; fusionar con cada modo, y una fusión rechazada (405, 409 y 422). Cada caso comprueba la orden lanzada (ruta, método, cuerpo por la entrada estándar) y lo que se interpreta. Respuestas hostiles: sin línea de estado, JSON profundo, campo de otro tipo, 2 MB, un `login` con espacios, un título con secuencias de terminal | `tests/.../Infrastructure/Hosting/**` |
 | F10-3 | Un remoto local (carpeta bare) y repositorios temporales: publica y `ls-remote` confirma; la segunda vez, «ya al día»; un remoto que avanzó por otro lado → rechazado, sin forzar; **configuraciones plantadas**, una prueba por familia de D-05 (`credential.helper` local con un programa centinela, `url.*.insteadOf`, `pushInsteadOf`, `remote.origin.pushurl`, `core.sshCommand`, `core.fsmonitor`, `http.proxy`, `http.extraHeader`, `push.followTags`, un `includeIf` global hacia un fichero del repositorio): no se publica, el centinela no corre y el motivo nombra la clave; un hook `pre-push` plantado no corre; variables `GIT_SSH_COMMAND`, `GIT_ASKPASS`, `GIT_CONFIG_COUNT` y `GIT_TRACE` heredadas no llegan al proceso; el repositorio del usuario queda igual tras publicar (`UserRepositoryState.Compare`); la prueba de D-07 sobre todos los `ProcessSpec`; LFS → rechazado | `tests/.../Infrastructure/Git/Remote/**` (`Category=LocalTools`) |
-| F10-4 | La compuerta, con un registro en memoria: sin autorización pide aprobación, y con la respuesta atada a otra cosa no actúa; con autorización persistente no pide; una autorización de otro repositorio o de otra rama base no cubre; fusionar y lo destructivo piden siempre, y `GrantAsync` de esas clases se rechaza; con el veredicto impugnado se rechaza publicar y fusionar; retirar la autorización vuelve a pedir; cada uso deja su entrada; las reglas de la rama llegan a la tarjeta, y «no se pudieron leer» también. Las seis acciones están en `KnownPresenceActions` como `RemoteOrSecretOperation` | `tests/.../Orchestration/Publication/**`, `tests/.../Security/Approvals/**` |
+| F10-4 | La compuerta, con un registro en memoria: sin autorización pide aprobación, y con la respuesta atada a otra cosa no actúa; con autorización persistente no pide; una autorización de otro repositorio o de otra rama base no cubre; fusionar y lo destructivo piden siempre, y `GrantAsync` de esas clases se rechaza; con el veredicto impugnado se rechaza publicar la rama, abrir el PR y fusionar, **y se permite publicar el veredicto** (que sale «en revisión»); retirar la autorización vuelve a pedir; cada uso deja su entrada; las reglas de la rama llegan a la tarjeta, y «no se pudieron leer» también. Las seis acciones están en `KnownPresenceActions` como `RemoteOrSecretOperation` | `tests/.../Orchestration/Publication/**`, `tests/.../Security/Approvals/**` |
 | F10-5 | El adaptador publica el veredicto en sus tres estados: la orden es `POST …/statuses/{sha}` y `POST` o `PATCH` de un comentario; el comentario lleva la marca y no lleva texto del juez. **Ninguna llamada de revisión:** la prueba de D-21 sobre todos los `ProcessSpec` de la batería (ni `pr review`, ni `--approve`, ni una escritura en `/reviews`, ni `APPROVE`, ni `"event"`), y la de arquitectura | `tests/.../Infrastructure/Hosting/GitHub/VerdictPublicationTests.cs` |
-| F10-6 | `RemoteReconciler`, puro: la misma instantánea dos veces → un cambio; una secuencia desordenada (fusionado y después una respuesta vieja «abierto») → no vuelve atrás; una prueba de propiedad con permutaciones y repeticiones da siempre el mismo conjunto de observaciones. El buzón, con un reloj y un proveedor de prueba: 304 → ninguna lectura más ni entrada; 429 con `retry-after` → nada sale hasta esa hora; 403 con el límite a cero y `x-ratelimit-reset`; sin cabeceras → un minuto y progresiva; sin conexión y sesión caducada → «pendiente de sincronizar» y ninguna entrada. **Proyecto ocupado:** con una ejecución, un debate o una auditoría dentro (`TryEnter` de cada clase), el buzón no lanza `git` ni escribe en el registro (un lanzador y un registro que cuentan), sí lee por el proveedor, y al quedar libre registra una sola vez. Y al revés: mientras el buzón lo tiene, una ejecución no entra | `tests/.../Domain/Hosting/**`, `tests/.../Orchestration/Publication/**` |
+| F10-6 | `RemoteReconciler`, puro: la misma instantánea dos veces → un cambio; una secuencia desordenada (fusionado y después una respuesta vieja «abierto») → no vuelve atrás; una prueba de propiedad con permutaciones y repeticiones da siempre el mismo conjunto de observaciones. El buzón, con un reloj y un proveedor de prueba: 304 en todos los recursos → ninguna entrada; **304 en el PR y un cambio en los checks, en la rama base (un revert) o en los despliegues → se observa igual**; 429 con `retry-after` → nada sale hasta esa hora; 403 con el límite a cero y `x-ratelimit-reset`; sin cabeceras → un minuto y progresiva; sin conexión y sesión caducada → «pendiente de sincronizar» y ninguna entrada. **Proyecto ocupado:** con una ejecución, un debate o una auditoría dentro (`TryEnter` de cada clase), el buzón no lanza **ningún** `git` (ni `push`, ni `ls-remote`, ni la inspección, ni una lectura de historia) ni escribe en el registro (un lanzador y un registro que cuentan); la tarjeta de publicación y las dos líneas de Auto Doctor dicen «ocupado» sin lanzar nada; sí lee por el proveedor, y al quedar libre registra una sola vez. Y al revés: mientras el buzón lo tiene, `TryEnter` de una ejecución da nulo, y lo suelta al acabar cada mensaje | `tests/.../Domain/Hosting/**`, `tests/.../Orchestration/Publication/**` |
 | F10-7 | Integración: una ejecución guionizada con dos tareas y veredicto aprobado; se publica a un remoto local; un ayudante de la prueba hace en el remoto un **squash**, un **rebase** y una **fusión con commit** (tres casos) y después un **revert**; el proveedor de prueba responde con esos commits. La cadena, desde un commit original, llega al commit resultante y vuelve; tras el revert, lo dice; los commits originales y sus evidencias siguen en el registro, y `Verify` pasa | `tests/.../Integration/Phase10/**` (`Category=LocalTools`) |
 | F10-8 | ViewModel de «PR»: cada estado de la lista, lo pendiente, «la cabeza cambió». Tablero: PR fusionado con la cabeza juzgada → «Integrado»; con otra cabeza → «Hecho» con su motivo; prueba de propiedad: ninguna tarjeta en «Integrado» sin veredicto aprobado. Hito: «integrado» por PR; «desplegado» solo con la observación, y sin ella el estado no existe en el ViewModel | `tests/.../Desktop/{Repository,Work}/**`, `tests/.../Orchestration/Work/**` |
 | F10-9 | Fuera de esta entrega (decisión 1). Lo que sí se prueba: un segundo proveedor de prueba con votos numéricos y sin estado de commit pasa por las mismas pantallas sin tocar su código | `tests/.../Desktop/Repository/PullRequests/**` |
@@ -1483,8 +1544,8 @@ red, y esta fase gira en torno a ellos. No cambian el sentido de ninguno anterio
 | ID | Criterio de aceptación | Cómo se verifica |
 |---|---|---|
 | F10-11 | Agent Studio nunca lee, pasa ni enseña una credencial: ninguna orden `gh auth`, ningún `--show-token`, ninguna variable de token en el entorno de `gh` o de `git`, y nada de la salida de error en el registro | Con `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GH_HOST`, `GH_REPO`, `GH_CONFIG_DIR`, `GH_DEBUG`, `GIT_ASKPASS` y `GCM_TRACE` puestos en el proceso de la prueba, ningún `ProcessSpec` de las dos baterías los lleva. Ningún `ProcessSpec` contiene `auth`, `token` ni `--show-token` como argumento. Un token centinela escrito en el error estándar de un `gh` de prueba no aparece en el registro, la bitácora, los ficheros locales ni los mensajes. Prueba de arquitectura: el código de la fase no nombra `ICredentialVault`, `hosts.yml` ni la carpeta de configuración de `gh` |
-| F10-12 | Ningún texto no fiable es un argumento ni cambia el punto de la API | **Prueba adversaria:** ramas, títulos, cuerpos, cuentas y remotos con `-`, `--admin`, `--upload-pack=x`, `@fichero`, `..`, `%2e%2e`, `?`, `#`, espacios, comillas, `&`, `|`, saltos de línea y caracteres de formato. O se rechazan antes de lanzar nada, o viajan solo en el JSON de la entrada estándar; los argumentos lanzados son los mismos que con datos inocuos, salvo la ruta validada |
-| F10-13 | Sin tu permiso no hay red en segundo plano, y Auto Doctor no la usa nunca | Con el permiso apagado y un reloj que avanza un día, el lanzador no recibe ningún `gh` con `api`; Auto Doctor, con todas sus fuentes, solo lanza `gh --version`; con el permiso dado, el sondeo solo lanza métodos `GET` |
+| F10-12 | Ningún texto no fiable es un argumento ni cambia el punto de la API | **Prueba adversaria:** ramas, títulos, cuerpos, cuentas y remotos con `-`, `--admin`, `--upload-pack=x`, `@fichero`, `..`, `%2e%2e`, `?`, `#`, espacios, comillas, `&`, una barra vertical, saltos de línea y caracteres de formato. O se rechazan antes de lanzar nada, o viajan solo en el JSON de la entrada estándar; los argumentos lanzados son los mismos que con datos inocuos, con dos únicas excepciones, las dos con patrón estricto: la ruta validada y el valor de `If-None-Match`. Un `ETag` hostil (con un salto de línea, con otra cabecera detrás, sin comillas) se descarta y la petición sale sin condición |
+| F10-13 | Sin tu permiso no hay red en segundo plano, y Auto Doctor no la usa nunca | Con el permiso apagado y un reloj que avanza un día, el lanzador no recibe ningún `gh` con `api`; Auto Doctor, con todas sus fuentes, de `gh` solo lanza `gh --version`; con el permiso dado, el sondeo solo lanza métodos `GET` |
 
 **Las respuestas grabadas, dicho sin rodeos.** Las de `gh api` de esta fase se **escriben a mano** a partir de la
 documentación oficial de la API REST de GitHub y de la ayuda de `gh` 2.96.0, con la forma que da `-i` (línea de estado,
@@ -1543,8 +1604,12 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - **Seguridad:** `src/AgentStudio.Security/Approvals/ApprovalRiskClassifier.cs` (las seis acciones).
 - **Auto Doctor:** `DoctorTool.GhVersion` y su entrada en `Infrastructure/Diagnostics/DoctorToolCatalog.cs`.
 - **Lo mínimo para que cada paquete llegue a verde solo:**
-  - los `switch` que recorren `ProjectActivityKind` en `Desktop/Background/**` y `Desktop/Lock/**` (con un texto
-    provisional en recursos; el lead lo deja fino);
+  - `ProjectActivityKind.RemoteOperation` en todos los sitios que lo recorren, que son seis ficheros (búsqueda completa
+    de `ProjectActivityKind` en `src/`): `Orchestration/Engine/Orchestrator.cs` (`OrchestrationActivity.TryAdd` y
+    `Remove`: sin su rama, `TryEnter` daría siempre nulo), `Desktop/Background/{BackgroundWork,BackgroundWorkInProgress}.cs`,
+    `Desktop/Lock/{LockScreenViewModel,LockServices}.cs` y `Desktop/Panels/HeadTestsService.cs` (su texto de «ocupado»).
+    Con un texto provisional en recursos; el lead lo deja fino. `DebateCoordinator` y `ProjectAuditService` solo llaman
+    a `TryEnter` con su clase y no cambian;
   - el par `HostingStrings.resx` / `.en.resx` en `Desktop/Resources/`, con las claves de §7.7, y en
     `DoctorStrings*.resx` (existen) los textos de las ocho líneas de D-31;
   - el código `publishing` en `Help/HelpScreens.cs` con la primera versión de su artículo (`Help/{es-ES,en}/publishing.md`);
@@ -1582,7 +1647,7 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - Criterios: F10-2, F10-5 (el adaptador), F10-1 (las capacidades del adaptador) y la otra mitad de F10-11 y F10-12.
   ADR-0065 y ADR-0066.
 - **Hecho cuando:** las pruebas de F10-2, F10-5, F10-11 y F10-12 de §9 pasan sin lanzar `gh`; el `README.md` de las
-  fixtures dice que son a mano y de qué página sale cada una; Auto Doctor enseña las líneas nuevas con un `gh` de prueba.
+  respuestas grabadas dice que son a mano y de qué página sale cada una; Auto Doctor enseña las líneas nuevas con un `gh` de prueba.
 
 ### 10.5 WP3 · Compuerta, publicación, buzón y reconciliador (L)
 
@@ -1631,7 +1696,7 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 
 ### 10.8 WP-AZ · Azure DevOps por `az` (M; solo con la decisión 1 (b))
 
-- `src/AgentStudio.Infrastructure/Hosting/AzureDevOps/**` (nuevo), con sus fixtures y su prueba en vivo.
+- `src/AgentStudio.Infrastructure/Hosting/AzureDevOps/**` (nuevo), con sus respuestas grabadas y su prueba en vivo.
 - Antes: la forma de `RemoteRepository` para organización y proyecto, y un ADR propio. No se diseña aquí.
 
 ### 10.9 Integración (el lead; M)
@@ -1643,7 +1708,7 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - «Publicar y abrir PR» junto a «Entregar» en el monitor de la ejecución.
 - El nombre de la actividad nueva en la bandeja y en la pantalla de bloqueo.
 - `tests/AgentStudio.Tests/Integration/Phase10/**`: la app compuesta con `AddAgentStudioApp`, un remoto local, git real y
-  un `gh` de prueba (un `IProcessRunner` que responde con las fixtures): publicar → PR → veredicto → squash en el remoto →
+  un `gh` de prueba (un `IProcessRunner` que responde con las respuestas grabadas): publicar → PR → veredicto → squash en el remoto →
   observación → tablero «Integrado» y cadena unida (F10-7); y el mismo recorrido con una ejecución en marcha (F10-6).
 - Documentos: [03](03-pantallas-y-navegacion.md), [08](08-plan-y-criterios-de-aceptacion.md) (el estado, y F10-11 a
   F10-13), [18](18-peticiones-y-pendientes.md) (los pendientes nuevos, desde P70) y el README.
@@ -1698,7 +1763,7 @@ sustituyen estos, que nacen con este documento en estado «propuesta» y se acep
 
 | Riesgo | Mitigación |
 |---|---|
-| La forma real de `gh api -i` o de una respuesta difiere de las fixtures a mano | El lector decide por estructura y falla cerrado (`InvalidAnswer`, nunca un «correcto»); la prueba en vivo sustituye las fixtures; el primer paso del P0 comprueba la ayuda |
+| La forma real de `gh api -i` o de una respuesta difiere de las respuestas grabadas a mano | El lector decide por estructura y falla cerrado (`InvalidAnswer`, nunca un «correcto»); la prueba en vivo las sustituye por capturas reales; el primer paso del P0 comprueba la ayuda |
 | `gh` cambia de versión y con ella su salida | Solo se usa `gh api`, la parte más estable; la versión de la API va fijada en una cabecera; Auto Doctor avisa de una versión no probada |
 | El gestor de credenciales no tiene acceso por HTTPS (usas SSH) | Se dice con su guía; es la decisión 4 |
 | Tu configuración global reescribe direcciones (`insteadOf`) | Se rechaza con su motivo; publicas con tu cliente git |
@@ -1746,6 +1811,8 @@ medir:** no se ejecutó nada con red ni con cuenta.
   - `POST …/statuses/{sha}`: el permiso que exige, y el tope de la descripción (140 caracteres);
   - que un 304 no cuenta contra el límite principal con una petición autenticada, y los nombres de las cabeceras de
     límite; `x-poll-interval` puede no venir en estos puntos;
+  - si los puntos con una rama en la ruta (`branches/{rama}`, `rules/branches/{rama}`, `git/refs/heads/{rama}`) quieren
+    la barra de `agentstudio/run-…` literal o escapada;
   - el autor y el committer del commit de un squash, y si `refs/pull/N/head` conserva los commits tras borrar la rama (ya
     estaba en docs/16 §8).
 - **`git push`:**
@@ -1755,12 +1822,17 @@ medir:** no se ejecutó nada con red ni con cuenta.
   - que `-c http.followRedirects=false` hace fallar un repositorio renombrado en vez de seguirlo;
   - que `GIT_ALLOW_PROTOCOL=https` junto a `protocol.https.allow=always` deja pasar HTTPS y nada más;
   - que un `url.*.insteadOf` global se ve en la consulta por ámbito y que la reescritura se puede predecir en código.
-- **Git Credential Manager:** que `GCM_INTERACTIVE=never` hace que falle en vez de abrir una ventana, qué variables de
-  entorno necesita de la lista blanca para encontrar su almacén, y qué imprime al fallar.
+- **El ayudante de credenciales:** cuál es el global de este equipo (no se leyó la configuración). Con Git Credential
+  Manager: que `GCM_INTERACTIVE=never` hace que falle en vez de abrir una ventana, qué variables de entorno necesita de
+  la lista blanca para encontrar su almacén, y qué imprime al fallar. Con el ayudante de `gh` (`gh auth git-credential`):
+  que funciona con el entorno de D-06 y que no pide nada por pantalla.
 - **Detectar Git LFS** sin ejecutar `git lfs`: qué combinación de configuración y atributos basta para decidir «este
   `push` llevaría objetos LFS».
-- **`IProjectActivity`:** que añadir `RemoteOperation` no rompe ningún `switch` más que los listados en §10.2 (se buscó
-  `ProjectActivityKind.` en `src/`; no en pruebas).
+- **`IProjectActivity`:** `ProjectActivityKind` aparece en nueve ficheros de `src/` (búsqueda completa; §10.2 lista los
+  seis que hay que tocar). Sin comprobar: las pruebas que lo recorren; y **qué hace la reanudación automática de la Fase 8
+  si `TryEnter` le da nulo al arrancar** (el orquestador lanza una excepción al planificar, empezar o reanudar; no espera).
+  Las escrituras sin ejecución de la Fase 9 esperan preguntando `IsBusy` (`Orchestration/Work/WorkLog.cs`): si conviene
+  que tomen el proyecto como aquí, es un pendiente para docs/18, no de esta fase.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
 - **No se compiló ni se ejecutó nada** para escribir este documento: las firmas de §5 son propuestas.
 
@@ -1796,6 +1868,7 @@ recomendada va primero, marcada.
      tú en una terminal. Predecible y comprobable.
    - (b) Sí: si hace falta, aparece la ventana de inicio de sesión de tu gestor. Más cómodo; una ventana de otro programa
      en medio de una acción de Agent Studio, que no se puede probar en la suite.
+   - Vale para Git Credential Manager. Con otro ayudante global (el de `gh`), la opción no cambia nada: no abre ventanas.
 6. **Cómo se sabe si hay sesión de `gh`, y qué puede lanzarse** (D-13). Amplía la lista de sondas de `CLAUDE.md`.
    - **(a) Recomendada:** nunca `gh auth …`. La sesión se deduce de la primera petición; «Comprobar la conexión» lanza
      `GET /user` con tu clic. `CLAUDE.md` gana: `gh --version` siempre; `gh api` de la lista cerrada, con tu permiso o tu
@@ -1833,8 +1906,8 @@ recomendada va primero, marcada.
       directa al remoto, sin PR.
 14. **La prueba en vivo** (§9).
     - **(a) Recomendada:** al final de la integración, con tu OK, sobre un repositorio privado de prueba que creas tú, con
-      la lista cerrada de pasos; sus capturas sustituyen a las fixtures a mano.
-    - (b) Más adelante: la fase se cierra con fixtures a mano y se anota como pendiente en docs/18.
+      la lista cerrada de pasos; sus capturas sustituyen a las respuestas escritas a mano.
+    - (b) Más adelante: la fase se cierra con respuestas escritas a mano y se anota como pendiente en docs/18.
 15. **Un PR fusionado con una cabeza que el juez no vio** (D-29).
     - **(a) Recomendada:** no cuenta como «integrado»: la tarjeta se queda en «hecho» con su motivo y el informe del hito
       lo da como desviación.
@@ -1856,6 +1929,6 @@ recomendada va primero, marcada.
   <https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api>. No se volvió a consultar en
   esta sesión.
 - La documentación de la API REST de GitHub (pulls, commits, statuses, checks, deployments, rules) es la referencia de las
-  formas de D-10; **no se consultó en línea para este documento:** WP2 la consulta al grabar las fixtures y anota la
+  formas de D-10; **no se consultó en línea para este documento:** WP2 la consulta al escribir las respuestas grabadas y anota la
   fecha (§13).
 - El código y los documentos de este repositorio en `db344c8b` (§2).

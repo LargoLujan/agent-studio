@@ -29,8 +29,10 @@
      duplica nada.
   4. **Ningún texto del remoto entra en el registro.** Los títulos y los nombres de checks o de entornos viven en una
      caché local, para la pantalla.
-  5. **Peticiones condicionales y cadencia fija.** `If-None-Match` con el `ETag` anterior; un 304 corta la vuelta de ese
-     PR. Cada 5 minutos por defecto, solo lo seguido y abierto (lo fusionado, 30 días y cada hora), solo lecturas, solo con
+  5. **Peticiones condicionales, por recurso, y cadencia fija.** `If-None-Match` con el `ETag` anterior **de ese mismo
+     recurso** (el PR, los checks de su cabeza, sus revisiones, los commits de la rama base desde la fusión, los
+     despliegues): un 304 del PR no dice nada de los demás, que cambian sin que cambie el suyo. La instantánea se compone
+     con lo nuevo y lo último conocido de lo que dio 304; si todo dio 304, no hay entrada. Cada 5 minutos por defecto, solo lo seguido y abierto (lo fusionado, 30 días y cada hora), solo lecturas, solo con
      la app abierta.
   6. **Los límites se respetan:** con 429, o 403 con el límite a cero o `retry-after`, no sale nada hacia ese host hasta la
      hora que digan `retry-after` o `x-ratelimit-reset`; sin ellas, un minuto y espera progresiva. Nunca se insiste.
