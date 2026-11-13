@@ -22,7 +22,7 @@ public sealed class PullRequestsViewModelTests
         return world;
     }
 
-    private static PullRequestView OpenView(int number = 12) => PrData.View(PrData.Snapshot(number));
+    private static PullRequestView OpenView(int number = 12) => PrData.View(PrData.Snapshot(number), number);
 
     // ---- States that are not a list ----
 
@@ -140,10 +140,10 @@ public sealed class PullRequestsViewModelTests
         var world = new PrWorld();
         world.Projector.Views.AddRange(
         [
-            PrData.View(PrData.Snapshot(1)),
-            PrData.View(PrData.Snapshot(2, PullRequestState.Draft)),
-            PrData.View(PrData.Snapshot(3, PullRequestState.Merged, mode: RemoteMergeMode.Squash, results: [PrData.Sha('f')])),
-            PrData.View(PrData.Snapshot(4, PullRequestState.Closed)),
+            PrData.View(PrData.Snapshot(1), 1),
+            PrData.View(PrData.Snapshot(2, PullRequestState.Draft), 2),
+            PrData.View(PrData.Snapshot(3, PullRequestState.Merged, mode: RemoteMergeMode.Squash, results: [PrData.Sha('f')]), 3),
+            PrData.View(PrData.Snapshot(4, PullRequestState.Closed), 4),
             PrData.View(null, number: 5),
         ]);
         await world.Model.SetProjectAsync(PrData.Project);

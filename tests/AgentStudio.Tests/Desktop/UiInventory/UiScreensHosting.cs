@@ -144,7 +144,7 @@ internal static class UiScreensHosting
         }, 1100, 420),
         WorkScreen("Work · board with pull requests", d => d.Board, d =>
         {
-            d.Context.SelectMilestone(new MilestoneId("m-1"));
+            d.Context.SelectMilestone(new MilestoneId("mil-20261112-aaaaaa"));
             return d.Board.ReloadAsync();
         }),
         WorkScreen("Work · chain with pull request", d => d.Chain, d =>
