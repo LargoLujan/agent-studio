@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Skills;
@@ -81,35 +80,45 @@ public sealed class GitHubSkillHealthChecker(
 
     private async Task<SkillHealthBatchEntry> CheckOneAsync(SkillEntry skill, GitHubSkillOrigin origin, GitHubToken? token, BatchState batch, CancellationToken ct)
     {
+        // Every address is built before the first request: an origin the builder refuses marks only this skill as invalid, and nothing is sent for it.
+        Uri repositoryAddress, pinnedAddress, branchAddress;
         try
         {
-            var repository = await AskAsync(GitHubApiAddress.Repository(origin), token, batch, ParseRepository, ct).ConfigureAwait(false);
+            repositoryAddress = GitHubApiAddress.Repository(origin);
+            pinnedAddress = GitHubApiAddress.Commits(origin, origin.Commit);
+            branchAddress = GitHubApiAddress.Commits(origin, origin.Branch);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return Failed(skill.Id, SkillHealthFailure.InvalidOrigin, null);
+        }
+
+        try
+        {
+            var repository = await AskAsync(repositoryAddress, token, batch, ParseRepository, ct).ConfigureAwait(false);
             if (repository.Answer is null)
             {
                 return new SkillHealthBatchEntry(
                     skill.Id,
                     new SkillHealthReport(
                     [
-                        new(SkillHealthCodes.Archived, SkillHealthStatus.Warning, Message(SkillHealthFailure.NotFound, null)),
-                        new(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, "Sin comprobar: el repositorio de origen no se encuentra."),
+                        SkillHealthCheck.Coded(SkillHealthCodes.Archived, SkillHealthStatus.Warning, SkillsUserTexts.DoctorNotFound),
+                        SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorUpstreamNotFound),
                     ]),
                     SkillHealthFailure.NotFound);
             }
 
-            var archived = new SkillHealthCheck(
-                SkillHealthCodes.Archived,
-                repository.Answer.Archived == true ? SkillHealthStatus.Critical : SkillHealthStatus.Healthy,
-                repository.Answer.Archived == true
-                    ? "El repositorio de origen está archivado: ya no recibirá cambios."
-                    : "El repositorio de origen no está archivado.");
+            var archived = repository.Answer.Archived == true
+                ? SkillHealthCheck.Coded(SkillHealthCodes.Archived, SkillHealthStatus.Critical, SkillsUserTexts.DoctorArchived)
+                : SkillHealthCheck.Coded(SkillHealthCodes.Archived, SkillHealthStatus.Healthy, SkillsUserTexts.DoctorNotArchived);
 
-            var pinned = await AskAsync(GitHubApiAddress.Commits(origin, origin.Commit), token, batch, ParseCommits, ct).ConfigureAwait(false);
-            var branch = await AskAsync(GitHubApiAddress.Commits(origin, origin.Branch), token, batch, ParseCommits, ct).ConfigureAwait(false);
+            var pinned = await AskAsync(pinnedAddress, token, batch, ParseCommits, ct).ConfigureAwait(false);
+            var branch = await AskAsync(branchAddress, token, batch, ParseCommits, ct).ConfigureAwait(false);
             return new SkillHealthBatchEntry(skill.Id, new SkillHealthReport([archived, Upstream(pinned.Answer?.CommitSha, branch.Answer?.CommitSha, pinned.Answer is not null, branch.Answer is not null)]), null);
         }
         catch (GitHubApiException ex)
         {
-            if (ex.Failure is SkillHealthFailure.RateLimited or SkillHealthFailure.NoNetwork)
+            if (ex.Failure is SkillHealthFailure.RateLimited or SkillHealthFailure.NoNetwork or SkillHealthFailure.InvalidToken)
             {
                 batch.Stopped = (ex.Failure, ex.ResetsAt);
             }
@@ -122,23 +131,23 @@ public sealed class GitHubSkillHealthChecker(
     {
         if (!pinnedFound)
         {
-            return new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "El commit fijado ya no existe en el origen: revisa la skill antes de usarla.");
+            return SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, SkillsUserTexts.DoctorCommitGone);
         }
 
         if (!branchFound)
         {
-            return new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "La rama de origen ya no existe: revisa la skill antes de usarla.");
+            return SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, SkillsUserTexts.DoctorBranchGone);
         }
 
         if (pinnedSha is null && branchSha is null)
         {
             // Both answers are empty: nothing touched the folder, so it is not there. Two empty answers are not «sin novedades».
-            return new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "No se encontró la carpeta de la skill en el origen: revisa si cambió de sitio.");
+            return SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, SkillsUserTexts.DoctorFolderMissing);
         }
 
         return string.Equals(pinnedSha, branchSha, StringComparison.Ordinal)
-            ? new(SkillHealthCodes.Upstream, SkillHealthStatus.Healthy, "Sin novedades en su carpeta desde el commit fijado.")
-            : new(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, "Actualización por revisar: su carpeta cambió en el origen desde el commit fijado.");
+            ? SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Healthy, SkillsUserTexts.DoctorUpToDate)
+            : SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, SkillsUserTexts.DoctorUpdateToReview);
     }
 
     private async Task<(GitHubCachedAnswer? Answer, int Status)> AskAsync(
@@ -246,23 +255,25 @@ public sealed class GitHubSkillHealthChecker(
             skill,
             new SkillHealthReport(
             [
-                new(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, Message(failure, resetsAt)),
-                new(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, Message(failure, resetsAt)),
+                Unchecked(SkillHealthCodes.Upstream, failure, resetsAt),
+                Unchecked(SkillHealthCodes.Archived, failure, resetsAt),
             ]),
             failure);
 
-    private static string Message(SkillHealthFailure failure, DateTimeOffset? resetsAt) => failure switch
+    /// <summary>A check that was not made, with the code of why (the sentence is the desktop's, in the language of the person).</summary>
+    private static SkillHealthCheck Unchecked(string check, SkillHealthFailure failure, DateTimeOffset? resetsAt) => failure switch
     {
-        SkillHealthFailure.NetworkNotAllowed => "Sin comprobar: la comprobación en GitHub está apagada (se enciende en la pantalla de Skills).",
-        SkillHealthFailure.InvalidOrigin => "Sin comprobar: origen no válido (o sin commit fijado). No se preguntó nada a GitHub.",
-        SkillHealthFailure.NoNetwork => "Sin comprobar: no hay conexión con GitHub.",
-        SkillHealthFailure.Forbidden => "Sin comprobar: GitHub no dejó leer este repositorio.",
-        SkillHealthFailure.NotFound => "El repositorio de origen no se encuentra: está borrado o es privado.",
+        SkillHealthFailure.NetworkNotAllowed => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorOff),
+        SkillHealthFailure.InvalidOrigin => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorInvalidOrigin),
+        SkillHealthFailure.NoNetwork => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorNoNetwork),
+        SkillHealthFailure.Forbidden => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorForbidden),
+        SkillHealthFailure.NotFound => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorNotFound),
         SkillHealthFailure.RateLimited => resetsAt is { } at
-            ? "Sin comprobar: límite de GitHub, se reinicia a las " + at.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture) + "."
-            : "Sin comprobar: límite de GitHub, se reinicia en breve.",
-        SkillHealthFailure.RedirectRefused => "Sin comprobar: GitHub redirigió a otro sitio y no se siguió.",
-        _ => "Sin comprobar: la respuesta de GitHub no se entiende.",
+            ? SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorRateLimited, at)
+            : SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorRateLimitedSoon),
+        SkillHealthFailure.RedirectRefused => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorRedirectRefused),
+        SkillHealthFailure.InvalidToken => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorBadToken),
+        _ => SkillHealthCheck.Coded(check, SkillHealthStatus.Unknown, SkillsUserTexts.DoctorUnreadable),
     };
 
     private sealed class BatchState

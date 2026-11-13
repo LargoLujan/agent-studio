@@ -248,8 +248,28 @@
         <StackPanel Visibility="{Binding HasScripts, Converter={StaticResource Skills.BoolToVisibility}}">
           <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_Scripts_Title}"/>
           <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Skills_Scripts_Files}"/>
-          <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" Text="{Binding ScriptFilesText}"
-                     AutomationProperties.Name="{l:T Skills_Scripts_FilesName}"/>
+          <!-- As plain text when the screen cannot open a file; as links «abrir» (the file opens in the editor of the app) when it can. -->
+          <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" Text="{Binding ScriptFilesText}"
+                     AutomationProperties.Name="{l:T Skills_Scripts_FilesName}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasScriptLinks}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding ScriptLinks}" Focusable="False" AutomationProperties.Name="{l:T Skills_Scripts_FilesName}"
+                        Visibility="{Binding HasScriptLinks, Converter={StaticResource Skills.BoolToVisibility}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type skills:SkillScriptLink}">
+                <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,0,0,2" FontFamily="{StaticResource MonoFont}" Content="{Binding Path}"
+                        Command="{Binding OpenCommand}" AutomationProperties.Name="{Binding AutomationName}" ToolTip="{l:T Skills_Scripts_OpenTip}"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
           <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Skills_Scripts_Mark}"
                   Command="{Binding MarkScriptsReviewedCommand}" Visibility="{Binding CanMarkScripts, Converter={StaticResource Skills.BoolToVisibility}}"
                   AutomationProperties.Name="{l:T Skills_Scripts_MarkName}"/>
@@ -435,8 +455,14 @@
                 <TextBlock TextWrapping="Wrap" Text="{l:T Skills_Doctor_Allow}"/>
               </CheckBox>
               <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Skills_Doctor_Sends}"/>
-              <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Skills_Doctor_Button}"
-                      Command="{Binding CheckOnGitHubCommand}" AutomationProperties.Name="{l:T Skills_Doctor_ButtonName}" ToolTip="{l:T Skills_Doctor_ButtonTip}"/>
+              <WrapPanel Margin="0,8,0,0">
+                <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Content="{l:T Skills_Doctor_Button}"
+                        Command="{Binding CheckOnGitHubCommand}" AutomationProperties.Name="{l:T Skills_Doctor_ButtonName}" ToolTip="{l:T Skills_Doctor_ButtonTip}"/>
+                <Button Style="{StaticResource GhostButton}"
+                        Command="{Binding CancelCheckCommand}" AutomationProperties.Name="{l:T Skills_Doctor_CancelName}" ToolTip="{l:T Skills_Doctor_CancelTip}">
+                  <TextBlock TextWrapping="Wrap" Text="{l:T Skills_Doctor_Cancel}"/>
+                </Button>
+              </WrapPanel>
               <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding DoctorUnavailable}"/>
               <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding DoctorStatus}"
                          AutomationProperties.Name="{l:T Skills_Doctor_StatusName}"/>

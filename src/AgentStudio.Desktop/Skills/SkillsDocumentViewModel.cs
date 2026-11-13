@@ -55,6 +55,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
 
     private readonly SkillsBackend _backend;
     private readonly TimeProvider _time;
+    private readonly Func<string, Task>? _openFile;
     private readonly Func<string, CancellationToken, IReadOnlyList<string>> _projectFiles;
     private IReadOnlyList<SkillItemViewModel> _items = [];
     private IReadOnlyList<AgentDefinition> _roster = [];
@@ -65,7 +66,8 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     /// <param name="backend">The ports; any may be missing.</param>
     /// <param name="time">The clock (the screen reads no time today; kept for the composition, like the other documents).</param>
     /// <param name="projectFiles">The relative paths of the project's files; by default the explorer's index (names only).</param>
-    public SkillsDocumentViewModel(string? projectRoot, SkillsBackend backend, TimeProvider time, Func<string, CancellationToken, IReadOnlyList<string>>? projectFiles = null)
+    /// <param name="openFile">Opens a file in the editor of the app (the scripts of a skill, to read them); without it the scripts are listed but not linked.</param>
+    public SkillsDocumentViewModel(string? projectRoot, SkillsBackend backend, TimeProvider time, Func<string, CancellationToken, IReadOnlyList<string>>? projectFiles = null, Func<string, Task>? openFile = null)
         : base(DocumentId, Texts.Get("Skills_Title"))
     {
         ArgumentNullException.ThrowIfNull(backend);
@@ -73,6 +75,8 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         ProjectRoot = string.IsNullOrWhiteSpace(projectRoot) ? null : projectRoot;
         _backend = backend;
         _time = time;
+        _openFile = openFile;
+        Closed += (_, _) => CancelRunningCheck();
         _projectFiles = projectFiles ?? ((root, ct) => ProjectFileIndexer.Build(root, ProjectFileIndexer.DefaultMaxFiles, ct).RelativePaths);
     }
 
@@ -539,10 +543,11 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             warnings.Add(Texts.Get("Skills_Card_LinkedWarning"));
         }
 
-        var (scriptFiles, scriptsReviewed, markScripts) = ScriptsOf(item);
+        var (scriptFiles, scriptLinks, scriptsReviewed, markScripts) = ScriptsOf(item);
         return new SkillDetailViewModel
         {
             ScriptFiles = scriptFiles,
+            ScriptLinks = scriptLinks,
             ScriptsReviewedText = scriptsReviewed,
             MarkScriptsReviewedCommand = markScripts,
             Id = item.Id,
@@ -557,7 +562,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             HealthStatus = item.HealthStatus,
             HealthLabel = item.HealthLabel,
             IsLinked = item.IsLinked,
-            Checks = [.. item.Health.Checks.Select(check => new SkillCheckViewModel(check.Code, SkillsTexts.Check(check.Code), check.Status, SkillsTexts.Health(check.Status), check.Message))],
+            Checks = [.. item.Health.Checks.Select(check => new SkillCheckViewModel(check.Code, SkillsTexts.Check(check.Code), check.Status, SkillsTexts.Health(check.Status), CheckText(check)))],
             Scopes = Scopes(item),
             Warnings = warnings,
         };

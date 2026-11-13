@@ -35,8 +35,8 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
         {
             SkillHealthChecks.CheckLicense(entry.Source.License),
             SkillHealthChecks.CheckPinned(entry.Source.PinnedCommit),
-            new(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, "Sin comprobar: hace falta «Comprobar en GitHub» (usa la red, apagada por defecto) para saber si el origen cambió desde el commit fijado."),
-            new(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, "Sin comprobar: hace falta «Comprobar en GitHub» (usa la red, apagada por defecto) para saber si el repositorio de origen está archivado."),
+            SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderUpstreamUnchecked),
+            SkillHealthCheck.Coded(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderArchivedUnchecked),
             await ReadScriptsAsync(skill, ct).ConfigureAwait(false),
         };
         return new SkillHealthReport(checks);
@@ -50,12 +50,12 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
     {
         if (skill.LocalPath is null)
         {
-            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no hay copia local en la que mirar si trae scripts.");
+            return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderScriptsNoCopy);
         }
 
         if (scripts is null)
         {
-            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no hay lector de scripts disponible.");
+            return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderScriptsNoReader);
         }
 
         try
@@ -63,23 +63,23 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
             var info = await scripts.InspectAsync(skill.LocalPath, ct).ConfigureAwait(false);
             if (info is null)
             {
-                return new(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, "No trae scripts.");
+                return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, SkillsUserTexts.ReaderScriptsNone);
             }
 
-            var count = info.RelativePaths.Count.ToString(CultureInfo.InvariantCulture);
+            var count = info.RelativePaths.Count;
             var reviewed = reviews is null ? null : await reviews.ReviewedSha256Async(skill.Entry.Id, ct).ConfigureAwait(false);
             if (string.Equals(reviewed, info.Sha256, StringComparison.Ordinal))
             {
-                return new(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, $"Trae scripts ({count} ficheros) y ya los revisaste. Ninguno se ejecuta.");
+                return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, SkillsUserTexts.ReaderScriptsReviewed, count);
             }
 
             return reviewed is null
-                ? new(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, $"Trae scripts sin revisar ({count} ficheros): léelos antes de activarla. Ninguno se ejecuta.")
-                : new(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, $"Los scripts ({count} ficheros) cambiaron desde que los revisaste: vuelve a leerlos. Ninguno se ejecuta.");
+                ? SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, SkillsUserTexts.ReaderScriptsUnreviewed, count)
+                : SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, SkillsUserTexts.ReaderScriptsChanged, count);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no se pudo leer la carpeta de scripts.");
+            return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderScriptsUnreadable);
         }
     }
 
@@ -88,7 +88,7 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
     {
         if (localPath is null)
         {
-            return Unread("Sin copia local que comprobar: la skill está enlazada o su copia no se puede usar.");
+            return Unread(SkillsUserTexts.ReaderUnreadNoCopy);
         }
 
         try
@@ -96,32 +96,32 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
             var folder = new DirectoryInfo(localPath);
             if (!folder.Exists)
             {
-                return Unread($"No existe la carpeta de la skill, así que no se pudo leer su {SkillFile}.");
+                return Unread(SkillsUserTexts.ReaderUnreadNoFolder);
             }
 
             if (IsLink(folder))
             {
-                return Unread($"La carpeta de la skill es un enlace: no se sigue y su {SkillFile} queda sin comprobar.");
+                return Unread(SkillsUserTexts.ReaderUnreadFolderLink);
             }
 
             var file = new FileInfo(Path.Combine(folder.FullName, SkillFile));
             if (!file.Exists)
             {
-                return Unread($"No se encuentra su {SkillFile}: quizá se borró después de leer el catálogo.");
+                return Unread(SkillsUserTexts.ReaderUnreadFileMissing);
             }
 
             if (IsLink(file))
             {
-                return Unread($"Su {SkillFile} es un enlace: no se sigue y queda sin comprobar.");
+                return Unread(SkillsUserTexts.ReaderUnreadFileLink);
             }
 
             if (file.Length > MaxSkillFileBytes)
             {
-                var size = (file.Length / 1024).ToString(CultureInfo.InvariantCulture);
+                var size = file.Length / 1024;
                 return
                 [
-                    new(SkillHealthCodes.Frontmatter, SkillHealthStatus.Warning, $"Su {SkillFile} es demasiado grande para una skill ({size} KiB): no se lee."),
-                    new(SkillHealthCodes.Size, SkillHealthStatus.Warning, $"Su {SkillFile} ocupa {size} KiB."),
+                    SkillHealthCheck.Coded(SkillHealthCodes.Frontmatter, SkillHealthStatus.Warning, SkillsUserTexts.ReaderTooLargeFrontmatter, size),
+                    SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Warning, SkillsUserTexts.ReaderTooLargeSize, size),
                 ];
             }
 
@@ -133,22 +133,18 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
                 text = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
             }
 
-            // The size check also says what the whole SKILL.md costs in context once the skill is used (docs/20 D-14), estimated like SkillContextCost.
-            var tokens = ((text.Length + SkillContextCost.CharactersPerToken - 1) / SkillContextCost.CharactersPerToken).ToString(CultureInfo.InvariantCulture);
-            return [.. SkillFrontmatter.Parse(text).Validate(folder.Name).Select(check => check.Code == SkillHealthCodes.Size
-                ? check with { Message = $"{check.Message} Al usarla ocupa en contexto unos {tokens} tokens (estimado por Agent Studio)." }
-                : check)];
+            return SkillFrontmatter.Parse(text).Validate(folder.Name);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return Unread($"No se pudo leer su {SkillFile}: {ex.Message}");
+            return Unread(SkillsUserTexts.ReaderUnreadFailed);
         }
     }
 
     private static SkillHealthCheck[] Unread(string reason) =>
     [
-        new(SkillHealthCodes.Frontmatter, SkillHealthStatus.Unknown, reason),
-        new(SkillHealthCodes.Size, SkillHealthStatus.Unknown, $"Sin comprobar: no se leyó su {SkillFile}."),
+        SkillHealthCheck.Coded(SkillHealthCodes.Frontmatter, SkillHealthStatus.Unknown, reason),
+        SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Unknown, SkillsUserTexts.ReaderSizeUnread),
     ];
 
     private static bool IsLink(FileSystemInfo info) =>

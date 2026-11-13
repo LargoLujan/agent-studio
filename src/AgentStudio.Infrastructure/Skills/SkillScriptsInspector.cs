@@ -7,14 +7,12 @@ namespace AgentStudio.Infrastructure.Skills;
 /// <summary>
 /// The fingerprint of the <c>scripts/</c> folder of a skill (docs/20 D-14): the SHA-256 of the sorted relative paths and the content of every file. Nothing is
 /// run, and nothing is followed: a link (a file or a folder) counts by its name and is never opened, so a link planted in the folder cannot take the contents
-/// of anything else into the hash or out of the folder. The folder is limited (<see cref="MaxFiles"/> files, <see cref="MaxFileBytes"/> each): past the limit
+/// of anything else into the hash or out of the folder. The folder is limited (<see cref="MaxFiles"/> files; each is hashed whole, in chunks): past the limit
 /// the fingerprint says so and can never equal one of a smaller folder.
 /// </summary>
 public sealed class SkillScriptsInspector : ISkillScriptsInspector
 {
     public const int MaxFiles = 500;
-
-    public const long MaxFileBytes = 8 * 1024 * 1024;
 
     private const string ScriptsFolder = "scripts";
 
@@ -84,18 +82,14 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
                 continue;
             }
 
-            if (file.Length > MaxFileBytes)
-            {
-                hash.AppendData(Encoding.UTF8.GetBytes("TOO-LARGE:" + file.Length));
-                continue;
-            }
-
+            // Whatever its size, the whole content goes into the fingerprint (in chunks): a long file is never reviewed by its length alone.
             hash.AppendData(BitConverter.GetBytes(file.Length));
             using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             var buffer = new byte[64 * 1024];
             int read;
             while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
             {
+                ct.ThrowIfCancellationRequested();
                 hash.AppendData(buffer.AsSpan(0, read));
             }
         }

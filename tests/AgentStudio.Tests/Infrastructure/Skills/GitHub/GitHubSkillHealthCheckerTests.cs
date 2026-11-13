@@ -73,7 +73,7 @@ public sealed class GitHubSkillHealthCheckerTests : IAsyncDisposable
 
         var upstream = Check(entry, SkillHealthCodes.Upstream);
         Assert.Equal(SkillHealthStatus.Warning, upstream.Status);
-        Assert.Contains("Actualización por revisar", upstream.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.DoctorUpdateToReview, upstream.TextCode);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class GitHubSkillHealthCheckerTests : IAsyncDisposable
 
         var upstream = Check(entry, SkillHealthCodes.Upstream);
         Assert.Equal(SkillHealthStatus.Warning, upstream.Status);
-        Assert.Contains("No se encontró la carpeta", upstream.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.DoctorFolderMissing, upstream.TextCode);
     }
 
     [Fact]
@@ -222,7 +222,51 @@ public sealed class GitHubSkillHealthCheckerTests : IAsyncDisposable
         Assert.Equal(0, secrets.Calls);
         var entry = Assert.Single(result.Entries);
         Assert.Equal(SkillHealthFailure.InvalidOrigin, entry.Failure);
-        Assert.Contains("origen no válido", Check(entry, SkillHealthCodes.Upstream).Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.DoctorInvalidOrigin, Check(entry, SkillHealthCodes.Upstream).TextCode);
+    }
+
+    [Fact]
+    public async Task A_repository_with_two_dots_in_its_name_is_only_that_skill_invalid_and_the_batch_goes_on()
+    {
+        var (checker, transport, secrets) = Rig(Healthy);
+
+        var result = await checker.CheckAsync([Skill("a"), Skill("dots", repository: "octocat/a..b"), Skill("b")], Ct);
+
+        Assert.Null(result.Entries[0].Failure);
+        Assert.Equal(SkillHealthFailure.InvalidOrigin, result.Entries[1].Failure);
+        Assert.Null(result.Entries[2].Failure);
+        Assert.Equal(6, transport.Sent.Count);
+        Assert.DoesNotContain(transport.Sent, s => s.Url.Contains("a..b", StringComparison.Ordinal));
+        Assert.Equal(1, secrets.Calls);
+    }
+
+    [Fact]
+    public async Task A_401_says_the_stored_token_is_not_valid_and_stops_the_batch()
+    {
+        var token = new GitHubToken(FakeSecrets.GitHubFineGrainedToken());
+        var (checker, transport, _) = Rig(_ => FakeGitHubTransport.Answer("{\"message\":\"Bad credentials\"}", HttpStatusCode.Unauthorized), use: new SkillsDoctorTokenUse(SkillsDoctorTokenState.Granted, token));
+
+        var result = await checker.CheckAsync([Skill("a"), Skill("b"), Skill("c")], Ct);
+
+        Assert.Single(transport.Sent);
+        Assert.All(result.Entries, e => Assert.Equal(SkillHealthFailure.InvalidToken, e.Failure));
+        Assert.All(result.Entries.SelectMany(e => e.Report.Checks), c => Assert.Equal(SkillsUserTexts.DoctorBadToken, c.TextCode));
+    }
+
+    [Fact]
+    public async Task Every_text_the_doctor_gives_is_a_code_never_a_sentence()
+    {
+        var (checker, _, _) = Rig(Healthy);
+        var (offChecker, _, _) = Rig(Healthy, allowed: false);
+
+        var results = new[] { await checker.CheckAsync([Skill()], Ct), await offChecker.CheckAsync([Skill()], Ct) };
+
+        Assert.All(results.SelectMany(r => r.Entries).SelectMany(e => e.Report.Checks), c =>
+        {
+            Assert.NotNull(c.TextCode);
+            Assert.Equal(c.TextCode, c.Message);
+            Assert.Contains(c.TextCode, SkillsUserTexts.All);
+        });
     }
 
     [Fact]
@@ -389,7 +433,9 @@ public sealed class GitHubSkillHealthCheckerTests : IAsyncDisposable
 
         Assert.Single(transport.Sent);
         Assert.All(result.Entries, e => Assert.Equal(SkillHealthFailure.RateLimited, e.Failure));
-        Assert.Contains("límite de GitHub, se reinicia a las", Check(result.Entries[2], SkillHealthCodes.Upstream).Message, StringComparison.Ordinal);
+        var limited = Check(result.Entries[2], SkillHealthCodes.Upstream);
+        Assert.Equal(SkillsUserTexts.DoctorRateLimited, limited.TextCode);
+        Assert.IsType<DateTimeOffset>(Assert.Single(limited.TextArguments!));
         Assert.NotNull(result.RateLimitResetsAt);
     }
 

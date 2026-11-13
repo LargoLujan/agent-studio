@@ -70,7 +70,8 @@ public sealed class SkillScriptsTests : IDisposable
 
         var first = Assert.Single((await reader.ReadLocalAsync(skill, Ct)).Checks, c => c.Code == SkillHealthCodes.Scripts);
         Assert.Equal(SkillHealthStatus.Warning, first.Status);
-        Assert.Contains("sin revisar", first.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.ReaderScriptsUnreviewed, first.TextCode);
+        Assert.Equal(2, Assert.Single(first.TextArguments!));
 
         var info = (await inspector.InspectAsync(folder, Ct))!;
         Assert.Equal(["run.ps1", "sub/helper.py"], info.RelativePaths);
@@ -83,7 +84,7 @@ public sealed class SkillScriptsTests : IDisposable
 
         var changed = Assert.Single((await reader.ReadLocalAsync(skill, Ct)).Checks, c => c.Code == SkillHealthCodes.Scripts);
         Assert.Equal(SkillHealthStatus.Warning, changed.Status);
-        Assert.Contains("cambiaron", changed.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.ReaderScriptsChanged, changed.TextCode);
     }
 
     [Fact]
@@ -115,14 +116,14 @@ public sealed class SkillScriptsTests : IDisposable
     }
 
     [Fact]
-    public async Task The_size_check_says_what_the_skill_costs_in_context()
+    public async Task The_size_check_of_a_small_skill_is_healthy()
     {
         var folder = SkillFolder("size");
 
         var report = await new SkillHealthReader().ReadLocalAsync(Skill("size", folder), Ct);
 
         var size = Assert.Single(report.Checks, c => c.Code == SkillHealthCodes.Size);
-        Assert.Contains("tokens (estimado por Agent Studio)", size.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillHealthStatus.Healthy, size.Status);
     }
 
     [Fact]

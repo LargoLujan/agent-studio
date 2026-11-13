@@ -523,8 +523,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
   siguen en «sin comprobar», y no sale ni una petición.
 - **Solo cuando pulsas** «Comprobar en GitHub», en la pantalla de skills. Nunca al abrir, nunca en segundo plano.
 - **Solo `https://api.github.com`.** El cliente rechaza cualquier otro host; las redirecciones se siguen a mano y solo al
-  mismo host (D-14). 10
-  segundos y 1 MB por respuesta.
+  mismo host (D-14). 10 segundos y 1 MB por respuesta.
 - **Se dice qué sale:** el propietario, el repositorio y el commit de cada skill fijada. Nada del proyecto, ni rutas, ni tu
   nombre.
 

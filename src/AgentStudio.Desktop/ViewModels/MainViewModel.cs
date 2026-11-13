@@ -545,7 +545,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             _skills = null;
         }
 
-        _skills ??= _skillsFactory.Create(ProjectPath);
+        _skills ??= _skillsFactory.Create(ProjectPath, OpenFileAsync);
         AddDocument(_skills);
         await _skills.OpenAsync();
     }

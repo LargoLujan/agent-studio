@@ -94,5 +94,5 @@ public sealed class SkillsDocumentFactory : ISkillsDocumentFactory
         _time = time;
     }
 
-    public SkillsDocumentViewModel Create(string? projectRoot) => new(projectRoot, _backend, _time);
+    public SkillsDocumentViewModel Create(string? projectRoot, Func<string, Task>? openFile = null) => new(projectRoot, _backend, _time, openFile: openFile);
 }

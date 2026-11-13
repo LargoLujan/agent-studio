@@ -1,3 +1,5 @@
+using AgentStudio.Application.Localization;
+using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Skills;
 using static AgentStudio.Tests.Desktop.Localization.AreaStringsChecks;
 using static AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport;
@@ -65,6 +67,38 @@ public sealed class SkillsStringsTests
     {
         var untranslated = SpanishInEnglish("SkillsStrings");
         Assert.True(untranslated.Count == 0, "English texts with Spanish letters or signs:\n" + string.Join('\n', untranslated));
+    }
+
+    /// <summary>
+    /// The checks of the doctor and of the reader are codes (ADR-0054): each has its text in both languages, in English no Spanish comes out, and the arguments
+    /// (a count, a size, an instant) go in the culture of the language.
+    /// </summary>
+    [Fact]
+    public void Every_coded_text_of_a_health_check_is_painted_in_the_language_of_the_person()
+    {
+        var reset = new DateTimeOffset(2026, 11, 13, 14, 30, 0, TimeSpan.Zero);
+        foreach (var code in SkillsUserTexts.All)
+        {
+            object[] arguments = code switch
+            {
+                SkillsUserTexts.DoctorRateLimited => [reset],
+                SkillsUserTexts.ReaderScriptsReviewed or SkillsUserTexts.ReaderScriptsUnreviewed or SkillsUserTexts.ReaderScriptsChanged => [3],
+                SkillsUserTexts.ReaderTooLargeFrontmatter or SkillsUserTexts.ReaderTooLargeSize => [2048L],
+                _ => [],
+            };
+            var text = new UserText(code, arguments);
+            Assert.True(Spanish.Has(text.ResourceKey) && English.Has(text.ResourceKey), text.ResourceKey);
+
+            var english = English.Render(text);
+            var spanish = Spanish.Render(text);
+            Assert.NotEqual(spanish, english);
+            Assert.DoesNotContain("Text_", english, StringComparison.Ordinal);
+            Assert.False(english.Any(c => "áéíóúñ¿¡«»".Contains(c, StringComparison.Ordinal)), $"{code}: {english}");
+            Assert.DoesNotContain("Sin comprobar", english, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("14:30 (UTC)", English.Render(new UserText(SkillsUserTexts.DoctorRateLimited, [reset])), StringComparison.Ordinal);
+        Assert.Contains("3 files", English.Render(new UserText(SkillsUserTexts.ReaderScriptsUnreviewed, [3])), StringComparison.Ordinal);
     }
 
     [Fact]

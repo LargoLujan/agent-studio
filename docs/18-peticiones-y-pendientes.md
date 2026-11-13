@@ -489,6 +489,7 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 
 | Id | Pendiente | Prioridad | Dónde |
 |---|---|---|---|
+| P65 | Los textos de los comprobantes de salud de las skills que siguen en castellano en el dominio: SkillFrontmatter.Validate, SkillHealthChecks.CheckLicense y CheckPinned (con su SkillHealthCheck.TextCode, que ya existe, pasarían a códigos en SkillsUserTexts y SkillsStrings*.resx). Y el coste en contexto del SKILL.md que size decía, quitado por no poder añadirse a una frase sin código | Media | WP-S de la Fase 6 (ADR-0063, retoques de la revisión); es mecánico, pero toca 15 frases del dominio y sus pruebas |
 | P2 | Fallos graves del recorrido (B6, B10, B8, B2, B1 y G1) y los menores | Alta | Ya en 18 (§3, tanda 1) |
 | P22 | Escribir el documento 17 | Hecho | [17](17-constructor-visual-de-agentes.md), integrado el 2026-10-30: 65 decisiones (D-01 a D-65), las Fases 12 a 15 y las decisiones abiertas de su §12, pendientes de repasarlas contigo (paso 4 de §2) |
 | P36 | Las ventanas de contexto aprendidas no se usan en vivo: ningún código crea `ModelWindowCatalog` ni `ContextHealthTracker`, y Claude solo informa la ventana al terminar el intento. Durante un paso no hay porcentaje | Hecho (verificado en vivo el 2026-11-03; retoques V32 a V39 en §3) | Tanda 2 (WP-F), integrada el 2026-11-03: un `ContextHealthTracker` por intento en el monitor y otro en la planificación, con las ventanas de cada proyecto leídas fuera del hilo de la interfaz y la tabla base debajo (adenda de ADR-0021) |

@@ -765,4 +765,136 @@ Pulsa «Comprobar en GitHub»: se pregunta una skill tras otra.
 Opcional: guarda una clave de acceso (token) de solo lectura para subir el límite.
 Marca los scripts como revisados cuando los hayas leído.</value>
   </data>
+  <data name="Text_skills_doctor_off" xml:space="preserve">
+    <value>Sin comprobar: la comprobación en GitHub está apagada. Se enciende en esta pantalla.</value>
+  </data>
+  <data name="Text_skills_doctor_invalid_origin" xml:space="preserve">
+    <value>Sin comprobar: el origen no es válido o la skill no tiene versión fijada (commit). No se preguntó nada a GitHub.</value>
+  </data>
+  <data name="Text_skills_doctor_no_network" xml:space="preserve">
+    <value>Sin comprobar: no hay conexión con GitHub.</value>
+  </data>
+  <data name="Text_skills_doctor_forbidden" xml:space="preserve">
+    <value>Sin comprobar: GitHub no dejó leer este repositorio.</value>
+  </data>
+  <data name="Text_skills_doctor_not_found" xml:space="preserve">
+    <value>El repositorio de origen no se encuentra: está borrado o es privado.</value>
+  </data>
+  <data name="Text_skills_doctor_upstream_not_found" xml:space="preserve">
+    <value>Sin comprobar: el repositorio de origen no se encuentra.</value>
+  </data>
+  <data name="Text_skills_doctor_rate_limited" xml:space="preserve">
+    <value>Sin comprobar: GitHub llegó a su límite. Se reinicia a las {0:HH:mm} (UTC).</value>
+  </data>
+  <data name="Text_skills_doctor_rate_limited_soon" xml:space="preserve">
+    <value>Sin comprobar: GitHub llegó a su límite. Se reinicia en breve.</value>
+  </data>
+  <data name="Text_skills_doctor_redirect_refused" xml:space="preserve">
+    <value>Sin comprobar: GitHub redirigió a otro sitio y no se siguió.</value>
+  </data>
+  <data name="Text_skills_doctor_unreadable" xml:space="preserve">
+    <value>Sin comprobar: la respuesta de GitHub no se entiende.</value>
+  </data>
+  <data name="Text_skills_doctor_bad_token" xml:space="preserve">
+    <value>Sin comprobar: GitHub no aceptó la clave de acceso guardada. No vale o se revocó. Cámbiala o bórrala.</value>
+  </data>
+  <data name="Text_skills_doctor_archived" xml:space="preserve">
+    <value>El repositorio de origen está archivado: ya no recibirá cambios.</value>
+  </data>
+  <data name="Text_skills_doctor_not_archived" xml:space="preserve">
+    <value>El repositorio de origen no está archivado.</value>
+  </data>
+  <data name="Text_skills_doctor_commit_gone" xml:space="preserve">
+    <value>La versión fijada (commit) ya no existe en el origen. Revisa la skill antes de usarla.</value>
+  </data>
+  <data name="Text_skills_doctor_branch_gone" xml:space="preserve">
+    <value>La rama de origen ya no existe. Revisa la skill antes de usarla.</value>
+  </data>
+  <data name="Text_skills_doctor_folder_missing" xml:space="preserve">
+    <value>No se encontró la carpeta de la skill en el origen. Revisa si cambió de sitio.</value>
+  </data>
+  <data name="Text_skills_doctor_up_to_date" xml:space="preserve">
+    <value>Sin novedades en su carpeta desde la versión fijada (commit).</value>
+  </data>
+  <data name="Text_skills_doctor_update_to_review" xml:space="preserve">
+    <value>Actualización por revisar: su carpeta cambió en el origen desde la versión fijada (commit).</value>
+  </data>
+  <data name="Text_skills_reader_upstream_unchecked" xml:space="preserve">
+    <value>Sin comprobar: pulsa «Comprobar en GitHub» para saber si el origen cambió. Usa la red, que está apagada por defecto.</value>
+  </data>
+  <data name="Text_skills_reader_archived_unchecked" xml:space="preserve">
+    <value>Sin comprobar: pulsa «Comprobar en GitHub» para saber si el repositorio está archivado. Usa la red, que está apagada por defecto.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_no_copy" xml:space="preserve">
+    <value>Sin comprobar: no hay copia local en la que mirar si trae scripts.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_no_reader" xml:space="preserve">
+    <value>Sin comprobar: no hay lector de scripts disponible.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_none" xml:space="preserve">
+    <value>No trae scripts.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_reviewed" xml:space="preserve">
+    <value>Trae scripts ({0} ficheros) y ya los revisaste. No se ejecuta ninguno.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_unreviewed" xml:space="preserve">
+    <value>Trae scripts sin revisar ({0} ficheros). Léelos antes de activarla. No se ejecuta ninguno.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_changed" xml:space="preserve">
+    <value>Los scripts ({0} ficheros) cambiaron desde que los revisaste. Vuelve a leerlos. No se ejecuta ninguno.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_unreadable" xml:space="preserve">
+    <value>Sin comprobar: no se pudo leer la carpeta de scripts.</value>
+  </data>
+  <data name="Text_skills_reader_unread_no_copy" xml:space="preserve">
+    <value>Sin copia local que comprobar: la skill está enlazada o su copia no se puede usar.</value>
+  </data>
+  <data name="Text_skills_reader_unread_no_folder" xml:space="preserve">
+    <value>No existe la carpeta de la skill, así que no se pudo leer su SKILL.md.</value>
+  </data>
+  <data name="Text_skills_reader_unread_folder_link" xml:space="preserve">
+    <value>La carpeta de la skill es un enlace. No se sigue y su SKILL.md queda sin comprobar.</value>
+  </data>
+  <data name="Text_skills_reader_unread_file_missing" xml:space="preserve">
+    <value>No se encuentra su SKILL.md. Quizá se borró después de leer el catálogo.</value>
+  </data>
+  <data name="Text_skills_reader_unread_file_link" xml:space="preserve">
+    <value>Su SKILL.md es un enlace. No se sigue y queda sin comprobar.</value>
+  </data>
+  <data name="Text_skills_reader_unread_failed" xml:space="preserve">
+    <value>No se pudo leer su SKILL.md.</value>
+  </data>
+  <data name="Text_skills_reader_size_unread" xml:space="preserve">
+    <value>Sin comprobar: no se leyó su SKILL.md.</value>
+  </data>
+  <data name="Text_skills_reader_too_large_frontmatter" xml:space="preserve">
+    <value>Su SKILL.md es demasiado grande para una skill ({0} KiB). No se lee.</value>
+  </data>
+  <data name="Text_skills_reader_too_large_size" xml:space="preserve">
+    <value>Su SKILL.md ocupa {0} KiB.</value>
+  </data>
+  <data name="Skills_Doctor_BadToken" xml:space="preserve">
+    <value>GitHub no aceptó la clave de acceso guardada: no vale o se revocó. Se paró la comprobación.</value>
+  </data>
+  <data name="Skills_Doctor_Cancel" xml:space="preserve">
+    <value>Cancelar la comprobación</value>
+  </data>
+  <data name="Skills_Doctor_CancelName" xml:space="preserve">
+    <value>Cancelar la comprobación en GitHub</value>
+  </data>
+  <data name="Skills_Doctor_CancelTip" xml:space="preserve">
+    <value>Para la comprobación en curso. Las skills que faltan quedan sin comprobar.</value>
+  </data>
+  <data name="Skills_Doctor_Cancelled" xml:space="preserve">
+    <value>Comprobación cancelada. Las skills que faltaban quedan sin comprobar.</value>
+  </data>
+  <data name="Skills_Scripts_OpenName" xml:space="preserve">
+    <value>Abrir el script {0}</value>
+  </data>
+  <data name="Skills_Scripts_OpenTip" xml:space="preserve">
+    <value>Abre el fichero en el editor de la aplicación, para leerlo.</value>
+  </data>
+  <data name="Skills_Scripts_OpenFailed" xml:space="preserve">
+    <value>No se pudo abrir ese script: ya no existe o es un enlace.</value>
+  </data>
 </root>

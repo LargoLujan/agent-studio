@@ -57,8 +57,17 @@ public sealed class DpapiCredentialVault : ICredentialVault, ICredentialVaultPro
             {
                 Directory.CreateDirectory(_folder);
                 var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-                await File.WriteAllBytesAsync(temporary, sealedBytes, cancellationToken).ConfigureAwait(false);
-                File.Move(temporary, path, overwrite: true);
+                try
+                {
+                    await File.WriteAllBytesAsync(temporary, sealedBytes, cancellationToken).ConfigureAwait(false);
+                    File.Move(temporary, path, overwrite: true);
+                }
+                catch
+                {
+                    // A failed or cancelled store leaves no half-written copy of the secret behind.
+                    TryDelete(temporary);
+                    throw;
+                }
             }
             finally
             {
@@ -132,6 +141,18 @@ public sealed class DpapiCredentialVault : ICredentialVault, ICredentialVaultPro
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private static void TryDelete(string file)
+    {
+        try
+        {
+            File.Delete(file);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Nothing more can be done for it.
         }
     }
 

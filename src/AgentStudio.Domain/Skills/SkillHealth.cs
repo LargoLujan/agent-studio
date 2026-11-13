@@ -35,8 +35,19 @@ public static class SkillHealthCodes
     public const string Size = "size";
 }
 
-/// <summary>One health check result. <c>Message</c> is shown to the user (Spanish).</summary>
-public sealed record SkillHealthCheck(string Code, SkillHealthStatus Status, string Message);
+/// <summary>
+/// One health check result. When <see cref="TextCode"/> is set, the text the person reads is that coded text with <see cref="TextArguments"/> (docs/17 D-47, ADR-0054): the
+/// desktop paints it in the language of the person from its resources, and <see cref="Message"/> is only a technical fallback (the code). Without a code,
+/// <c>Message</c> is shown as it is (Spanish; the checks of the frontmatter, the license and the pinning still do this, see docs/18).
+/// The arguments are text, numbers or an instant, never a sentence (<see cref="AgentStudio.Domain.Common.TextArguments"/>).
+/// </summary>
+public sealed record SkillHealthCheck(string Code, SkillHealthStatus Status, string Message, string? TextCode = null, IReadOnlyList<object>? TextArguments = null)
+{
+    /// <summary>A check whose text is a code: the fallback message is the code itself.</summary>
+    /// <exception cref="ArgumentException">An argument of a type a coded text does not carry.</exception>
+    public static SkillHealthCheck Coded(string code, SkillHealthStatus status, string textCode, params object[] arguments) =>
+        new(code, status, textCode, textCode, AgentStudio.Domain.Common.TextArguments.Checked(arguments, nameof(arguments)));
+}
 
 /// <summary>
 /// A set of checks. The global status is the worst one by severity Healthy &lt; Unknown &lt; Warning &lt; Critical

@@ -44,6 +44,22 @@ public sealed class DpapiAndSecretsTests : IDisposable
     }
 
     [Fact]
+    public async Task A_store_that_is_cancelled_or_fails_leaves_no_temporary_file()
+    {
+        var vault = Vault();
+        Directory.CreateDirectory(_folder);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => vault.StoreAsync("t", "secret", cancelled.Token));
+        Assert.Empty(Directory.GetFiles(_folder, "*.tmp"));
+
+        // The move fails: the final name is a folder.
+        Directory.CreateDirectory(Path.Combine(_folder, "u.dpapi"));
+        await Assert.ThrowsAnyAsync<Exception>(() => vault.StoreAsync("u", "secret", Ct));
+        Assert.Empty(Directory.GetFiles(_folder, "*.tmp"));
+    }
+
+    [Fact]
     public async Task Storing_again_replaces_and_deleting_removes_it()
     {
         var vault = Vault();

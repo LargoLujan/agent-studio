@@ -1,3 +1,5 @@
+using System.IO;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Skills;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Domain.Skills;
@@ -244,6 +246,123 @@ public sealed class SkillsDoctorViewModelTests
         Assert.Equal(new string('a', 64), reviews.Marked[id]);
         Assert.False(document.Detail!.CanMarkScripts);
         Assert.Contains("Ya marcaste", document.Detail.ScriptsReviewedText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_coded_check_is_painted_from_its_resources_and_a_plain_one_keeps_its_message()
+    {
+        var world = new SkillsWorld();
+        var doctor = new FakeDoctor
+        {
+            Answer = entries => new SkillHealthBatchResult(
+                [.. entries.Select(e => new SkillHealthBatchEntry(e.Id, new SkillHealthReport([SkillHealthCheck.Coded(SkillHealthCodes.Upstream, SkillHealthStatus.Warning, SkillsUserTexts.DoctorUpdateToReview)]), null))],
+                false,
+                null),
+        };
+        var document = await OpenAsync(world, WithDoctor(world, doctor, new FakeNetworkSetting(true)));
+
+        await document.CheckOnGitHubCommand.ExecuteAsync(null);
+        document.Sectors.SelectMany(s => s.Skills).First().IsSelected = true;
+
+        var upstream = Assert.Single(document.Detail!.Checks, c => c.Code == SkillHealthCodes.Upstream);
+        Assert.StartsWith("Actualización por revisar", upstream.Message, StringComparison.Ordinal);
+        Assert.NotEqual(SkillsUserTexts.DoctorUpdateToReview, upstream.Message);
+        Assert.Contains(document.Detail.Checks, c => c.Code == SkillHealthCodes.License && c.Message == "Licencia permisiva: MIT.");
+    }
+
+    [Fact]
+    public async Task The_button_cancels_the_batch_in_progress_and_the_skills_left_stay_unchecked()
+    {
+        var world = new SkillsWorld();
+        var doctor = new BlockingDoctor();
+        var document = await OpenAsync(world, world.Backend() with { Doctor = doctor, NetworkSetting = new FakeNetworkSetting(true) });
+        Assert.False(document.CancelCheckCommand.CanExecute(null));
+
+        var run = document.CheckOnGitHubCommand.ExecuteAsync(null);
+        await doctor.Started.Task.WaitAsync(Ct);
+        Assert.True(document.IsChecking);
+        Assert.True(document.CancelCheckCommand.CanExecute(null));
+        document.CancelCheckCommand.Execute(null);
+        await run;
+
+        Assert.False(document.IsChecking);
+        Assert.Contains("cancelada", document.DoctorStatus, StringComparison.Ordinal);
+        Assert.False(document.CancelCheckCommand.CanExecute(null));
+        Assert.True(document.CheckOnGitHubCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Closing_the_screen_cancels_the_batch()
+    {
+        var world = new SkillsWorld();
+        var doctor = new BlockingDoctor();
+        var document = await OpenAsync(world, world.Backend() with { Doctor = doctor, NetworkSetting = new FakeNetworkSetting(true) });
+
+        var run = document.CheckOnGitHubCommand.ExecuteAsync(null);
+        await doctor.Started.Task.WaitAsync(Ct);
+        var closed = (MulticastDelegate)typeof(AgentStudio.Desktop.ViewModels.DocumentViewModel).GetField("Closed", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(document)!;
+        closed.DynamicInvoke(document, EventArgs.Empty);
+        await run;
+
+        Assert.False(document.IsChecking);
+        Assert.Contains("cancelada", document.DoctorStatus, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_bad_token_is_said_in_the_summary()
+    {
+        var world = new SkillsWorld();
+        var doctor = new FakeDoctor { Answer = entries => new SkillHealthBatchResult([.. entries.Select(e => new SkillHealthBatchEntry(e.Id, new SkillHealthReport([]), SkillHealthFailure.InvalidToken))], false, null) };
+        var document = await OpenAsync(world, WithDoctor(world, doctor, new FakeNetworkSetting(true)));
+
+        await document.CheckOnGitHubCommand.ExecuteAsync(null);
+
+        Assert.Contains("no aceptó la clave de acceso", document.DoctorStatus, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Each_script_is_a_link_that_opens_it_in_the_editor_and_nothing_else_does()
+    {
+        var world = new SkillsWorld();
+        var folder = Path.Combine(Path.GetTempPath(), "as open " + Guid.NewGuid().ToString("N")[..10], "skill");
+        Directory.CreateDirectory(Path.Combine(folder, "scripts", "lib"));
+        File.WriteAllText(Path.Combine(folder, "scripts", "run.ps1"), "x");
+        try
+        {
+            world.Catalog[0] = world.Catalog[0] with { LocalPath = folder };
+            var inspector = new FakeInspector { [folder] = new SkillScriptsInfo(new string('a', 64), ["run.ps1", "lib/gone.py", "../../escape.txt"]) };
+            var opened = new List<string>();
+            var backend = world.Backend() with { ScriptsInspector = inspector, ScriptReviews = new FakeReviews() };
+            var document = new SkillsDocumentViewModel(SkillsScreenSamples.ProjectRoot, backend, TimeProvider.System, (_, _) => world.ProjectFiles, path => { opened.Add(path); return Task.CompletedTask; });
+            await document.OpenAsync(Ct);
+            document.Sectors.SelectMany(s => s.Skills).Single(i => i.Id == world.Catalog[0].Entry.Id.Value).IsSelected = true;
+
+            Assert.True(document.Detail!.HasScriptLinks);
+            await document.Detail.ScriptLinks[0].OpenCommand.ExecuteAsync(null);
+            Assert.Equal([Path.Combine(folder, "scripts", "run.ps1")], opened);
+
+            // A script that is gone, or a path that climbs out of scripts/, is not opened: the screen says so.
+            await document.Detail.ScriptLinks[1].OpenCommand.ExecuteAsync(null);
+            await document.Detail.ScriptLinks[2].OpenCommand.ExecuteAsync(null);
+            Assert.Single(opened);
+            Assert.Contains("No se pudo abrir", document.ActivationProblem, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(folder)!, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Without_a_way_to_open_files_the_scripts_are_listed_but_not_linked()
+    {
+        var world = new SkillsWorld();
+        var document = await OpenAsync(world, world.DoctorBackend());
+        document.Sectors.SelectMany(s => s.Skills).First().IsSelected = true;
+
+        Assert.True(document.Detail!.HasScripts);
+        Assert.False(document.Detail.HasScriptLinks);
+        Assert.Empty(document.Detail.ScriptLinks);
     }
 
     [Fact]

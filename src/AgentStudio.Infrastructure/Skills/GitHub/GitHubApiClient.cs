@@ -261,7 +261,10 @@ public sealed class GitHubApiClient : IAsyncDisposable, IDisposable
                         throw new GitHubApiException(SkillHealthFailure.RateLimited, ResetOf(response, limit));
                     case 403 when limit.Remaining == 0 || response.Headers.RetryAfter is not null:
                         throw new GitHubApiException(SkillHealthFailure.RateLimited, ResetOf(response, limit));
-                    case 401 or 403:
+                    case 401:
+                        // Bad credentials: the token that was sent is not valid or was revoked.
+                        throw new GitHubApiException(SkillHealthFailure.InvalidToken);
+                    case 403:
                         throw new GitHubApiException(SkillHealthFailure.Forbidden);
                     case 200 or 304 or 404:
                         break;

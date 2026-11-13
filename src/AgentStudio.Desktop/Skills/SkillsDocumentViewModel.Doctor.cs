@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Skills;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Skills;
@@ -26,6 +27,7 @@ public sealed partial class SkillsDocumentViewModel
     private readonly Dictionary<SkillId, SkillScriptsInfo> _scripts = [];
     private readonly Dictionary<SkillId, string> _reviewedScripts = [];
     private bool _loadingDoctor;
+    private CancellationTokenSource? _checkCancellation;
 
     /// <summary>«Permitir comprobar las skills en GitHub»: off until the person turns it on, and kept in the settings of the app.</summary>
     [ObservableProperty]
@@ -34,6 +36,7 @@ public sealed partial class SkillsDocumentViewModel
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CheckOnGitHubCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelCheckCommand))]
     private bool _isChecking;
 
     /// <summary>What the last batch did, or that nothing was checked yet.</summary>
@@ -70,6 +73,17 @@ public sealed partial class SkillsDocumentViewModel
         OnPropertyChanged(nameof(DoctorUnavailable));
     }
 
+    /// <summary>The text of a check in the language of the person: its coded text painted from the resources, or the message it carries (docs/17 D-47, ADR-0054).</summary>
+    internal static string CheckText(SkillHealthCheck check) =>
+        check.TextCode is { } code ? Texts.Render(new UserText(code, check.TextArguments)) : check.Message;
+
+    /// <summary>Stops the batch in progress (the button «Cancelar la comprobación» and closing the screen): the skills that are left stay unchecked.</summary>
+    [RelayCommand(CanExecute = nameof(IsChecking))]
+    private void CancelCheck() => _checkCancellation?.Cancel();
+
+    /// <summary>Closing the screen cancels the batch: nothing keeps asking GitHub behind a tab that is gone.</summary>
+    private void CancelRunningCheck() => _checkCancellation?.Cancel();
+
     private bool CanCheck() => IsNetworkAllowed && !IsChecking && _backend.Doctor is not null && _items.Count > 0;
 
     /// <summary>Asks GitHub about every skill of the catalog, once, in series, because the person pressed the button.</summary>
@@ -81,11 +95,13 @@ public sealed partial class SkillsDocumentViewModel
             return;
         }
 
+        using var cancellation = new CancellationTokenSource();
+        _checkCancellation = cancellation;
         IsChecking = true;
         DoctorStatus = Texts.Get("Skills_Doctor_Checking");
         try
         {
-            var result = await doctor.CheckAsync([.. _items.Select(item => item.Skill.Entry)], CancellationToken.None).ConfigureAwait(true);
+            var result = await doctor.CheckAsync([.. _items.Select(item => item.Skill.Entry)], cancellation.Token).ConfigureAwait(true);
             _remoteChecks.Clear();
             foreach (var entry in result.Entries)
             {
@@ -95,6 +111,10 @@ public sealed partial class SkillsDocumentViewModel
             await LoadAsync(CancellationToken.None).ConfigureAwait(true);
             DoctorStatus = Summarize(result);
         }
+        catch (OperationCanceledException)
+        {
+            DoctorStatus = Texts.Get("Skills_Doctor_Cancelled");
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // The message of the exception is not shown: it could carry what was sent.
@@ -102,6 +122,7 @@ public sealed partial class SkillsDocumentViewModel
         }
         finally
         {
+            _checkCancellation = null;
             IsChecking = false;
         }
     }
@@ -119,6 +140,11 @@ public sealed partial class SkillsDocumentViewModel
         else if (result.TokenState == SkillsDoctorTokenState.PresenceDenied)
         {
             text += " " + Texts.Get("Skills_Doctor_TokenDenied");
+        }
+
+        if (result.Entries.Any(e => e.Failure == SkillHealthFailure.InvalidToken))
+        {
+            text += " " + Texts.Get("Skills_Doctor_BadToken");
         }
 
         if (result.Entries.Any(e => e.Failure == SkillHealthFailure.RateLimited))
@@ -196,16 +222,47 @@ public sealed partial class SkillsDocumentViewModel
     }
 
     /// <summary>The scripts of the skill for its card: the list, whether they are reviewed, and the command that marks them as they are now.</summary>
-    private (IReadOnlyList<string> Files, string? ReviewedText, IAsyncRelayCommand? Mark) ScriptsOf(SkillItemViewModel item)
+    private (IReadOnlyList<string> Files, IReadOnlyList<SkillScriptLink> Links, string? ReviewedText, IAsyncRelayCommand? Mark) ScriptsOf(SkillItemViewModel item)
     {
         var id = item.Skill.Entry.Id;
         if (!_scripts.TryGetValue(id, out var info))
         {
-            return ([], null, null);
+            return ([], [], null, null);
         }
 
+        // A link «abrir» exists only when the screen can open a file in the editor of the app; without it the list stays plain text, never a link that does nothing.
+        IReadOnlyList<SkillScriptLink> links = _openFile is null
+            ? []
+            : [.. info.RelativePaths.Take(SkillDetailViewModel.MaxScriptLines).Select(path => new SkillScriptLink(path, Texts.Format("Skills_Scripts_OpenName", path), new AsyncRelayCommand(() => OpenScriptAsync(item, path))))];
         var reviewed = _reviewedScripts.TryGetValue(id, out var hash) && string.Equals(hash, info.Sha256, StringComparison.Ordinal);
-        return (info.RelativePaths, reviewed ? Texts.Get("Skills_Scripts_Reviewed") : null, reviewed ? null : new AsyncRelayCommand(() => MarkScriptsReviewedAsync(item)));
+        return (info.RelativePaths, links, reviewed ? Texts.Get("Skills_Scripts_Reviewed") : null, reviewed ? null : new AsyncRelayCommand(() => MarkScriptsReviewedAsync(item)));
+    }
+
+    /// <summary>
+    /// Opens one script of the skill in the editor of the app, to read it. The path is rebuilt from the folder of the skill and a relative path that the reading of
+    /// <c>scripts/</c> gave, and checked again before it is opened: it must still be a plain file inside <c>scripts/</c>, never a link.
+    /// </summary>
+    private async Task OpenScriptAsync(SkillItemViewModel item, string relativePath)
+    {
+        if (_openFile is not { } open || item.Skill.LocalPath is not { } folder)
+        {
+            return;
+        }
+
+        var scriptsRoot = Path.GetFullPath(Path.Combine(folder, "scripts"));
+        var full = Path.GetFullPath(Path.Combine(scriptsRoot, relativePath));
+        var file = new FileInfo(full);
+        if (!full.StartsWith(scriptsRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || !file.Exists
+            || file.Attributes.HasFlag(FileAttributes.ReparsePoint)
+            || file.LinkTarget is not null)
+        {
+            ActivationProblem = Texts.Get("Skills_Scripts_OpenFailed");
+            return;
+        }
+
+        ActivationProblem = null;
+        await open(full).ConfigureAwait(true);
     }
 
     private async Task MarkScriptsReviewedAsync(SkillItemViewModel item)

@@ -47,5 +47,6 @@ public sealed record SkillsBackend(
 /// <summary>Creates the «Skills» document for the open project (or for none).</summary>
 public interface ISkillsDocumentFactory
 {
-    SkillsDocumentViewModel Create(string? projectRoot);
+    /// <param name="openFile">Opens a file in the editor of the app, for the scripts of a skill; null when the screen cannot.</param>
+    SkillsDocumentViewModel Create(string? projectRoot, Func<string, Task>? openFile = null);
 }

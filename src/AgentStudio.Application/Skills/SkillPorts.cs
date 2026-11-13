@@ -129,6 +129,9 @@ public enum SkillHealthFailure
 
     /// <summary>The answer was not what the schema expects, or was longer than 1 MB.</summary>
     UnreadableResponse,
+
+    /// <summary>GitHub answered 401: the stored token is not valid or was revoked. The batch stops: every other skill would get the same answer.</summary>
+    InvalidToken,
 }
 
 /// <summary>One skill of a batch: its report, and why the checks that need GitHub were not made when they were not.</summary>

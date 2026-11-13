@@ -300,3 +300,16 @@ internal sealed class FakeReviews : ISkillScriptReviews
         return Task.CompletedTask;
     }
 }
+
+/// <summary>A checker that never answers until it is cancelled: the batch in progress, for the button that cancels it.</summary>
+internal sealed class BlockingDoctor : ISkillHealthBatchChecker
+{
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public async Task<SkillHealthBatchResult> CheckAsync(IReadOnlyList<SkillEntry> skills, CancellationToken ct)
+    {
+        Started.TrySetResult();
+        await Task.Delay(Timeout.Infinite, ct);
+        throw new InvalidOperationException("Unreachable.");
+    }
+}

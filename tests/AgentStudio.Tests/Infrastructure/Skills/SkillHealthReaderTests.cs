@@ -63,11 +63,13 @@ public sealed class SkillHealthReaderTests : IDisposable
         {
             var check = Check(report, code);
             Assert.Equal(SkillHealthStatus.Unknown, check.Status);
-            Assert.StartsWith("Sin comprobar", check.Message, StringComparison.Ordinal);
-            if (code != SkillHealthCodes.Scripts)
+            Assert.NotNull(check.TextCode);
+            Assert.Equal(code switch
             {
-                Assert.Contains("Comprobar en GitHub", check.Message, StringComparison.Ordinal);
-            }
+                SkillHealthCodes.Upstream => SkillsUserTexts.ReaderUpstreamUnchecked,
+                SkillHealthCodes.Archived => SkillsUserTexts.ReaderArchivedUnchecked,
+                _ => SkillsUserTexts.ReaderScriptsNoReader,
+            }, check.TextCode);
         }
 
         Assert.Equal(SkillHealthStatus.Unknown, report.Status);
@@ -115,7 +117,7 @@ public sealed class SkillHealthReaderTests : IDisposable
 
         var frontmatter = Check(report, SkillHealthCodes.Frontmatter);
         Assert.Equal(SkillHealthStatus.Unknown, frontmatter.Status);
-        Assert.Contains("copia local", frontmatter.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.ReaderUnreadNoCopy, frontmatter.TextCode);
         Assert.Equal(SkillHealthStatus.Healthy, Check(report, SkillHealthCodes.License).Status);
         Assert.Equal(SkillHealthStatus.Warning, Check(report, SkillHealthCodes.Pinned).Status);
     }
@@ -129,7 +131,7 @@ public sealed class SkillHealthReaderTests : IDisposable
 
         var frontmatter = Check(report, SkillHealthCodes.Frontmatter);
         Assert.Equal(SkillHealthStatus.Unknown, frontmatter.Status);
-        Assert.Contains("SKILL.md", frontmatter.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.ReaderUnreadFileMissing, frontmatter.TextCode);
     }
 
     [Fact]
@@ -142,7 +144,8 @@ public sealed class SkillHealthReaderTests : IDisposable
 
         var frontmatter = Check(report, SkillHealthCodes.Frontmatter);
         Assert.Equal(SkillHealthStatus.Warning, frontmatter.Status);
-        Assert.Contains("demasiado grande", frontmatter.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.ReaderTooLargeFrontmatter, frontmatter.TextCode);
+        Assert.IsType<long>(Assert.Single(frontmatter.TextArguments!));
     }
 
     [Fact]
@@ -160,7 +163,7 @@ public sealed class SkillHealthReaderTests : IDisposable
 
         var frontmatter = Check(report, SkillHealthCodes.Frontmatter);
         Assert.Equal(SkillHealthStatus.Unknown, frontmatter.Status);
-        Assert.Contains("enlace", frontmatter.Message, StringComparison.Ordinal);
+        Assert.Equal(SkillsUserTexts.ReaderUnreadFolderLink, frontmatter.TextCode);
     }
 
     [Fact]
