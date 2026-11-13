@@ -75,6 +75,21 @@ public sealed class SkillHealthReaderTests : IDisposable
         Assert.Equal(SkillHealthStatus.Unknown, report.Status);
     }
 
+    /// <summary>P65: the cost of the whole SKILL.md in context comes back next to the size, as a number of the coded text (not as a piece of sentence).</summary>
+    [Fact]
+    public async Task The_size_check_carries_the_cost_in_context_of_the_whole_skill_file()
+    {
+        var markdown = Markdown("spark-optimization");
+        var skill = Skill("spark-optimization", Folder("spark-optimization", markdown));
+
+        var report = await new SkillHealthReader().ReadLocalAsync(skill, Ct);
+
+        var size = Check(report, SkillHealthCodes.Size);
+        Assert.Equal(SkillHealthTextCodes.SizeOkCost, size.TextCode);
+        Assert.Equal(SkillContextCost.OfText(markdown.Length), Assert.IsType<long>(size.TextArguments![1]));
+        Assert.True((long)size.TextArguments[1] > 0);
+    }
+
     [Fact]
     public async Task A_frontmatter_without_description_is_critical()
     {
@@ -93,7 +108,7 @@ public sealed class SkillHealthReaderTests : IDisposable
 
         var report = await new SkillHealthReader().ReadLocalAsync(skill, Ct);
 
-        Assert.Contains(report.Checks, c => c.Code == SkillHealthCodes.Frontmatter && c.Status == SkillHealthStatus.Warning && c.Message.Contains("carpeta", StringComparison.Ordinal));
+        Assert.Contains(report.Checks, c => c.Code == SkillHealthCodes.Frontmatter && c.Status == SkillHealthStatus.Warning && c.TextCode == SkillHealthTextCodes.FrontmatterNameFolderMismatch && c.TextArguments is ["otro-nombre", "carpeta"]);
         Assert.Equal(SkillHealthStatus.Warning, report.Status);
     }
 

@@ -38,7 +38,18 @@ public static class SkillContextCost
         return MetricValue<long>.EstimatedBySystem(total, Source);
     }
 
+    /// <summary>
+    /// The estimated tokens of a whole SKILL.md once the skill is used (docs/20 D-14): its characters divided by <see cref="CharactersPerToken"/>, rounded up.
+    /// The health check of the size carries it as a number.
+    /// </summary>
+    public static long OfText(int characters)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(characters);
+        return ((long)characters + CharactersPerToken - 1) / CharactersPerToken;
+    }
+
     private static long Tokens(SkillEntry skill)
+
     {
         long characters = skill.Name.Length + skill.Summary.Length;
         return (characters + CharactersPerToken - 1) / CharactersPerToken;

@@ -84,6 +84,14 @@ public sealed class SkillsStringsTests
                 SkillsUserTexts.DoctorRateLimited => [reset],
                 SkillsUserTexts.ReaderScriptsReviewed or SkillsUserTexts.ReaderScriptsUnreviewed or SkillsUserTexts.ReaderScriptsChanged => [3],
                 SkillsUserTexts.ReaderTooLargeFrontmatter or SkillsUserTexts.ReaderTooLargeSize => [2048L],
+                SkillHealthTextCodes.FrontmatterNameTooLong or SkillHealthTextCodes.FrontmatterDescriptionTooLong => [64],
+                SkillHealthTextCodes.FrontmatterNameFolderMismatch => ["one-name", "other-folder"],
+                SkillHealthTextCodes.FrontmatterDuplicateKey => ["description"],
+                SkillHealthTextCodes.SizeLong => [501, 500],
+                SkillHealthTextCodes.SizeLongCost => [501, 500, 1234L],
+                SkillHealthTextCodes.SizeOk => [120],
+                SkillHealthTextCodes.SizeOkCost => [120, 1234L],
+                SkillHealthTextCodes.LicensePermissive or SkillHealthTextCodes.LicenseCopyleft or SkillHealthTextCodes.LicenseRestricted => ["MIT"],
                 _ => [],
             };
             var text = new UserText(code, arguments);
@@ -99,7 +107,19 @@ public sealed class SkillsStringsTests
 
         Assert.Contains("14:30 (UTC)", English.Render(new UserText(SkillsUserTexts.DoctorRateLimited, [reset])), StringComparison.Ordinal);
         Assert.Contains("3 files", English.Render(new UserText(SkillsUserTexts.ReaderScriptsUnreviewed, [3])), StringComparison.Ordinal);
+        Assert.All(SkillHealthTextCodes.All, code => Assert.Contains(code, SkillsUserTexts.All));
     }
+
+    /// <summary>P65: the cost in context comes back as a number inside the text, in the culture of the language, and no Spanish comes out in English.</summary>
+    [Fact]
+    public void The_size_of_a_skill_file_says_its_cost_in_context_in_both_languages()
+    {
+        var tokens = new UserText(SkillHealthTextCodes.SizeOkCost, [120, 12345L]);
+        Assert.Equal("Body of 120 lines. When used, it takes about 12345 tokens of context (estimated by Agent Studio).", English.Render(tokens));
+        Assert.Contains("tokens", Spanish.Render(tokens), StringComparison.Ordinal);
+        Assert.Contains("120", Spanish.Render(tokens), StringComparison.Ordinal);
+        Assert.Contains("12345", Spanish.Render(tokens), StringComparison.Ordinal);
+        Assert.Contains("1234 tokens", English.Render(new UserText(SkillHealthTextCodes.SizeLongCost, [501, 500, 1234L])), StringComparison.Ordinal);    }
 
     [Fact]
     public void The_information_button_has_its_three_texts_in_short_sentences_and_the_screen_uses_it()

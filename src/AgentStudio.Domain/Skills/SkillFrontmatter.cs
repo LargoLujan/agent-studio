@@ -177,72 +177,78 @@ public sealed partial record SkillFrontmatter(
         return new SkillFrontmatter(true, fields, CountLines(lines, close + 1)) { DuplicateKeys = duplicates };
     }
 
-    /// <summary>Checks the parsed header against the Agent Skills specification.</summary>
-    public IReadOnlyList<SkillHealthCheck> Validate(string folderName)
+    /// <summary>
+    /// Checks the parsed header against the Agent Skills specification. The texts are codes (<see cref="SkillHealthTextCodes"/>). When <paramref name="contextTokens"/>
+    /// is given (the estimated tokens of the whole SKILL.md, <see cref="SkillContextCost.OfText"/>), the size check carries it as a number next to the lines.
+    /// </summary>
+    public IReadOnlyList<SkillHealthCheck> Validate(string folderName, long? contextTokens = null)
     {
         ArgumentNullException.ThrowIfNull(folderName);
         var checks = new List<SkillHealthCheck>();
 
-        void Fail(SkillHealthStatus status, string message) =>
-            checks.Add(new SkillHealthCheck(SkillHealthCodes.Frontmatter, status, message));
+        void Fail(SkillHealthStatus status, string textCode, params object[] arguments) =>
+            checks.Add(SkillHealthCheck.Coded(SkillHealthCodes.Frontmatter, status, textCode, arguments));
 
         if (!HasHeader)
         {
-            Fail(SkillHealthStatus.Critical, "SKILL.md no tiene una cabecera '---' válida.");
+            Fail(SkillHealthStatus.Critical, SkillHealthTextCodes.FrontmatterNoHeader);
         }
         else
         {
             var name = Name;
             if (name is null)
             {
-                Fail(SkillHealthStatus.Critical, "Falta el campo 'name'.");
+                Fail(SkillHealthStatus.Critical, SkillHealthTextCodes.FrontmatterNameMissing);
             }
             else
             {
                 if (name.Length > MaxNameLength)
                 {
-                    Fail(SkillHealthStatus.Critical, $"'name' supera {MaxNameLength} caracteres.");
+                    Fail(SkillHealthStatus.Critical, SkillHealthTextCodes.FrontmatterNameTooLong, MaxNameLength);
                 }
 
                 if (!ValidName().IsMatch(name))
                 {
-                    Fail(SkillHealthStatus.Critical, "'name' solo admite a-z, 0-9 y guiones, sin guiones al inicio, al final ni dobles.");
+                    Fail(SkillHealthStatus.Critical, SkillHealthTextCodes.FrontmatterNameInvalid);
                 }
 
                 if (!string.Equals(name, folderName, StringComparison.Ordinal))
                 {
-                    Fail(SkillHealthStatus.Warning, $"'name' ({name}) no coincide con la carpeta ({folderName}).");
+                    Fail(SkillHealthStatus.Warning, SkillHealthTextCodes.FrontmatterNameFolderMismatch, name, folderName);
                 }
             }
 
             var description = Description;
             if (description is null)
             {
-                Fail(SkillHealthStatus.Critical, "Falta el campo 'description'.");
+                Fail(SkillHealthStatus.Critical, SkillHealthTextCodes.FrontmatterDescriptionMissing);
             }
             else if (description.Length > MaxDescriptionLength)
             {
-                Fail(SkillHealthStatus.Critical, $"'description' supera {MaxDescriptionLength} caracteres.");
+                Fail(SkillHealthStatus.Critical, SkillHealthTextCodes.FrontmatterDescriptionTooLong, MaxDescriptionLength);
             }
 
             foreach (var key in DuplicateKeys)
             {
-                Fail(SkillHealthStatus.Warning, $"La clave '{key}' está duplicada en la cabecera (gana la última).");
+                Fail(SkillHealthStatus.Warning, SkillHealthTextCodes.FrontmatterDuplicateKey, key);
             }
 
             if (checks.Count == 0)
             {
-                Fail(SkillHealthStatus.Healthy, "Cabecera conforme a la especificación Agent Skills.");
+                Fail(SkillHealthStatus.Healthy, SkillHealthTextCodes.FrontmatterOk);
             }
         }
 
-        checks.Add(BodyLineCount > RecommendedMaxBodyLines
-            ? new SkillHealthCheck(SkillHealthCodes.Size, SkillHealthStatus.Warning,
-                $"El cuerpo tiene {BodyLineCount} líneas (se recomiendan menos de {RecommendedMaxBodyLines}).")
-            : new SkillHealthCheck(SkillHealthCodes.Size, SkillHealthStatus.Healthy, $"Cuerpo de {BodyLineCount} líneas."));
+        var tooLong = BodyLineCount > RecommendedMaxBodyLines;
+        checks.Add((tooLong, contextTokens) switch
+        {
+            (true, { } tokens) => SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Warning, SkillHealthTextCodes.SizeLongCost, BodyLineCount, RecommendedMaxBodyLines, tokens),
+            (true, null) => SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Warning, SkillHealthTextCodes.SizeLong, BodyLineCount, RecommendedMaxBodyLines),
+            (false, { } tokens) => SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Healthy, SkillHealthTextCodes.SizeOkCost, BodyLineCount, tokens),
+            _ => SkillHealthCheck.Coded(SkillHealthCodes.Size, SkillHealthStatus.Healthy, SkillHealthTextCodes.SizeOk, BodyLineCount),
+        });
         return checks;
     }
-
     /// <summary>
     /// Where the body of <paramref name="text"/> starts: right after its closing <c>---</c> line, found with the line rules
     /// of <see cref="Parse"/> (CRLF, LF or a lone CR end a line; the first line after the opening that trims to

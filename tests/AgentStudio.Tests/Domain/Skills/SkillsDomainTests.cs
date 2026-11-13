@@ -348,7 +348,7 @@ public sealed class SkillsDomainTests
         Assert.Equal("second", fm.Description);
         var checks = fm.Validate("my-skill");
         Assert.Contains(checks, c => c.Code == SkillHealthCodes.Frontmatter
-            && c.Status == SkillHealthStatus.Warning && c.Message.Contains("description", StringComparison.Ordinal));
+            && c.Status == SkillHealthStatus.Warning && c.TextCode == SkillHealthTextCodes.FrontmatterDuplicateKey && c.TextArguments is ["description"]);
         Assert.DoesNotContain(checks, c => c.Status == SkillHealthStatus.Critical);
     }
 
@@ -359,30 +359,68 @@ public sealed class SkillsDomainTests
     }
 
     [Theory]
-    [InlineData("MIT", "permisiva")]
-    [InlineData("Apache-2.0", "permisiva")]
-    [InlineData("BSD-3-Clause", "permisiva")]
-    [InlineData("ISC", "permisiva")]
-    [InlineData("0BSD", "permisiva")]
-    [InlineData("Unlicense", "permisiva")]
-    [InlineData("Zlib", "permisiva")]
-    [InlineData("MPL-2.0", "copyleft")]
-    [InlineData("GPL-3.0-only", "copyleft")]
-    [InlineData("AGPL-3.0", "copyleft")]
-    [InlineData("LGPL-2.1", "copyleft")]
-    [InlineData("EPL-2.0", "copyleft")]
-    public void LicenseCheck_DistinguishesPermissiveFromCopyleft(string license, string wording)
+    [InlineData("MIT", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("Apache-2.0", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("BSD-3-Clause", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("ISC", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("0BSD", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("Unlicense", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("Zlib", SkillHealthTextCodes.LicensePermissive)]
+    [InlineData("MPL-2.0", SkillHealthTextCodes.LicenseCopyleft)]
+    [InlineData("GPL-3.0-only", SkillHealthTextCodes.LicenseCopyleft)]
+    [InlineData("AGPL-3.0", SkillHealthTextCodes.LicenseCopyleft)]
+    [InlineData("LGPL-2.1", SkillHealthTextCodes.LicenseCopyleft)]
+    [InlineData("EPL-2.0", SkillHealthTextCodes.LicenseCopyleft)]
+    public void LicenseCheck_DistinguishesPermissiveFromCopyleft(string license, string textCode)
     {
         var check = SkillHealthChecks.CheckLicense(license);
         Assert.Equal(SkillHealthStatus.Healthy, check.Status);
-        Assert.Contains(wording, check.Message, StringComparison.Ordinal);
-        if (wording == "copyleft")
+        Assert.Equal(textCode, check.TextCode);
+        Assert.Equal([license], check.TextArguments);
+    }
+
+    [Fact]
+    public void The_texts_of_the_pure_checks_are_codes_with_their_arguments_and_never_a_sentence()
+    {
+        var pure = new List<SkillHealthCheck>
         {
-            Assert.Contains("uso personal", check.Message, StringComparison.Ordinal);
-        }
-        else
+            SkillHealthChecks.CheckLicense(null),
+            SkillHealthChecks.CheckLicense("BUSL-1.1"),
+            SkillHealthChecks.CheckPinned(null),
+            SkillHealthChecks.CheckPinned(Sha),
+        };
+        pure.AddRange(SkillFrontmatter.Parse("no header").Validate("my-skill"));
+        pure.AddRange(SkillFrontmatter.Parse("---\nname: Bad_Name\n---\nb").Validate("folder"));
+        pure.AddRange(SkillFrontmatter.Parse(ValidSkill).Validate("my-skill"));
+
+        Assert.All(pure, check =>
         {
-            Assert.DoesNotContain("copyleft", check.Message, StringComparison.Ordinal);
-        }
+            Assert.NotNull(check.TextCode);
+            Assert.Equal(check.TextCode, check.Message);
+            Assert.Contains(check.TextCode, SkillHealthTextCodes.All);
+        });
+        Assert.Contains(pure, c => c.TextCode == SkillHealthTextCodes.LicenseRestricted && c.TextArguments is ["BUSL-1.1"]);
+        Assert.Contains(pure, c => c.TextCode == SkillHealthTextCodes.FrontmatterNameFolderMismatch && c.TextArguments is ["Bad_Name", "folder"]);
+        Assert.Contains(pure, c => c.TextCode == SkillHealthTextCodes.FrontmatterNoHeader);
+    }
+
+    [Fact]
+    public void The_size_check_carries_the_lines_and_the_cost_in_context_as_numbers()
+    {
+        var body = string.Join('\n', Enumerable.Repeat("line", 501));
+        var markdown = "---\nname: my-skill\ndescription: d\n---\n" + body;
+        var plain = SkillFrontmatter.Parse(markdown).Validate("my-skill").Single(c => c.Code == SkillHealthCodes.Size);
+        Assert.Equal(SkillHealthTextCodes.SizeLong, plain.TextCode);
+        Assert.Equal([501, 500], plain.TextArguments);
+
+        var costed = SkillFrontmatter.Parse(markdown).Validate("my-skill", SkillContextCost.OfText(markdown.Length)).Single(c => c.Code == SkillHealthCodes.Size);
+        Assert.Equal(SkillHealthTextCodes.SizeLongCost, costed.TextCode);
+        Assert.Equal([501, 500, (markdown.Length + 3L) / 4], costed.TextArguments);
+
+        var small = SkillFrontmatter.Parse(ValidSkill).Validate("my-skill", 12).Single(c => c.Code == SkillHealthCodes.Size);
+        Assert.Equal(SkillHealthTextCodes.SizeOkCost, small.TextCode);
+        Assert.Equal(12L, small.TextArguments![1]);
+        Assert.Equal(1, SkillContextCost.OfText(1));
+        Assert.Equal(2, SkillContextCost.OfText(5));
     }
 }
