@@ -7,7 +7,6 @@ using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Work;
-using AgentStudio.Debate.Judging;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Hosting;
@@ -216,7 +215,7 @@ public static class MilestoneReportBuilder
         var runs = input.Scope.Runs.Order(StringComparer.Ordinal).Select(run => RunOf(run, linked.Contains(run), items, challenged)).ToList();
         var debates = input.Scope.Debates.Order(StringComparer.Ordinal).Select(id => DebateOf(id, items)).ToList();
         var audit = AuditOf(input.Audit, items);
-        var remote = RemoteOf(input.Log, items, input.Scope.Runs);
+        var remote = RemoteOf(items, input.Scope.Runs);
         var requirements = RequirementsOf(input, remote);
         var units = input.Scope.Runs.Concat(input.Scope.Debates).Append(input.Audit.Audit.Value).ToHashSet(StringComparer.Ordinal);
         var pending = PendingProblems.From(input.Log).Where(p => units.Contains(p.Source)).Select(p => new MilestoneReportPending(p.Code, p.Source, Clean(p.Message))).ToList();
@@ -254,16 +253,13 @@ public static class MilestoneReportBuilder
     }
 
     /// <summary>
-    /// A pull request of a run of the milestone as the shared reading gives it. <paramref name="JudgedCommit"/> is the commit the judge saw for its run (null: the log does not say);
-    /// <paramref name="ModeDeduced"/> comes from the succession of commits, where the rule lives.
+    /// A pull request of a run of the milestone as the shared reading gives it. <paramref name="ModeDeduced"/> comes from the succession of commits, where the rule lives. Whether it
+    /// integrated a requirement is not decided here: the card of the board says it (<see cref="BoardCard.IntegratedByPullRequest"/>), so the report cannot have a rule of its own.
     /// </summary>
-    private sealed record ObservedPullRequest(string Run, RemoteSnapshot Latest, bool ModeDeduced, string? JudgedCommit)
+    private sealed record ObservedPullRequest(string Run, RemoteSnapshot Latest, bool ModeDeduced)
     {
         /// <summary>What the platform says: a successful deployment of a commit the merge left.</summary>
         public bool Deployed => IntegrationByPullRequest.IsDeployed(Latest);
-
-        /// <summary>Whether the rule of D-29 counts it as the integration of its run: merged with the commit the judge saw.</summary>
-        public bool Integrated => IntegrationByPullRequest.Of(Latest, JudgedCommit) == PullRequestIntegration.Integrated;
     }
 
     /// <summary>
@@ -272,35 +268,18 @@ public static class MilestoneReportBuilder
     /// the runs of the milestone, or an entry that does not validate and that names one of them (<c>IgnoredEntries</c>, by sequence). What cannot be attributed to a run of the milestone, an
     /// invalid entry that names no run or another one, is not in its report. Null: the report is the one of Phase 9.
     /// </summary>
-    private static RemoteView? RemoteOf(IReadOnlyList<DecisionEntry> log, List<RunItem> items, IReadOnlyList<string> runsOfMilestone)
+    private static RemoteView? RemoteOf(List<RunItem> items, IReadOnlyList<string> runsOfMilestone)
     {
         var reading = RemoteLogReading.Read(items.Select(i => (i.Entry, i.Payload)));
         var scope = runsOfMilestone.ToHashSet(StringComparer.Ordinal);
         var succession = reading.Succession(_ => null);
         var observed = reading.PullRequests
             .Where(p => p.Run is not null && scope.Contains(p.Run))
-            .Select(p => new ObservedPullRequest(p.Run!, p.Latest, succession.OfPullRequest(p.PullRequest)?.ModeIsDeduced ?? true, JudgedCommitOf(log, items, p.Run!)))
+            .Select(p => new ObservedPullRequest(p.Run!, p.Latest, succession.OfPullRequest(p.PullRequest)?.ModeIsDeduced ?? true))
             .ToList();
         var ignored = reading.Ignored.Where(i => i.Run is not null && scope.Contains(i.Run)).Select(i => i.Sequence).ToList();
 
         return observed.Count == 0 && ignored.Count == 0 ? null : new RemoteView(observed, ignored);
-    }
-
-    /// <summary>
-    /// The commit the judge saw for a run: the one of the dossier of its last approved valid verdict, which is the result of the last clean integration into the branch of the run in the log up
-    /// to the head that verdict names (the reading <c>RunLog.CandidateCommit</c> gives the judge, and the delivery and the board use). Null when there is none or the log does not have that head.
-    /// It does not look at revisions of a challenge (the board does): for a card in «integrado» an approval stands, and this is the commit of that approval.
-    /// </summary>
-    private static string? JudgedCommitOf(IReadOnlyList<DecisionEntry> log, List<RunItem> items, string run)
-    {
-        var deciding = items.Select(i => i.Payload).OfType<VerdictIssuedPayload>()
-            .LastOrDefault(v => string.Equals(v.RunId, run, StringComparison.Ordinal) && v.Valid && v.Decision == VerdictDecision.Approved);
-        if (deciding is null || log.FirstOrDefault(e => string.Equals(e.Hash, deciding.DecisionLogHeadHash, StringComparison.Ordinal)) is not { } at)
-        {
-            return null;
-        }
-
-        return RunLog.CandidateCommit(RunLog.EntriesOf(log.Where(e => e.Sequence <= at.Sequence), run));
     }
 
     private static List<MilestoneReportRequirement> RequirementsOf(MilestoneReportInput input, RemoteView? remote)
@@ -322,7 +301,8 @@ public static class MilestoneReportBuilder
             // Phase 10: the card says it (the board applies the rule of D-29), and «desplegado» exists only when the platform said so for the run that decided the card.
             var card = cards.GetValueOrDefault(requirement.Id.Value);
             var mergedUnjudged = string.Equals(card?.Reason, BoardCardReasons.MergedWithUnjudgedChanges, StringComparison.Ordinal);
-            bool? deployed = column is BoardColumn.Integrated && card?.Run is { } deciding && remote is not null && remote.Observed.Any(p => string.Equals(p.Run, deciding, StringComparison.Ordinal) && p.Deployed && p.Integrated)
+            bool? deployed = column is BoardColumn.Integrated && card?.IntegratedByPullRequest is { } carrier && remote is not null
+                && remote.Observed.Any(p => string.Equals(p.Latest.PullRequest.TraceId, carrier, StringComparison.Ordinal) && p.Deployed)
                 ? true
                 : null;
             result.Add(new MilestoneReportRequirement(

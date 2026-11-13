@@ -63,7 +63,8 @@ public sealed class RemoteLogReading
     /// <summary>The remote entries that were left out, by sequence.</summary>
     public IReadOnlyList<IgnoredRemoteEntry> Ignored { get; }
 
-    public static RemoteLogReading Empty { get; } = new([], [], []);
+    public static RemoteLogReading Empty { get; } = new(
+        new List<ObservedPullRequest>().AsReadOnly(), new List<PerformedRemoteOperation>().AsReadOnly(), new List<IgnoredRemoteEntry>().AsReadOnly());
 
     /// <summary>Reads the remote entries out of a log already parsed (each entry with its payload, or null when it could not be read); the entries of another kind are not touched.</summary>
     public static RemoteLogReading Read(IEnumerable<(DecisionEntry Entry, DecisionPayload? Payload)> parsed)
@@ -137,7 +138,11 @@ public sealed class RemoteLogReading
             pullRequests.Add(new ObservedPullRequest(refs[id], run, latest, finals.Max(o => o.At), list.Count));
         }
 
-        return new RemoteLogReading(pullRequests, [.. operations.OrderBy(o => o.Sequence)], [.. ignored.OrderBy(i => i.Sequence)]);
+        // Read-only for real: a caller that casts the lists back to List<T> cannot change what the projections share.
+        return new RemoteLogReading(
+            pullRequests.AsReadOnly(),
+            operations.OrderBy(o => o.Sequence).ToList().AsReadOnly(),
+            ignored.OrderBy(i => i.Sequence).ToList().AsReadOnly());
     }
 
     /// <summary>
