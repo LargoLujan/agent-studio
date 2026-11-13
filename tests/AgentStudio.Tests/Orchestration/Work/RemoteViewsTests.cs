@@ -244,11 +244,12 @@ public sealed class RemoteViewsTests
     [InlineData("1")]
     [InlineData("42")]
     [InlineData("Nonsense")]
-    public async Task A_verdict_name_that_is_not_a_standing_is_not_a_published_verdict_even_when_it_parses_as_a_number(string name)
+    public async Task A_verdict_name_that_is_not_a_standing_never_reaches_the_log_so_there_is_no_published_verdict_to_read(string name)
     {
+        // The payload refuses it when it is written (and the log read as data would leave it out); the projector also requires a defined name, whatever Enum.TryParse accepts.
         using var world = await JudgedAsync();
         await world.ObserveAsync(Open());
-        await world.OperationAsync(HostingOperationKind.PublishVerdictStatus, 12, verdict: name);
+        await Assert.ThrowsAsync<ArgumentException>(() => world.OperationAsync(HostingOperationKind.PublishVerdictStatus, 12, verdict: name));
 
         Assert.Null(Assert.Single(await Views(world).ListAsync(world.Project, Ct)).PublishedVerdict);
     }
