@@ -3464,7 +3464,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>No hay un veredicto válido que publicar.</value>
   </data>
   <data name="Text_hosting_refused_commit_not_judged" xml:space="preserve">
-    <value>El commit no es el que juzgó el revisor independiente.</value>
+    <value>Esa versión guardada (commit) no es la que revisó el revisor independiente (juez).</value>
   </data>
   <data name="Text_hosting_refused_config_refused" xml:space="preserve">
     <value>La configuración de git del proyecto no pasa la inspección. No se publica.</value>
@@ -3491,7 +3491,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Esta operación necesita tu aprobación y no se ha dado.</value>
   </data>
   <data name="Text_hosting_refused_project_busy" xml:space="preserve">
-    <value>El proyecto está ocupado con una ejecución. Inténtalo cuando termine.</value>
+    <value>Hay una ejecución en marcha. Espera a que acabe.</value>
   </data>
   <data name="Text_hosting_refused_no_remote" xml:space="preserve">
     <value>El proyecto no tiene un remoto de GitHub reconocido.</value>
@@ -3503,7 +3503,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Ese PR no consta en el historial del proyecto.</value>
   </data>
   <data name="Text_hosting_refused_branch_moved" xml:space="preserve">
-    <value>La cabeza del PR ya no es el commit que juzgó el revisor.</value>
+    <value>Alguien cambió el PR. Ya no tiene la versión guardada (commit) que se revisó.</value>
   </data>
   <data name="Text_hosting_failed_push" xml:space="preserve">
     <value>No se pudo publicar la rama.</value>
@@ -3524,7 +3524,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>GitHub pide esperar antes de la siguiente petición.</value>
   </data>
   <data name="Text_hosting_failed_redirected" xml:space="preserve">
-    <value>El repositorio cambió de dirección. Actualiza tu remoto.</value>
+    <value>El repositorio se movió. Cambia tu remoto.</value>
   </data>
   <data name="Text_hosting_failed_merge_blocked" xml:space="preserve">
     <value>GitHub no permitió la fusión.</value>
@@ -3551,7 +3551,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Agent Studio · {0}</value>
   </data>
   <data name="Text_hosting_pr_body_run" xml:space="preserve">
-    <value>Ejecución {0}, commit {1}.</value>
+    <value>Ejecución {0}, versión guardada (commit) {1}.</value>
   </data>
   <data name="Text_hosting_pr_body_requirement_met" xml:space="preserve">
     <value>Requisito {0}: cumplido.</value>
@@ -3563,33 +3563,45 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Requisito {0}: no se pudo verificar.</value>
   </data>
   <data name="Text_hosting_pr_body_judge" xml:space="preserve">
-    <value>Decisión del juez: {0}. Juzgó {1} con el modelo {2}.</value>
+    <value>Decisión del revisor independiente (juez): {0}. Lo revisó {1} con el modelo {2}.</value>
   </data>
   <data name="Text_hosting_pr_body_verification" xml:space="preserve">
     <value>Pruebas: {0} pasan, {1} fallan, {2} omitidas.</value>
   </data>
   <data name="Text_hosting_pr_body_evidence" xml:space="preserve">
-    <value>Evidencia {0}, huella {1}.</value>
+    <value>Prueba guardada {0}, huella {1}.</value>
   </data>
   <data name="Text_hosting_pr_body_footer" xml:space="preserve">
-    <value>Publicado con Agent Studio. El veredicto de un juez de IA no es una revisión de GitHub.</value>
+    <value>Publicado con Agent Studio. El veredicto del revisor independiente (juez) no es una revisión de GitHub.</value>
   </data>
   <data name="Text_hosting_verdict_comment_approved" xml:space="preserve">
-    <value>Decisión del juez independiente: aprobado. Commit juzgado: {0}.</value>
+    <value>Resultado: aprobado. Versión guardada (commit): {0}.</value>
   </data>
   <data name="Text_hosting_verdict_comment_rejected" xml:space="preserve">
-    <value>Decisión del juez independiente: no aprobado. Commit juzgado: {0}.</value>
+    <value>Resultado: no aprobado. Versión guardada (commit): {0}.</value>
   </data>
   <data name="Text_hosting_verdict_comment_in_review" xml:space="preserve">
-    <value>Decisión del juez independiente: en revisión. Commit juzgado: {0}.</value>
+    <value>Resultado: en revisión. Versión guardada (commit): {0}.</value>
   </data>
   <data name="Text_hosting_verdict_comment_judge" xml:space="preserve">
-    <value>Juzgó {0} con el modelo {1}. El juez no produjo el trabajo.</value>
+    <value>Lo revisó {0} con el modelo {1}. El revisor no hizo el trabajo.</value>
   </data>
   <data name="Text_hosting_verdict_comment_head_moved" xml:space="preserve">
-    <value>La cabeza del PR ya no es el commit que juzgó el juez.</value>
+    <value>El PR cambió. Ya no es la versión guardada (commit) que se revisó.</value>
   </data>
   <data name="Text_hosting_verdict_comment_footer" xml:space="preserve">
     <value>Esto no es una revisión de GitHub ni una aprobación de la cuenta que lo publica.</value>
+  </data>
+  <data name="Text_hosting_refused_pr_unreadable" xml:space="preserve">
+    <value>No se pudo leer el PR en GitHub. No se hace nada.</value>
+  </data>
+  <data name="Text_hosting_refused_base_changed" xml:space="preserve">
+    <value>La rama base del PR ya no es la que aprobaste.</value>
+  </data>
+  <data name="Text_hosting_refused_history_unreadable" xml:space="preserve">
+    <value>No se pudo leer la historia del proyecto.</value>
+  </data>
+  <data name="Text_hosting_pending_annotation" xml:space="preserve">
+    <value>Se anotará cuando termine lo que está en marcha.</value>
   </data>
 </root>
