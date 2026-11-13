@@ -183,6 +183,9 @@ public enum RemoteChangeKind
     ReviewsChanged,
     RevertSuspected,
     DeploymentChanged,
+
+    /// <summary>The base branch of the pull request changed on the platform: a merge approved for the old base must not go to the new one (docs/21 D-20).</summary>
+    BaseChanged,
 }
 
 /// <param name="Discarded">The observation is older than what is recorded, or goes backwards in what only grows: it is thrown away and nothing is recorded.</param>
@@ -282,6 +285,11 @@ public static class RemoteReconciler
         if (lastRecorded.Deployment != observed.Deployment)
         {
             changes.Add(RemoteChangeKind.DeploymentChanged);
+        }
+
+        if (!string.Equals(lastRecorded.BaseBranch.Name, observed.BaseBranch.Name, StringComparison.Ordinal))
+        {
+            changes.Add(RemoteChangeKind.BaseChanged);
         }
 
         return new ReconcileResult(false, changes);

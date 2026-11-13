@@ -41,6 +41,7 @@ public sealed class RemoteSyncStore(RemoteSyncStoreOptions options) : IRemoteSyn
 
     public const int MaxFollowed = 100;
     public const int MaxPending = 100;
+    public const int MaxRevocations = 50;
 
     private const int MaxText = 256;
     private const int MaxFailingNames = 20;
@@ -76,7 +77,8 @@ public sealed class RemoteSyncStore(RemoteSyncStoreOptions options) : IRemoteSyn
             SaneDate(sync?.RateLimitedUntil),
             SaneDate(sync?.LastGoodSync),
             sync?.LastOutcome is { } outcome && Enum.TryParse<HostingOutcome>(outcome, false, out var parsed) && Enum.IsDefined(parsed) ? parsed : null,
-            SaneDate(sync?.LastOutcomeAt));
+            SaneDate(sync?.LastOutcomeAt),
+            [.. (sync?.PendingRevocations ?? []).Where(id => id is { Length: > 0 and <= 64 } && id.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')).Distinct(StringComparer.Ordinal).Take(MaxRevocations)]);
     }
 
     public async Task SaveAsync(string projectId, RemoteSyncState state, CancellationToken ct)
@@ -102,7 +104,8 @@ public sealed class RemoteSyncStore(RemoteSyncStoreOptions options) : IRemoteSyn
             state.RateLimitedUntil,
             state.LastGoodSync,
             state.LastOutcome?.ToString(),
-            state.LastOutcomeAt);
+            state.LastOutcomeAt,
+            [.. (state.PendingRevocations ?? []).Take(MaxRevocations)]);
         var pending = new PendingFile(
             1,
             [.. state.Pending.Take(MaxPending).Select(p => new PendingDto(
@@ -375,7 +378,7 @@ public sealed class RemoteSyncStore(RemoteSyncStoreOptions options) : IRemoteSyn
         return new HostingOperation(new ProjectContext(projectId, string.Empty), new RunId(dto.Run), kind, repository, baseBranch, pullRequest, dto.Commit, method);
     }
 
-    private sealed record SyncFile(int V, string? Repository, List<FollowedDto>? Followed, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastGoodSync, string? LastOutcome, DateTimeOffset? LastOutcomeAt);
+    private sealed record SyncFile(int V, string? Repository, List<FollowedDto>? Followed, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastGoodSync, string? LastOutcome, DateTimeOffset? LastOutcomeAt, List<string>? PendingRevocations = null);
 
     private sealed record FollowedDto(string? PullRequest, string? Run, Dictionary<string, string>? ETags, RemoteSnapshotPayload? LastSnapshot, TextsDto? Display, RemoteSnapshotPayload? PendingConfirmation);
 

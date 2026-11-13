@@ -154,7 +154,7 @@ public sealed class RemoteSnapshotTests
         Assert.Equal(["None", "Pending", "Passing", "Failing"], Enum.GetNames<ChecksRollup>());
         Assert.Equal(["Pending", "Succeeded", "Failed", "Inactive", "Unknown"], Enum.GetNames<DeploymentState>());
         Assert.Equal(
-            ["Opened", "HeadMoved", "ForcePushed", "Merged", "Closed", "Reopened", "HeadBranchDeleted", "ChecksChanged", "ReviewsChanged", "RevertSuspected", "DeploymentChanged"],
+            ["Opened", "HeadMoved", "ForcePushed", "Merged", "Closed", "Reopened", "HeadBranchDeleted", "ChecksChanged", "ReviewsChanged", "RevertSuspected", "DeploymentChanged", "BaseChanged"],
             Enum.GetNames<RemoteChangeKind>());
         Assert.Equal(["Protected", "RequiredReviews", "RequiredChecks", "SignedCommits", "LinearHistory", "MergeQueue", "Unknown"], Enum.GetNames<BranchRuleKind>());
         Assert.Equal(

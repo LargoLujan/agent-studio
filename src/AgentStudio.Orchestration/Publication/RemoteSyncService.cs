@@ -33,10 +33,21 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
 
     async Task<ProjectRemoteMailbox> IRemoteMailboxes.OfAsync(ProjectContext project, CancellationToken ct) => await OfAsync(project, ct).ConfigureAwait(false);
 
-    internal Task<ProjectRemoteMailbox> OfAsync(ProjectContext project, CancellationToken ct)
+    internal async Task<ProjectRemoteMailbox> OfAsync(ProjectContext project, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
-        return _boxes.GetOrAdd(project.ProjectId, _ => new Lazy<Task<ProjectRemoteMailbox>>(() => CreateAsync(project))).Value.WaitAsync(ct);
+        var lazy = _boxes.GetOrAdd(project.ProjectId, _ => new Lazy<Task<ProjectRemoteMailbox>>(() => CreateAsync(project)));
+        var made = lazy.Value;
+        try
+        {
+            return await made.WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception) when (made.IsFaulted)
+        {
+            // A mailbox that failed to open is not kept as failed for ever: the next use tries again.
+            _boxes.TryRemove(new KeyValuePair<string, Lazy<Task<ProjectRemoteMailbox>>>(project.ProjectId, lazy));
+            throw;
+        }
     }
 
     private async Task<ProjectRemoteMailbox> CreateAsync(ProjectContext project)

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Threading.Channels;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Hosting;
@@ -112,7 +113,19 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             }
         }
 
+        // A revocation that was asked for and not yet written comes back from the file: it can only take authority away, so it is safe from a file that is not trusted (ids validated, list bounded).
+        var withdrawn = (restored.PendingRevocations ?? []).Where(RemoteSyncLimits.IsId).Distinct(StringComparer.Ordinal).Take(RemoteSyncLimits.MaxRevocations).ToList();
+        foreach (var id in withdrawn)
+        {
+            AddRevocation(id);
+        }
+
         _consumer = Task.Run(ConsumeAsync);
+        foreach (var id in withdrawn)
+        {
+            Post(new RevokeMessage(id, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)));
+        }
+
         foreach (var pullRequest in toObserve.DistinctBy(p => p.TraceId))
         {
             Post(new ObserveMessage(pullRequest, false));
@@ -185,11 +198,70 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     }
 
     /// <summary>Annotates in the log from outside the consumer: true when it was written, false when the project was not free and it is parked (D-16: it does not count until then).</summary>
-    public Task<bool> NoteFromOutsideAsync(string key, Func<Task<bool>> record)
+    public Task<bool> NoteFromOutsideAsync(string key, UserText? pending, Func<Task<bool>> record)
     {
         var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Post(new NoteMessage(key, record, done));
+        Post(new NoteMessage(key, pending, record, done));
         return done.Task;
+    }
+
+    /// <summary>
+    /// The accounts of grants whose withdrawal was asked for and is not in the log yet. The gate does not count a grant on this list: a revocation counts from the instant it is asked. It only ever
+    /// takes authority away, so it is safe that it comes back from a file that is not trusted.
+    /// </summary>
+    public ImmutableHashSet<string> PendingRevocations => Volatile.Read(ref _revocations);
+
+    private ImmutableHashSet<string> _revocations = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+
+    /// <summary>Withdraws a grant: it stops counting now, is written to the log when the project is free, and is kept in the local file until then.</summary>
+    public async Task RevokeAsync(string grantId)
+    {
+        if (!RemoteSyncLimits.IsId(grantId))
+        {
+            throw new ArgumentException("A grant id is up to 64 letters, digits and '-'.", nameof(grantId));
+        }
+
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Post(new RevokeMessage(grantId, done));
+        await done.Task.ConfigureAwait(false);
+    }
+
+    private async Task RevokeAsync(RevokeMessage message)
+    {
+        AddRevocation(message.GrantId);
+        _dirty = true;
+        await NoteAsync("grants", UserText.Of(PublicationCodes.AnnotationPending), () => RecordRevocationAsync(message.GrantId)).ConfigureAwait(false);
+        message.Done.TrySetResult();
+    }
+
+    private void AddRevocation(string grantId) => _revocations = _revocations.Add(grantId);
+
+    private async Task<bool> RecordRevocationAsync(string grantId)
+    {
+        using var lease = Take();
+        if (lease is null)
+        {
+            return false;
+        }
+
+        var log = await _services.Recorder.LoadAsync(Project.ProjectId, CancellationToken.None).ConfigureAwait(false);
+        if (!log.Verification.IsValid)
+        {
+            // A log that does not verify takes nothing: the revocation stays pending, and so the grant stays out.
+            return true;
+        }
+
+        await _services.Recorder.RecordAsync(
+            Project.ProjectId,
+            new Actor(ActorKind.User, "user"),
+            DecisionKind.HostingPolicyRevoked,
+            $"Retira la autorización {grantId}",
+            HostingPolicyRevokedPayload.Revoking(grantId, "user"),
+            null,
+            CancellationToken.None).ConfigureAwait(false);
+        _revocations = _revocations.Remove(grantId);
+        _dirty = true;
+        return true;
     }
 
     public Task SyncNowAsync() => Signal(done => new SyncMessage(done));
@@ -313,20 +385,24 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         _dirty = true;
     }
 
-    public async Task<bool> NoteAsync(string key, Func<Task<bool>> record)
-    {
-        if (_parked.Any(p => p.Key == key))
-        {
-            Park(Parked.OfNote(key, record, _services.Time.GetUtcNow()));
-            return false;
-        }
+    public Task<bool> NoteAsync(string key, Func<Task<bool>> record) => NoteAsync(key, null, record);
 
-        if (await record().ConfigureAwait(false))
+    /// <summary>With <paramref name="pending"/> a parked note is listed among the pending work («se anotará cuando termine lo que está en marcha») until it is written.</summary>
+    public async Task<bool> NoteAsync(string key, UserText? pending, Func<Task<bool>> record)
+    {
+        if (!_parked.Any(p => p.Key == key) && await record().ConfigureAwait(false))
         {
             return true;
         }
 
-        Park(Parked.OfNote(key, record, _services.Time.GetUtcNow()));
+        var item = Parked.OfNote(key, record, _services.Time.GetUtcNow());
+        if (pending is not null)
+        {
+            item.NoteTicket = new RemoteWorkTicket(item.Id, null, null);
+            SetStatus(item.NoteTicket, RemoteWorkState.WaitingForProject, PendingReason.ProjectBusy, null, pending);
+        }
+
+        Park(item);
         return false;
     }
 
@@ -374,7 +450,14 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 exec.Done.TrySetResult(await exec.Work(_context).ConfigureAwait(false));
                 break;
             case NoteMessage note:
-                note.Done.TrySetResult(await NoteAsync(note.Key, note.Record).ConfigureAwait(false));
+                note.Done.TrySetResult(await NoteAsync(note.Key, note.Pending, note.Record).ConfigureAwait(false));
+                break;
+            case RevokeMessage revoke:
+                await RevokeAsync(revoke).ConfigureAwait(false);
+                break;
+            case FlushMessage flush:
+                await FlushAsync().ConfigureAwait(false);
+                flush.Done.TrySetResult();
                 break;
             case ObserveMessage observe:
                 await ObserveAsync(observe.PullRequest, observe.Manual).ConfigureAwait(false);
@@ -439,6 +522,12 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             case CancelMessage cancel:
                 cancel.Done.TrySetResult();
                 break;
+            case RevokeMessage revoke:
+                revoke.Done.TrySetResult();
+                break;
+            case FlushMessage flush:
+                flush.Done.TrySetResult();
+                break;
         }
     }
 
@@ -468,6 +557,12 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 break;
             case CancelMessage cancel:
                 cancel.Done.TrySetResult();
+                break;
+            case RevokeMessage revoke:
+                revoke.Done.TrySetResult();
+                break;
+            case FlushMessage flush:
+                flush.Done.TrySetResult();
                 break;
         }
     }
@@ -536,7 +631,10 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         _parked.Add(item);
         Volatile.Write(ref _parkedCount, _parked.Count);
         _dirty = true;
-        _retryTimer ??= _services.Time.CreateTimer(_ => PostQuiet(new RetryMessage()), null, PublicationCodes.RetryInterval, PublicationCodes.RetryInterval);
+        if (!_stopped)
+        {
+            _retryTimer ??= _services.Time.CreateTimer(_ => PostQuiet(new RetryMessage()), null, PublicationCodes.RetryInterval, PublicationCodes.RetryInterval);
+        }
     }
 
     private void KeepParked(Parked item, DateTimeOffset? notBefore, PendingReason reason)
@@ -564,6 +662,27 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         {
             _retryTimer.Dispose();
             _retryTimer = null;
+        }
+    }
+
+    /// <summary>One last try of what is parked and is only a write to the log (never a stretch of the person's work).</summary>
+    private async Task FlushAsync()
+    {
+        _noTakeBefore = DateTimeOffset.MinValue;
+        foreach (var item in _parked.Where(p => p.Flow is null).ToList())
+        {
+            try
+            {
+                var written = item.Note is { } note ? await note().ConfigureAwait(false) : item.Observation is { } observation && await AnnotateObservationAsync(observation, item.Run).ConfigureAwait(false);
+                if (written)
+                {
+                    Unpark(item);
+                }
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                // it stays parked, and the close goes on
+            }
         }
     }
 
@@ -617,6 +736,11 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             {
                 if (await note().ConfigureAwait(false))
                 {
+                    if (item.NoteTicket is { } noted)
+                    {
+                        SetStatus(noted, RemoteWorkState.Done, null, null, null);
+                    }
+
                     Unpark(item);
                 }
                 else
@@ -752,6 +876,13 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     private async Task<RemoteSnapshot?> ObserveAsync(PullRequestRef pullRequest, bool manual)
     {
         if (_stopped)
+        {
+            return null;
+        }
+
+        // The network in the background needs the permission at the moment it is launched, whoever asked: the poll, the observations that came back from the file and the retries. Only the
+        // click of the person (manual) is allowed without it.
+        if (!manual && _services.Policy?.PeriodicSyncAllowed(Project.ProjectId) != true)
         {
             return null;
         }
@@ -1031,7 +1162,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
         pending.AddRange(_restored.Where(r => _statuses.TryGetValue(r.Ticket.Id, out var s) && s.State == RemoteWorkState.PendingSync && now - r.Since <= PublicationCodes.PendingLife));
         var health = Health;
-        var state = new RemoteSyncState(_hint, [.. _followed.Values], pending, health.RateLimitedUntil, health.LastGoodSync, health.LastOutcome, health.LastOutcomeAt);
+        var state = new RemoteSyncState(_hint, [.. _followed.Values], pending, health.RateLimitedUntil, health.LastGoodSync, health.LastOutcome, health.LastOutcomeAt, [.. PendingRevocations]);
         try
         {
             await _services.Store.SaveAsync(Project.ProjectId, state, CancellationToken.None).ConfigureAwait(false);
@@ -1046,6 +1177,22 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // The last attempt of an orderly close: what is parked in memory (the notes of what was done on the platform, the observations) is written if the project can be taken now. The courtesy
+        // second is waived, and the runs are already suspended in the managed exit. What cannot be written is a residual: the next observation records the fact, but not what approved it.
+        if (!_stopped)
+        {
+            try
+            {
+                var flushed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                Post(new FlushMessage(flushed));
+                await flushed.Task.ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // closed already
+            }
+        }
+
         _stopped = true;
         await _stopping.CancelAsync().ConfigureAwait(false);
         _pollTimer?.Dispose();
@@ -1080,6 +1227,8 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
         public Func<Task<bool>>? Note { get; private init; }
 
+        public RemoteWorkTicket? NoteTicket { get; set; }
+
         public RemoteSnapshot? Observation { get; set; }
 
         public string? Run { get; set; }
@@ -1099,7 +1248,11 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     private sealed record ExecMessage(Func<FlowContext, Task<object?>> Work, TaskCompletionSource<object?> Done) : Message;
 
-    private sealed record NoteMessage(string Key, Func<Task<bool>> Record, TaskCompletionSource<bool> Done) : Message;
+    private sealed record NoteMessage(string Key, UserText? Pending, Func<Task<bool>> Record, TaskCompletionSource<bool> Done) : Message;
+
+    private sealed record RevokeMessage(string GrantId, TaskCompletionSource Done) : Message;
+
+    private sealed record FlushMessage(TaskCompletionSource Done) : Message;
 
     private sealed record ObserveMessage(PullRequestRef PullRequest, bool Manual) : Message;
 
@@ -1121,4 +1274,8 @@ internal static class RemoteSyncLimits
 {
     public const int MaxFollowed = 100;
     public const int MaxPending = 100;
+    public const int MaxRevocations = 50;
+
+    /// <summary>The id of a grant: up to 64 letters, digits and '-' (the same rule the store applies to what it reads).</summary>
+    public static bool IsId(string? id) => id is { Length: > 0 and <= 64 } && id.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
 }

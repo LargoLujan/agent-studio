@@ -104,6 +104,8 @@ public sealed record PendingRemoteWork(RemoteWorkTicket Ticket, HostingOperation
 /// <summary>
 /// The local state that can be deleted (docs/21 §6). It is read as not trusted: bounded, validated, and nothing in it authorises anything.
 /// </summary>
+/// <param name="PendingRevocations">The ids of the standing grants whose withdrawal was asked for and is not in the log yet. It is the one thing in this file that has an effect, and it can only take
+/// authority away (a grant on the list stops counting), never give it, so it is safe to read from a file that is not trusted.</param>
 public sealed record RemoteSyncState(
     RemoteRepository? Repository,
     IReadOnlyList<FollowedPullRequest> Followed,
@@ -111,7 +113,8 @@ public sealed record RemoteSyncState(
     DateTimeOffset? RateLimitedUntil,
     DateTimeOffset? LastGoodSync,
     HostingOutcome? LastOutcome,
-    DateTimeOffset? LastOutcomeAt = null)
+    DateTimeOffset? LastOutcomeAt = null,
+    IReadOnlyList<string>? PendingRevocations = null)
 {
     /// <summary>A project that was never synchronised (or whose file was deleted): nothing followed, nothing pending.</summary>
     public static RemoteSyncState Empty { get; } = new(null, [], [], null, null, null);

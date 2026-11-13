@@ -28,6 +28,17 @@ internal static class RemoteJudgement
     public static (string? JudgedCommit, HostingStanding? Standing) VerdictInForce(
         IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed, IReadOnlyList<DecisionEntry> log, string run, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
     {
+        var (commit, standing, _) = VerdictInForceWithVerdict(parsed, log, run, storedVerdicts);
+        return (commit, standing);
+    }
+
+    /// <summary>
+    /// <see cref="VerdictInForce"/> and, as its third element, the stored verdict that decides (the one whose requirements and judge are told in what is published): the same rule, so what
+    /// is published about the requirements and the judge is never from another verdict (a revision, for one) than the one that gives the standing and the commit.
+    /// </summary>
+    public static (string? JudgedCommit, HostingStanding? Standing, StoredVerdict? Deciding) VerdictInForceWithVerdict(
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed, IReadOnlyList<DecisionEntry> log, string run, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
+    {
         ArgumentNullException.ThrowIfNull(parsed);
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(storedVerdicts);
@@ -45,7 +56,7 @@ internal static class RemoteJudgement
 
         if (deciding is null || stored is null)
         {
-            return (null, null);
+            return (null, null, null);
         }
 
         var state = VerdictReach.Standing(parsed, stored, storedVerdicts);
@@ -57,7 +68,7 @@ internal static class RemoteJudgement
                 VerdictDecision.Rejected or VerdictDecision.ChangesRequested => HostingStanding.Rejected,
                 _ => HostingStanding.InReview,
             };
-        return (JudgedCommit(log, run, deciding), standing);
+        return (JudgedCommit(log, run, deciding), standing, stored);
     }
 
     /// <summary>
