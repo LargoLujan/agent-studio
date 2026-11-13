@@ -99,6 +99,7 @@ public sealed class VerificationRunner : IVerificationRunner
     private readonly IIsolatedWorkAreaFactory? _isolation;
     private readonly IWorktreeManager? _git;
     private readonly SemaphoreSlim _isolationGate;
+    private readonly IStepToolVersionReader? _toolVersions;
 
     /// <param name="isolation">
     /// Where isolated steps run. Without it an isolated step is never run (and never run without isolation): only steps the
@@ -108,13 +109,18 @@ public sealed class VerificationRunner : IVerificationRunner
     /// The hardened git layer, which writes the copy of the commit into each work area from the project's repository
     /// (<see cref="IWorktreeManager.ArchiveCommitAsync"/>). Without it an isolated step is never run either.
     /// </param>
+    /// <param name="toolVersions">
+    /// Tells the versions of the tools of a step for the <c>tools:</c> block of the header of its evidence (docs/20 D-12). It starts nothing: it reads the version
+    /// resource of the executable. Without it the block is still written, with every version <c>unknown</c> and the reason.
+    /// </param>
     public VerificationRunner(
         IStreamingProcessRunner processes,
         IEvidenceStore evidence,
         VerificationRunnerOptions? options = null,
         TimeProvider? timeProvider = null,
         IIsolatedWorkAreaFactory? isolation = null,
-        IWorktreeManager? git = null)
+        IWorktreeManager? git = null,
+        IStepToolVersionReader? toolVersions = null)
     {
         ArgumentNullException.ThrowIfNull(processes);
         ArgumentNullException.ThrowIfNull(evidence);
@@ -127,6 +133,7 @@ public sealed class VerificationRunner : IVerificationRunner
         _isolation = isolation;
         _git = git;
         _isolationGate = _options.IsolationGate ?? SharedIsolationGate;
+        _toolVersions = toolVersions;
     }
 
     /// <summary>
@@ -214,7 +221,7 @@ public sealed class VerificationRunner : IVerificationRunner
                 var place = step.Isolation == ProcessIsolation.LowIntegrity
                     ? await isolated.EnsureAsync(cancellationToken).ConfigureAwait(false)
                     : null;
-                var result = await RunStepAsync(directory, step, scope, place, output, cancellationToken).ConfigureAwait(false);
+                var result = await RunStepAsync(directory, step, ToolSteps(steps, step), scope, place, output, cancellationToken).ConfigureAwait(false);
                 results.Add(result);
                 if (!result.Succeeded)
                 {
@@ -226,9 +233,29 @@ public sealed class VerificationRunner : IVerificationRunner
         return results;
     }
 
+    /// <summary>The step and the steps it requires, directly or not, in the order of the run: the ones whose tools the header of its evidence names (docs/20 D-12).</summary>
+    private static IReadOnlyList<VerificationStep> ToolSteps(IReadOnlyList<VerificationStep> steps, VerificationStep step)
+    {
+        var required = new HashSet<string>(StringComparer.Ordinal);
+        var pending = new Stack<VerificationStep>([step]);
+        while (pending.Count > 0)
+        {
+            foreach (var id in pending.Pop().Requires ?? [])
+            {
+                if (required.Add(id) && steps.FirstOrDefault(s => s.Id == id) is { } next)
+                {
+                    pending.Push(next);
+                }
+            }
+        }
+
+        return [step, .. steps.Where(s => s != step && required.Contains(s.Id))];
+    }
+
     private async Task<VerificationResult> RunStepAsync(
         string directory,
         VerificationStep step,
+        IReadOnlyList<VerificationStep> toolSteps,
         EvidenceScope scope,
         IsolatedPlace? place,
         IProgress<ProcessOutputLine>? output,
@@ -274,7 +301,7 @@ public sealed class VerificationRunner : IVerificationRunner
                 var writer = new StreamWriter(log, Utf8NoBom, 64 * 1024, leaveOpen: true) { NewLine = "\n" };
                 await using (writer.ConfigureAwait(false))
                 {
-                    await WriteHeaderAsync(writer, step, arguments, directory, workingDirectory, scope.RepositoryRoot, place).ConfigureAwait(false);
+                    await WriteHeaderAsync(writer, step, arguments, directory, workingDirectory, scope.RepositoryRoot, place, toolSteps).ConfigureAwait(false);
 
                     var outcome = (problem is null ? (StepOutcome?)null : StepOutcome.NotStarted(problem))
                         ?? (area is null ? ClearReport(reportPath) : null)
@@ -471,7 +498,8 @@ public sealed class VerificationRunner : IVerificationRunner
         string directory,
         string workingDirectory,
         string? repository,
-        IsolatedPlace? place)
+        IsolatedPlace? place,
+        IReadOnlyList<VerificationStep> toolSteps)
     {
         await writer.WriteLineAsync($"# Agent Studio · verification step '{step.Id}' ({step.Title})").ConfigureAwait(false);
         await writer.WriteLineAsync("# command: " + Display(step.Executable, arguments)).ConfigureAwait(false);
@@ -489,10 +517,22 @@ public sealed class VerificationRunner : IVerificationRunner
             await writer.WriteLineAsync("# isolation: low integrity, which could not be applied: the step is not run").ConfigureAwait(false);
         }
 
+        foreach (var line in EvidenceToolVersions.Format(ToolVersionsOf(toolSteps)))
+        {
+            await writer.WriteLineAsync(line).ConfigureAwait(false);
+        }
+
         await writer.WriteLineAsync("# working directory: " + workingDirectory).ConfigureAwait(false);
         await writer.WriteLineAsync("# timeout: " + step.Timeout.ToString("c", CultureInfo.InvariantCulture)).ConfigureAwait(false);
         await writer.WriteLineAsync("# started: " + _time.GetUtcNow().ToString("O", CultureInfo.InvariantCulture)).ConfigureAwait(false);
     }
+
+    // The versions come from the version resource of the executables, never from running them (docs/20 D-12). Without a reader every one is unknown, and says why.
+    private IReadOnlyList<EvidenceToolVersion> ToolVersionsOf(IReadOnlyList<VerificationStep> toolSteps) =>
+        _toolVersions is not null
+            ? _toolVersions.Read(toolSteps)
+            : [.. toolSteps.Select(s => s.Executable).Distinct(StringComparer.OrdinalIgnoreCase).Select(e =>
+                EvidenceToolVersion.Unknown(EvidenceToolVersion.TokenOf(Path.GetFileNameWithoutExtension(e)), "no reader of tool versions is configured"))];
 
     private async Task WriteFooterAsync(
         StreamWriter writer,

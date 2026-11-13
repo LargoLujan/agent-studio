@@ -30,7 +30,8 @@ public static class VerificationServiceCollectionExtensions
             options,
             provider.GetRequiredService<TimeProvider>(),
             provider.GetService<IIsolatedWorkAreaFactory>(),
-            provider.GetService<IWorktreeManager>()));
+            provider.GetService<IWorktreeManager>(),
+            provider.GetService<IStepToolVersionReader>()));
         return services;
     }
 }
