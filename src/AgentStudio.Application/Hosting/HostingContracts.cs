@@ -125,8 +125,12 @@ public interface IHostingProvider
 
     Task<HostingResult<PullRequestObservation>> ObserveAsync(PullRequestRef pullRequest, ObservationCursor? cursor, CancellationToken ct);
 
-    /// <summary>The status of the judged commit and the tagged comment (D-21). <paramref name="commentId"/> is the comment to edit; null looks it up by its mark and its author.</summary>
-    Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string commentBody, long? commentId, CancellationToken ct);
+    /// <summary>
+    /// The status of the judged commit and the tagged comment (D-21). <paramref name="statusDescription"/> and <paramref name="commentBody"/> are texts of the
+    /// system, composed by the caller from its templates (D-19): the adapter only carries them, and keeps no sentence of its own.
+    /// <paramref name="commentId"/> is the comment to edit; null looks it up by its mark and its author.
+    /// </summary>
+    Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string statusDescription, string commentBody, long? commentId, CancellationToken ct);
 
     /// <summary>Merges only when the head of the pull request is still <paramref name="expectedHead"/> (D-20).</summary>
     Task<HostingResult<MergeOutcome>> MergeAsync(PullRequestRef pullRequest, MergeMethod method, string expectedHead, CancellationToken ct);
@@ -134,6 +138,18 @@ public interface IHostingProvider
     Task<HostingResult<bool>> CloseAsync(PullRequestRef pullRequest, CancellationToken ct);
 
     Task<HostingResult<bool>> DeleteRunBranchAsync(RemoteRepository repository, RemoteBranch runBranch, string expectedCommit, CancellationToken ct);
+
+    /// <summary>
+    /// Until when the platform asked to wait (docs/21 D-24), already capped; null when nothing is waited for. While it is in the future the provider launches
+    /// nothing, reads and writes alike, and answers <see cref="HostingOutcome.RateLimited"/>. The mailbox stores it (<see cref="RemoteSyncState.RateLimitedUntil"/>).
+    /// </summary>
+    DateTimeOffset? RateLimitedUntil { get; }
+
+    /// <summary>
+    /// Gives the provider back the wait a previous session stored, so that restarting the app does not forget it (D-24). The value comes from a local file,
+    /// which is read as not trusted: the provider applies its own cap to it, and a time in the past or null is no wait.
+    /// </summary>
+    void RestoreRateLimit(DateTimeOffset? until);
 }
 
 /// <summary>The provider of a repository: by the kind its identifier carries. An unknown host has no provider.</summary>

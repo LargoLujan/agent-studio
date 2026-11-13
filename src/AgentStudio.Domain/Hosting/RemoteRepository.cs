@@ -50,9 +50,10 @@ public sealed record RemoteRepository
     public override string ToString() => Id;
 
     /// <summary>
-    /// Identifies the repository a remote URL names, only to identify it: <c>https://github.com/o/r(.git)</c> and <c>git@github.com:o/r(.git)</c>.
-    /// Anything else (another host, a port, a user or a token in the address, another form, an owner or a name outside the rules) is
-    /// refused with a stable code in <paramref name="refusalCode"/> and nothing is returned.
+    /// Identifies the repository a remote URL names, only to identify it: <c>https://github.com/o/r(.git)</c>, and the two forms of ssh,
+    /// <c>git@github.com:o/r(.git)</c> and <c>ssh://git@github.com/o/r(.git)</c>, with their user <c>git</c> or without any (the git layer of the app keeps
+    /// a remote without its user, because a user can carry a secret). Anything else (another host, a port, another user or a token in the address,
+    /// another form, an owner or a name outside the rules) is refused with a stable code in <paramref name="refusalCode"/> and nothing is returned.
     /// </summary>
     public static RemoteRepository? TryParseGitHub(string? remoteUrl, out string? refusalCode)
     {
@@ -91,9 +92,42 @@ public sealed record RemoteRepository
             host = authority;
             path = rest[(slash + 1)..];
         }
-        else if (remoteUrl.StartsWith("git@", StringComparison.Ordinal))
+        else if (remoteUrl.StartsWith("ssh://", StringComparison.Ordinal))
         {
-            var rest = remoteUrl["git@".Length..];
+            var rest = remoteUrl["ssh://".Length..];
+            if (rest.StartsWith("git@", StringComparison.Ordinal))
+            {
+                rest = rest["git@".Length..];
+            }
+
+            var slash = rest.IndexOf('/', StringComparison.Ordinal);
+            if (slash < 0)
+            {
+                refusalCode = RefusalUnrecognized;
+                return null;
+            }
+
+            var authority = rest[..slash];
+            if (authority.Contains('@', StringComparison.Ordinal))
+            {
+                refusalCode = RefusalCredentialsInUrl;
+                return null;
+            }
+
+            if (authority.Contains(':', StringComparison.Ordinal))
+            {
+                refusalCode = RefusalPort;
+                return null;
+            }
+
+            host = authority;
+            path = rest[(slash + 1)..];
+        }
+        else if (remoteUrl.StartsWith("git@", StringComparison.Ordinal) || remoteUrl.StartsWith(GitHubHost + ":", StringComparison.Ordinal))
+        {
+            // The short form of ssh, with its user git or, as the git layer keeps it, without any: only when the host is the known one, so that a
+            // path of Windows (C:\repo) or another scheme is still «not recognised» and not «another host».
+            var rest = remoteUrl.StartsWith("git@", StringComparison.Ordinal) ? remoteUrl["git@".Length..] : remoteUrl;
             var colon = rest.IndexOf(':', StringComparison.Ordinal);
             if (colon < 0)
             {
@@ -161,7 +195,7 @@ public sealed record RemoteRepository
         return parts.Length == 2 ? TryCreateGitHub(parts[0], parts[1]) : null;
     }
 
-    /// <summary>The address is not one of the two forms that identify a repository.</summary>
+    /// <summary>The address is not one of the forms that identify a repository.</summary>
     public const string RefusalUnrecognized = "remote.unrecognized";
 
     /// <summary>The host is not exactly <c>github.com</c>.</summary>

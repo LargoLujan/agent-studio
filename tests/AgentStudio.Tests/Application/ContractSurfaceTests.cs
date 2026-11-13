@@ -120,7 +120,7 @@ public sealed class ContractSurfaceTests
     {
         Assert.Equal(
             ["CloseAsync", "DeleteRunBranchAsync", "FindPullRequestAsync", "MergeAsync", "ObserveAsync", "OpenPullRequestAsync", "ProbeAsync", "PublishVerdictAsync", "ReadAccountAsync",
-             "ReadBranchRulesAsync", "ReadRepositoryAsync", "RequestReviewersAsync", "UpdatePullRequestAsync", "get_Kind"],
+             "ReadBranchRulesAsync", "ReadRepositoryAsync", "RequestReviewersAsync", "RestoreRateLimit", "UpdatePullRequestAsync", "get_Kind", "get_RateLimitedUntil"],
             MethodNames(typeof(IHostingProvider)));
         Assert.Equal(["For", "IdentifyAsync"], MethodNames(typeof(IHostingProviders)));
         Assert.Equal(["InspectAsync", "PushRunBranchAsync", "ReadBranchAsync"], MethodNames(typeof(IRemoteGitRunner)));

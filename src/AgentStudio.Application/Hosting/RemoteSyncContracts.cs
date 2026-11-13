@@ -36,8 +36,8 @@ public sealed record RemoteWorkTicket(string Id, HostingOperationKind? Operation
 
 public sealed record RemoteWorkStatus(RemoteWorkTicket Ticket, RemoteWorkState State, PendingReason? Reason, DateTimeOffset? RetryAt, UserText? Message);
 
-/// <summary>When it last synchronised well, how the last call ended and until when the platform asked to wait.</summary>
-public sealed record RemoteSyncHealth(DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome, DateTimeOffset? RateLimitedUntil);
+/// <summary>When it last synchronised well, how the last call ended (and when: a session seen as closed is said with its date), and until when the platform asked to wait.</summary>
+public sealed record RemoteSyncHealth(DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastOutcomeAt = null);
 
 /// <summary>
 /// The mailbox of a project and the poll (docs/21 D-23 to D-26): one consumer, in order. Reads by the CLI go on with the project busy; git and the log wait
@@ -110,7 +110,8 @@ public sealed record RemoteSyncState(
     IReadOnlyList<PendingRemoteWork> Pending,
     DateTimeOffset? RateLimitedUntil,
     DateTimeOffset? LastGoodSync,
-    HostingOutcome? LastOutcome)
+    HostingOutcome? LastOutcome,
+    DateTimeOffset? LastOutcomeAt = null)
 {
     /// <summary>A project that was never synchronised (or whose file was deleted): nothing followed, nothing pending.</summary>
     public static RemoteSyncState Empty { get; } = new(null, [], [], null, null, null);
