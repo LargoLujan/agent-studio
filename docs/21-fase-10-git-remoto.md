@@ -56,8 +56,10 @@ Todo ello **sin que Agent Studio toque nunca un token** y sin abrir la red en la
    para enviar una revisión: no puede aprobar aunque quisiera (D-21).
 10. **Se observa estado, no eventos.** Cada sondeo da una instantánea con su huella; dos instantáneas iguales son una. Así
     un evento repetido o desordenado no puede duplicar nada (D-23).
-11. **Un buzón por proyecto, con un solo consumidor.** Pone en serie las observaciones y las acciones. Para tocar git o el
-    registro toma el proyecto como una actividad más; si una ejecución, un debate o una auditoría lo tienen, espera (D-25).
+11. **Un buzón por proyecto, con un solo consumidor.** Pone en serie las observaciones y las acciones. Toma el proyecto
+    como una actividad más solo para lanzar `git` o anotar en el registro, nunca mientras corre `gh`; si una ejecución, un
+    debate o una auditoría lo tienen, aparca el mensaje y sigue. Y al revés: quien llega durante una toma remota espera
+    unos segundos en vez de fallar (D-25).
 12. **La unión de commits tras un squash, un rebase o un revert es una proyección del registro,** no un dato nuevo que haya
     que mantener: la observación guarda los commits originales y los resultantes, y la cadena los une (D-28).
 13. **«Integrado» por PR exige que lo fusionado sea lo juzgado:** la cabeza del PR al fusionarse tiene que ser el commit que
@@ -97,6 +99,13 @@ Cosas que salieron al leer el código y la ayuda de `gh`, y que condicionan el d
   las acciones nuevas; `CriticalApprovalCoverageTests` falla si no se hace.
 - **`pre-push` es el hook con el que git-lfs sube sus objetos.** Sin hooks (como en toda la app), un `push` no sube los
   objetos LFS. Es un límite que hay que decir, no esconder (D-08).
+- **Quien encuentra el proyecto tomado se niega, no espera.** `Orchestrator.Enter` lanza; `ResumeScheduler` lo convierte
+  en «No se pudo reanudar» y la pasada no se repite; y la pantalla del orquestador olvida la aprobación del plan ante
+  cualquier fallo de «Ejecutar». Con una toma remota de segundos, eso sería un fallo sin motivo: D-25 lo cambia por una
+  espera con tope.
+- **La puerta de Auto Doctor no apaga la red de `gh`:** `DoctorEnvironment` solo pone variables de `dotnet`, Docker y WSL
+  (D-31).
+- **`AgentStudio.Infrastructure` no tiene `InternalsVisibleTo`** hacia las pruebas (D-06).
 - **Los ADR 0041 y 0042 que docs/16 reservó para esta fase no existen.** Esta fase usa 0064 a 0068 (§11).
 - **El índice de ADR de `docs/README.md` acaba en el 0057:** faltan en él los 0061 a 0063. Aquí se añaden solo los nuevos.
 
@@ -203,7 +212,9 @@ Rutas relativas a la raíz del repositorio, comprobadas en `db344c8b`.
 - **El registro:** `DecisionKind` (`Domain/Decisions/DecisionLog.cs`; el último valor es `GraphRelationsProposed`) y
   `DecisionPayloadSerializer`. La huella cubre el nombre de la clase: se añade al final, nunca se inserta.
 - **Una actividad por proyecto:** `IProjectActivity.TryEnter(projectId, kind)` e `IRunActivity.IsBusy`
-  (`Application/Orchestration/`). La memoria ya espera con `IsBusy` antes de escribir en el registro.
+  (`Application/Orchestration/`). Quien espera con `IsBusy` antes de escribir en el registro es `WorkWriteGate`
+  (`Orchestration/Work/WorkLog.cs`, cada 500 ms); la derivación de la memoria no espera: dice por qué y no escribe.
+  `IProjectActivity` no tiene eventos. Quien encuentra el proyecto tomado se niega: `Orchestrator.Enter` lanza.
 - **Trazabilidad:** `TraceRef` y `TraceNodeKind` (`Domain/Tracing/`), `ITraceChainReader` y `TraceChainStage`
   (`Application/Work/TraceContracts.cs`), `TraceChainReader`, `VerdictReach` (la regla del veredicto en vigor, compartida
   por el tablero, la cadena y la participación), `BoardProjector` y `ParticipationProjector` (`Orchestration/Work/`).
@@ -340,31 +351,44 @@ documento; las demás son de este.
   commit y el id salen del registro, no de un texto. No lleva `+` delante.
 - **Solo ramas `agentstudio/run-*`** (decisión 13): empujar a otra rama remota sería fusionar sin PR.
 
-**D-05 · La configuración se inspecciona por ámbito y por origen, y la del repositorio no decide nada.**
+**D-05 · La configuración se inspecciona por ámbito y por origen: se anula lo que se puede anular y se rechaza solo lo demás.**
 
-Antes de cada `push` y de cada `ls-remote` se lanza la misma consulta que usa la capa interna
-(`git config -z --show-scope --show-origin --get-regexp`, que no abre ningún transporte) y se rechaza la operación si
-alguna clave de la lista:
+Antes de cada `push` y de cada `ls-remote` se lanza una consulta de configuración
+(`git config -z --show-scope --show-origin --get-regexp`, que no abre ningún transporte). Con cada clave se hace una de dos
+cosas:
 
-- tiene ámbito `local` o `worktree`; **o**
-- viene de un fichero que cae dentro del repositorio, de su directorio común o de la raíz de worktrees (un `include` o un
-  `includeIf` de tu configuración global que apunte dentro del proyecto).
+- **Anularla en la línea de órdenes** (D-06), si es de un solo valor o si un valor vacío reinicia su lista. Una clave
+  anulada **no impide publicar:** gana el `-c`, como ya hace la capa interna (`GitCommandRunner`, `BaseConfiguration`).
+- **Rechazar la operación,** si no se puede anular con un `-c` (porque lleva un nombre o una dirección que no se conoce de
+  antemano) y además tiene ámbito `local` o `worktree`, o viene de un fichero que cae dentro del repositorio, de su
+  directorio común o de la raíz de worktrees (un `include` o un `includeIf` de tu configuración global que apunte dentro).
 
-| Familia | Claves | Por qué |
+| Qué se hace | Claves | Por qué |
 |---|---|---|
-| Credenciales | `credential.*` (también `credential.<url>.*`) | Un ayudante del repositorio recibiría tu token |
-| Direcciones | `url.*.insteadOf`, `url.*.pushInsteadOf`, `remote.*.url` distinta de la identificada, `remote.*.pushurl`, `remote.*.push`, `remote.*.receivepack`, `remote.*.proxy`, `remote.*.vcs`, `remote.pushDefault`, `branch.*.pushRemote` | Otra dirección u otro programa |
-| Transporte | `http.*` (también `http.<url>.*`: `proxy`, `extraHeader`, `sslVerify`, `sslCAInfo`, `cookieFile`, `followRedirects`), `core.sshCommand`, `core.gitProxy`, `ssh.variant`, `protocol.*`, `transfer.credentialsInUrl` | Un intermediario, una cabecera o un programa |
-| Programas | `core.fsmonitor`, `core.hooksPath`, `core.askPass`, `core.alternateRefsCommand`, `gpg.*`, `trace2.*` | Código que corre durante la orden |
-| Comportamiento del `push` | `push.*`, `submodule.recurse`, `receive.*`, `uploadpack.*` | Empujar más de lo pedido (etiquetas, submódulos), firmar, opciones al servidor |
+| **Se anulan con `-c`** (no se rechazan) | `core.hooksPath`, `core.fsmonitor`, `core.sshCommand`, `core.gitProxy`, `core.askPass`, `protocol.*`, `http.followRedirects`, `push.default`, `push.followTags`, `push.recurseSubmodules`, `push.gpgSign`, `push.autoSetupRemote`, `submodule.recurse` | Un repositorio con husky (`core.hooksPath` local) o con `core.fsmonitor` es normal: rechazarlo dejaría fuera a casi todos |
+| **Se rechazan** si las define el repositorio | `credential.*` (también `credential.<url>.*`) | Un ayudante del repositorio recibiría tu token; `credential.helper` **no** se puede vaciar aquí, porque es justo lo que hace falta |
+| | `url.*.insteadOf` y `url.*.pushInsteadOf` | Otra dirección; su clave lleva la dirección dentro |
+| | `http.<url>.*` | Lo mismo: un proxy o una cabecera por dirección |
+| | De `remote.*`, solo lo que cambia el destino o el programa: `pushurl`, `push`, `receivepack`, `uploadpack`, `proxy`, `vcs`; y `remote.pushDefault`, `branch.*.pushRemote` | Con el `push` a una dirección no deberían intervenir (sin verificar, §13); se rechazan por si acaso. `remote.*.url` y `remote.*.fetch` son normales y **no** se rechazan |
+| | `push.pushOption` | Opciones al servidor |
+| | Cualquier otra `http.*` local (`proxy`, `extraHeader`, `sslVerify`, `sslCAInfo`, `cookieFile`…) | Un intermediario o una cabecera. No se anulan con `-c` porque la línea de órdenes gana también a tu configuración **global:** anular `http.proxy` te quitaría tu proxy |
 
+- **Los `include`** no se rechazan por existir: lo que traen se juzga por su origen, clave a clave.
 - **Fallo cerrado:** si la consulta falla, o su salida pasa del tope, no se publica.
 - **La pantalla dice qué clave y de qué fichero,** nunca su valor (podría ser un secreto), y cómo quitarla.
 - **Tu configuración global y de sistema sí cuenta,** con una excepción: si un `url.*.insteadOf` o `pushInsteadOf` **tuyo**
   reescribe la dirección de D-04, se rechaza con su motivo («tu configuración de git cambia la dirección del remoto: Agent
-  Studio solo publica en la dirección que te enseña»). Fallo cerrado: lo que se aprueba es lo que se usa.
-- **`remote.<nombre>.url` es por fuerza del repositorio.** No se rechaza por existir: se lee, se valida (D-04), se te enseña
-  en la tarjeta de publicación y la autorización queda atada a ese identificador (D-16).
+  Studio solo publica en la dirección que te enseña»). No se predice en código: se pregunta a git con
+  `git ls-remote --get-url <dirección>`, que aplica las reescrituras y **no usa la red**, y se compara con la dirección
+  construida. Fallo cerrado: lo que se aprueba es lo que se usa.
+- **`remote.<nombre>.url` es por fuerza del repositorio.** Se lee, se valida (D-04), se te enseña en la tarjeta de
+  publicación y la autorización queda atada a ese identificador (D-16). Es una lectura de F10-3 que te toca aceptar
+  (decisión 17): el criterio dice «se rechaza la configuración […] de URLs del repositorio», y esta URL no se rechaza: se
+  usa solo para identificar, y la dirección del envío la escribe el código.
+- **Las raíces «dentro del repositorio» las calcula el ejecutor remoto con código propio** (`RemoteConfigRoots`). La lógica
+  de raíces de la capa interna vive dentro de `GitCommandRunner`, que este componente no puede usar (D-01). De
+  `GitCallbacks`, que es público y puro, sí puede usar el lector de la salida de `--show-scope` y la resolución de rutas
+  finales.
 
 **D-06 · La orden exacta y su entorno.**
 
@@ -382,6 +406,10 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
 ```
 
 - **`credential.helper` no se vacía:** es justo lo que hace falta. Lo que se impide es que lo defina el repositorio (D-05).
+- **No se anula ninguna `http.*` salvo `followRedirects`:** un `-c` gana también a tu configuración global, y te quitaría
+  tu proxy. Las `http.*` del repositorio se rechazan (D-05).
+- **`core.hooksPath` al fichero vacío,** no a `/dev/null` como sugiere la documentación de git: es lo que la capa interna
+  midió en Windows con git-lfs (un fichero vacío impide además que git-lfs instale ahí sus hooks).
 - **`ls-remote`:** las mismas `-c`, y `ls-remote --refs https://… refs/heads/agentstudio/run-<id>`.
 - **Sin entrada estándar ni texto libre:** la orden no lleva mensaje, título ni nada que escriba una persona o un agente.
 - **Carpeta de trabajo:** el repositorio (git no puede publicar de otra forma), como la capa interna. El ejecutable, el
@@ -404,8 +432,30 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   avance rápido, `!` rechazada). El error estándar no se muestra ni se guarda: se clasifica en un código
   (`credentials-needed`, `rejected-not-fast-forward`, `remote-unreachable`, `redirected`, `protocol-refused`,
   `git-failed`) y se pasa por `SecretRedactor` antes de cualquier registro de diagnóstico.
-- **En las pruebas,** el remoto es una carpeta bare o `file://`: el ejecutor recibe sus opciones por constructor
-  (`RemoteGitOptions.AllowedTransport`), y una prueba de la composición exige que la de la app sea `https` y nada más.
+- **`GIT_ALLOW_PROTOCOL` y `protocol.<x>.allow=always` salen de una sola constante** del transporte (abajo), no de dos
+  textos que puedan divergir. El valor `-` de la capa interna («ningún transporte») no está documentado como tal (la
+  documentación habla de una lista separada por dos puntos): es el que esa capa midió y usa, y aquí no se toca.
+
+**La costura de pruebas: un remoto local sin abrir nada en producción.** Las pruebas de F10-3 necesitan empujar a una
+carpeta bare, y eso choca con tres cosas del diseño: `RemoteRepository` solo representa `github.com`, la dirección es
+siempre HTTPS, y `insteadOf` (el truco habitual para redirigir) lo veta la propia D-05. Se resuelve así:
+
+- **Un tipo `internal`,** `RemoteTransport`, con dos datos: el esquema que se permite a git y una función que da la
+  dirección de un `RemoteRepository`. Tiene **una sola instancia pública de hecho,** `RemoteTransport.GitHubHttps` (esquema
+  `https`, dirección `RemoteRepository.PushUrl`), y es la única que el código de producción puede nombrar.
+- **`AddAgentStudioRemoteGit()` no tiene parámetros** y registra el ejecutor con `GitHubHttps`. No hay opción, ajuste,
+  variable de entorno ni fichero que la cambie. `RemoteGitOptions` desaparece del diseño.
+- **Un constructor `internal` de pruebas,** `RemoteGitRunner(…, string scheme, Func<RemoteRepository, string> address)`:
+  una prueba da `file` y una función que devuelve la ruta de su carpeta bare para un `RemoteRepository` cualquiera. El
+  identificador sigue siendo uno de `github.com` válido; lo que cambia es adónde lo lleva la función.
+- **`InternalsVisibleTo` a `AgentStudio.Tests`** en `AgentStudio.Infrastructure.csproj`, que hoy no lo tiene (sí lo tienen
+  Memory, Observability, GraphWorker y SkillsMcp). Lo añade el P0.
+- **Una prueba que escanea `src/`,** con el patrón de `CriticalApprovalCoverageTests`: ningún fichero de `src/` contiene
+  `file://` ni `"file"` como esquema de un transporte; el constructor de pruebas solo se llama desde `tests/`; ningún
+  ajuste de `AppSettings` ni variable de entorno se lee en `Infrastructure/Git/Remote/`; y la composición de la app
+  (`AddAgentStudioApp`) resuelve un ejecutor cuyo transporte es `GitHubHttps`.
+- **Lo que las pruebas con `file` no ejercen:** el gestor de credenciales, las redirecciones HTTP y el propio
+  `protocol.https`. Eso queda para la prueba en vivo (decisión 14), y se dice en §13.
 
 **D-07 · «Nunca forzar», con cinco cierres.**
 
@@ -485,10 +535,10 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   | `UpdatePullRequest` | `PATCH /repos/{o}/{r}/pulls/{n}` (solo `title` y `body`) | Actualizar |
   | `ClosePullRequest` | `PATCH /repos/{o}/{r}/pulls/{n}` (solo `state: closed`) | Cerrar (destructiva) |
   | `PullRequest` | `GET /repos/{o}/{r}/pulls/{n}` | El estado |
-  | `PullRequestCommits` | `GET /repos/{o}/{r}/pulls/{n}/commits?per_page=100` | Los commits originales (D-28) |
-  | `PullRequestEvents` | `GET /repos/{o}/{r}/issues/{n}/events?per_page=100` | Contar los force-push y el borrado de la rama (D-27) |
+  | `PullRequestCommits` | `GET /repos/{o}/{r}/pulls/{n}/commits?per_page=100&page={1..3}` | Los commits originales (D-28); hasta 250, y más allá «truncado» |
+  | `PullRequestTimeline` | `GET /repos/{o}/{r}/issues/{n}/timeline?per_page=100&page={1..3}` | Contar los force-push y ver el borrado de la rama (D-27). **A confirmar con una respuesta real:** `issues/{n}/events` puede no traer `head_ref_force_pushed` ni `head_ref_deleted` |
   | `Reviews` | `GET /repos/{o}/{r}/pulls/{n}/reviews?per_page=100` | Leer revisiones. **Solo `GET`** |
-  | `RequestReviewers` | `POST /repos/{o}/{r}/pulls/{n}/requested_reviewers` | Pedir revisores |
+  | `RequestReviewers` | `POST /repos/{o}/{r}/pulls/{n}/requested_reviewers` (en la documentación, «review requests») | Pedir revisores |
   | `CheckRuns` y `CombinedStatus` | `GET /repos/{o}/{r}/commits/{sha}/check-runs` y `…/status` | Checks |
   | `WorkflowRuns` | `GET /repos/{o}/{r}/actions/runs?head_sha={sha}&per_page=50` | Actions |
   | `Commit` | `GET /repos/{o}/{r}/commits/{sha}` | Los padres del commit de la fusión (D-27) |
@@ -505,8 +555,22 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   plantilla. Una rama lleva barras (`agentstudio/run-…`): se parte por ellas y cada trozo se escapa aparte, de modo que la
   barra queda literal y nunca `%2F` (sin verificar que los tres puntos con rama en la ruta la quieran así: §13). Nunca
   empieza por `-`: siempre por `/repos/` o es `/user`.
-- **Nunca** `-f`, `-F`, `--field` ni `--raw-field` (un valor que empiece por `@` leería un fichero); nunca los marcadores
-  `{owner}`, `{repo}` ni `{branch}` de `gh`; nunca `--paginate`, `--cache`, `--jq`, `--template` ni `--verbose`.
+- **La consulta la construye otro constructor único** (`GitHubApiQuery`): cada nombre es una constante y cada valor se
+  escapa con `Uri.EscapeDataString`. Una rama en `head={o}:{rama}` o en `sha={rama}` admite `&`, `#`, `%`, `+`, `{` y `}`
+  según git: escapados, no pueden añadir un parámetro ni cortar la dirección.
+- **Ninguna llave llega a `gh`.** `gh api` sustituye `{owner}`, `{repo}` y `{branch}` allí donde los vea en el punto de
+  la API, con el repositorio de la carpeta actual o `GH_REPO` (y `{branch}` exige `git`). Una rama que se llamara
+  `{branch}` activaría eso. Dos cierres: `RemoteBranch` rechaza `{` y `}` (una rama base con llaves no se puede usar desde
+  Agent Studio, y se dice), y el escapado las convierte en `%7B` y `%7D`. **Una prueba exige que ningún argumento de ningún
+  `ProcessSpec` de `gh` contenga `{` ni `}`.**
+- **Sin paginación automática, con páginas tipadas.** Nunca `--paginate`. Las listas que pueden pasar de una página
+  llevan un parámetro `page` tipado (un entero de 1 a 3) y `per_page=100`: los commits de un PR, hasta tres páginas (el tope
+  de GitHub para ese punto es 250); la línea de tiempo del PR, hasta tres. Lo que aún llega lleno tras la tercera se marca
+  **truncado**, la instantánea lo lleva (`CommitsTruncated`, `TimelineTruncated`) y la pantalla lo dice. Las demás listas
+  (`per_page` de 5 a 100) declaran su límite y marcan «truncado» si llegan llenas.
+- **Nunca** `-F` ni `--field`: con ellos un valor que empiece por `@` se lee de un fichero, y hay conversión de tipos.
+  **Tampoco** `-f` ni `--raw-field`: son cadenas literales y no leen ficheros, pero el valor iría como argumento, y la regla
+  es que los datos van por la entrada estándar. Nunca `--cache`, `--jq`, `--template` ni `--verbose`.
 - **Los datos de una escritura van en un JSON por la entrada estándar** (`--input -`), escrito con `Utf8JsonWriter` desde
   tipos: el título, el cuerpo, la rama base, los revisores. Ningún texto libre llega a ser un argumento (los shims `.cmd` y
   la regla del proyecto). `gh.exe` es un ejecutable, no un shim; la regla se cumple igual.
@@ -532,11 +596,19 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   - `PATH`, ya filtrado; `TEMP` y `TMP` propios;
   - y las que pone el adaptador: `GH_PROMPT_DISABLED=1`, `GH_NO_UPDATE_NOTIFIER=1`,
     `GH_NO_EXTENSION_UPDATE_NOTIFIER=1`, `GH_TELEMETRY=false`, `DO_NOT_TRACK=1`, `NO_COLOR=1` y `GH_SPINNER_DISABLED=1`.
+  - **Pasan, de forma explícita, seis variables tuyas** sin las que `gh` no encontraría tu sesión o no saldría a la red:
+    - `XDG_CONFIG_HOME` y `GH_CONFIG_DIR`: dicen dónde tiene `gh` su configuración, y `XDG_CONFIG_HOME` manda sobre
+      `APPDATA`. Solo si son una ruta absoluta **fuera de los proyectos abiertos** (`IUntrustedRoots`); si no, se quitan;
+    - `HTTPS_PROXY`, `HTTP_PROXY` y `NO_PROXY`, y `SSL_CERT_FILE`: `gh` no tiene un equivalente al `http.proxy` global de
+      git, así que quitarlas dejaría sin `gh` a quien trabaja detrás de un proxy.
+    - Es confiar en tu entorno como se confía en tu configuración global de git: un programa de tu usuario que las cambie
+      puede llevar a `gh` a otra configuración o a un intermediario (residual, §8).
   - **No pasan:** `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN` (cambiarían la cuenta, y
-    Agent Studio estaría transportando un token), `GH_HOST`, `GH_REPO`, `GH_CONFIG_DIR` (redirigen), `GH_DEBUG` y `DEBUG`
+    Agent Studio estaría transportando un token), `GH_HOST` y `GH_REPO` (redirigen la petición), `GH_DEBUG` y `DEBUG`
     (vuelcan el tráfico HTTP), `GH_PATH`, `GH_EDITOR`, `GH_BROWSER`, `GH_PAGER`, `GH_FORCE_TTY`.
-- **Lo que se nota:** si inicias sesión en `gh` solo con la variable `GH_TOKEN`, o tienes su configuración en otra carpeta
-  con `GH_CONFIG_DIR`, Agent Studio verá «sin sesión». La guía dice `gh auth login`.
+- **Lo que se nota:** si inicias sesión en `gh` solo con la variable `GH_TOKEN`, Agent Studio verá «sin sesión». La guía
+  dice `gh auth login`.
+- **El ejecutor de git no las recibe** (D-06): git tiene su `http.proxy` global.
 - **Agent Studio no lee nunca** la configuración de `gh` (`%APPDATA%\GitHub CLI`), el Administrador de credenciales de
   Windows ni el almacén de Git Credential Manager. Tampoco ejecuta `gh auth token`, `gh auth status --show-token` ni
   ninguna orden `gh auth`.
@@ -560,6 +632,12 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
   código (`https://github.com/<o>/<r>/pull/<n>`), no `html_url`.
 - **El código de salida** solo se usa para un caso: el 4 (`gh` dice que hace falta autenticarse). Lo demás lo decide la
   línea de estado.
+- **Un 304 no es un éxito para `gh`.** Según su manual, `gh api` trata como error cualquier estado por encima de 299:
+  termina con un código distinto de 0 y escribe `gh: HTTP 304` en el error estándar. Por eso el lector **nunca** se fía
+  del código de salida para saber si hubo respuesta: mira la primera línea de la salida estándar (con `-i`,
+  `HTTP/2.0 304 Not Modified`). Un código distinto de 0 **con** línea de estado es una respuesta HTTP; **sin** ella, es
+  que no se llegó al servidor. La salida estándar y el error estándar se leen por separado: el segundo no es nunca
+  cuerpo. *Probable, sin ejecutar* (§13).
 - **El error estándar** no se guarda ni se muestra: puede traer lo que el servidor quiera. Se clasifica en un código.
 
 **D-13 · La sesión no se sondea: se deduce** (decisión 6).
@@ -577,8 +655,9 @@ git  -c core.hooksPath=<fichero vacío>  -c core.fsmonitor=false  -c gc.auto=0  
 **D-14 · La versión de `gh`.**
 
 - `gh --version` (sin red) da la versión. Entra en la puerta de Auto Doctor como `DoctorTool.GhVersion`, al final del enum.
-- **Probada:** 2.96.0, la de las respuestas grabadas. **Mínima:** la que fije WP2 al comprobar desde cuándo existen
-  `--input`, `-i` y el código de salida 4 (sin verificar, §13); por debajo, el proveedor no ofrece ninguna capacidad.
+- **Probada:** 2.96.0, la de las respuestas escritas a mano. **Mínima:** sin confirmar. No se ha encontrado en la
+  documentación desde qué versión existen `--input`, `-i` y el código de salida 4; hasta que WP2 lo confirme, **la mínima
+  es la probada** (2.96.0), y por debajo el proveedor no ofrece ninguna capacidad.
 - **Otra versión** igual o superior a la mínima: funciona, y Auto Doctor avisa «versión no probada», como con los CLIs de
   los agentes (F2-7). `HostingCapabilities.UntestedCliVersion` lo lleva a la sección «PR».
 - La versión de la API de GitHub va fijada en la cabecera `X-GitHub-Api-Version`: el adaptador depende de ella más que de
@@ -592,7 +671,8 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 | Clase | Operaciones | Autorización | Hello |
 |---|---|---|---|
 | Publicar la rama | `push` de `agentstudio/run-<id>` | Persistente por proyecto si la das; si no, por uso | Al dar la autorización, o en cada uso sin ella |
-| Escribir en el PR | Abrir, actualizar título y cuerpo, pedir revisores, publicar el estado y el comentario del veredicto | Persistente por proyecto si la das; si no, por uso | Igual |
+| Escribir en el PR | Abrir, actualizar título y cuerpo, publicar el estado y el comentario del veredicto | Persistente por proyecto si la das; si no, por uso | Igual |
+| Escribir en el PR, **avisando a otras personas** | Pedir revisores | **Siempre por uso:** cada petición avisa a alguien por su nombre | En cada uso |
 | Fusionar | `Merge`, con un modo que el repositorio permita | **Siempre por uso** | Siempre |
 | Destructivas | Cerrar un PR sin fusionar; borrar la rama remota de una ejecución | **Siempre por uso** | Siempre |
 
@@ -627,6 +707,15 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **El alcance es el identificador del repositorio remoto:** si cambias la URL de `origin` a otro repositorio, la
   autorización deja de aplicar (y se dice), porque estaba dada para otro destino.
 - **Vale para el proyecto, no para una ejecución,** y no caduca sola (decisión 7). Se ve y se retira en la sección «PR».
+- **Qué cubre** (`HostingPolicyGrant.Covers`): la misma clase y el mismo repositorio. La rama base solo cuenta para
+  «escribir en el PR»: una autorización **sin** rama base cubre cualquier base, y una **con** rama base, solo esa.
+  «Publicar la rama» no tiene base: su autorización nunca la lleva.
+- **Dar y retirar una autorización son anotaciones del registro:** pasan por el buzón y toman el proyecto un instante
+  (D-25). Con una ejecución en marcha quedan aparcadas («se anotará cuando termine lo que está en marcha»), y hasta
+  entonces la autorización **no vale.**
+- **Pedir revisores nunca es persistente** (`HostingPolicy.CanBePersistent` lo decide por operación): avisa a una persona
+  por su nombre, y eso no debe salir de un permiso que diste hace un mes. Abrir un PR también avisa a quien sigue el
+  repositorio, pero es inherente a publicarlo y lo dice la tarjeta.
 - **Cada uso deja su entrada** (`HostingOperationPerformed`), con la autorización o la aprobación que lo amparó.
 - **Dónde no vive:** ni en `AppSettings` ni en un fichero del proyecto. Un fichero del repositorio es contenido no fiable;
   el registro está anclado.
@@ -648,15 +737,28 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 
 ### 4.5 Publicar, abrir el PR y fusionar (F10-2)
 
-**D-18 · «Publicar y abrir PR»: un flujo en pasos, idempotente.**
+**D-18 · «Publicar y abrir PR»: un flujo en pasos, idempotente, que toma el proyecto solo cuando toca git o el registro.**
 
 1. **Tarjeta de publicación** (`PublicationPreview`): destino, commits que suben (D-08), rama base (por defecto la del
-   repositorio en GitHub), protecciones (D-17), título y cuerpo (D-19), y qué autorización lo ampara. Se calcula dentro del
-   buzón, con el proyecto tomado (D-25): con una ejecución en marcha no se puede publicar, y la tarjeta lo dice.
+   repositorio en GitHub), protecciones (D-17), título y cuerpo (D-19), y qué autorización lo ampara. Su parte de git (la
+   inspección, `ls-remote` y el recuento) se calcula con el proyecto tomado (D-25): con una ejecución en marcha no se
+   puede publicar, y la tarjeta lo dice.
 2. **Tu clic.** Si no hay autorización persistente para alguna clase, la compuerta pide la aprobación, con Hello.
-3. **El buzón** (D-25) toma el proyecto y, en orden: inspecciona la configuración → `push` → `ls-remote` → busca un PR
-   abierto desde esa rama (`FindPullRequest`) → lo abre si no existe, o lo actualiza → publica el veredicto (D-21) → empieza a
-   seguirlo.
+3. **El buzón** (D-25) lo hace en tramos. `gh` va siempre **fuera** de la toma del proyecto:
+
+   | Tramo | Con el proyecto tomado | Qué hace |
+   |---|---|---|
+   | A | **Sí, de una vez** | Inspecciona la configuración → `push` → `ls-remote` → anota el resultado en el registro |
+   | B | No | `gh`: busca un PR abierto desde esa rama; lo abre si no existe, o lo actualiza |
+   | C | Sí (un instante) | Anota la operación del tramo B |
+   | D | No | `gh`: publica el veredicto (D-21) |
+   | E | Sí (un instante) | Anota la del tramo D, y empieza a seguir el PR |
+
+   - **El tramo A no se parte:** si el proyecto se soltase entre la inspección y el `push`, un agente con una ejecución
+     recién arrancada podría cambiar `.git/config` después de inspeccionada.
+   - **Si entre dos tramos arranca una ejecución,** lo de `gh` sigue (no toca git ni el registro) y las anotaciones esperan,
+     aparcadas: la pantalla dice «Hecho en GitHub; pendiente de anotar en el historial». Se anotan al quedar libre el
+     proyecto, con la hora en que pasó cada cosa. Lo pendiente de anotar vive en el fichero de pendientes (§6).
 4. **Cada paso deja su entrada** con su resultado. Un paso que falla para el flujo ahí y lo dice; lo ya hecho queda hecho.
 5. **Tras un corte a mitad,** al reintentar se consulta el estado antes de repetir: la rama ya está en ese commit, el PR ya
    existe. Nada se duplica.
@@ -721,6 +823,9 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **El comentario** lo compone el sistema (D-19): la decisión, el commit juzgado, el recuento por requisito con sus ids, qué
   proveedor y modelo juzgó, que el juez no produjo el trabajo, y una frase fija: «Esto no es una revisión de GitHub ni una
   aprobación de la cuenta que lo publica». **No lleva el razonamiento del juez:** es texto de un agente.
+- **La descripción del estado es corta por prudencia:** las de la tabla tienen menos de 60 caracteres. La documentación
+  de los estados de commit no da un tope (el de 140 caracteres está documentado para los estados de **despliegue**), así
+  que no se afirma ninguno: se recorta a 120 y queda en §13.
 - **Se actualiza en su sitio** (`EditComment` por identificador): no se acumulan comentarios.
 - **Cómo se garantiza que nunca es una aprobación:**
   1. `IHostingProvider` no tiene miembro para enviar revisiones;
@@ -754,8 +859,19 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **Su huella** es el SHA-256 de su forma canónica. **Dos instantáneas con la misma huella son una:** no se registra nada.
 - **Lo que cambia se calcula en código puro** (`RemoteReconciler`, en Domain): de la última instantánea registrada y la
   nueva salen los cambios (`RemoteChangeKind`). Se prueba con secuencias repetidas y desordenadas, sin red ni disco.
-- **Desorden:** las lecturas van en serie (D-25), y una instantánea cuyo `updated_at` es anterior al de la última
-  registrada se descarta (una réplica atrasada del servidor). Un PR fusionado no vuelve a «abierto» por una respuesta vieja.
+- **Desorden y respuestas viejas.** Las lecturas van en serie (D-25), pero una réplica atrasada del servidor puede dar un
+  dato anterior. Cada recurso tiene su guarda, porque `updated_at` solo es del PR:
+
+  | Recurso | Guarda |
+  |---|---|
+  | El PR | Un `updated_at` anterior al último registrado se descarta. «Fusionado» es terminal: no vuelve a «abierto» |
+  | Commits y línea de tiempo | Solo crecen: una lista más corta que la registrada, para la misma cabeza, se descarta |
+  | Despliegues | El identificador del último estado solo crece |
+  | Commits de la rama base | Solo crecen desde la fusión |
+  | Checks y revisiones | No traen marca fiable: un cambio de su resumen solo se anota si **se repite en dos vueltas seguidas** |
+
+  La última fila evita que unos checks que oscilan entre dos réplicas llenen el registro. Su coste: un cambio de checks se
+  anota una vuelta después.
 - **Se registra como `RemoteStateObserved`:** el objeto, la huella, la instantánea y los cambios. Nunca se reescribe una
   observación anterior (docs/16 D-46).
 - **La última huella registrada se lee del registro,** no de la caché: si borras la caché, se relee todo una vez y no se
@@ -785,48 +901,111 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
   - 429, o 403 con `x-ratelimit-remaining: 0` o con `retry-after`: no se lanza nada a ese host hasta la hora que digan
     `retry-after` o `x-ratelimit-reset`;
   - sin esas cabeceras, un minuto, y después espera progresiva (2, 5, 15 y 60 minutos);
+  - **la hora de espera se guarda** en el fichero local (`RateLimitedUntil`, §6): reiniciar la app no la olvida;
+  - **y tiene tope:** dos horas desde que se recibió. Una cabecera que pida más (o una hora absurda) se recorta, y la
+    pantalla dice la hora recortada;
   - nunca se insiste: GitHub avisa de que hacerlo puede acabar en el bloqueo de la integración;
   - la pantalla dice «GitHub pide esperar hasta las 14:32».
 - **Solo lecturas en el sondeo.** Las escrituras son siempre acciones tuyas (D-02).
 
-**D-25 · Un buzón por proyecto con un solo consumidor, y una sola cola hacia `gh`.**
+**D-25 · Un buzón por proyecto con un solo consumidor, una sola cola hacia `gh`, y el proyecto tomado lo mínimo.**
 
 - **El buzón** (`ProjectRemoteMailbox`) es un `Channel` con un único lector, como el motor de una ejecución. Recibe tres
-  clases de mensaje: observar un PR, ejecutar una acción y registrar una observación. Los procesa en orden. No hay
-  cerrojos nuevos: es la cola que pides para las carreras.
+  clases de mensaje: observar un PR, ejecutar un tramo de una acción y anotar en el registro. No hay cerrojos nuevos: es
+  la cola que pides para las carreras.
 - **Una cola global hacia `gh`** (`GhQueue`, también de un consumidor) por debajo de todos los buzones: un solo `gh` a la
   vez en toda la app, que es lo que GitHub pide (peticiones en serie) y donde vive el estado de los límites.
-- **El proyecto ocupado.** Tres reglas:
-  1. **Leer por `gh` no toca ni git ni el registro:** el sondeo sigue aunque haya una ejecución en marcha.
-  2. **Para lanzar `git`, sea cual sea la orden, o escribir en el registro,** el buzón toma el proyecto con
-     `IProjectActivity.TryEnter(proyecto, ProjectActivityKind.RemoteOperation)`. Si devuelve nulo, hay otra actividad: el
-     mensaje se queda en el buzón y se reintenta cuando el proyecto quede libre. No es «mirar y luego actuar»: es entrar
-     o no entrar. «Sea cual sea» incluye lo que solo lee: `push`, `ls-remote`, la inspección de la configuración (D-05) y
-     el recuento de commits de la tarjeta de publicación (D-08), que pide historia a la capa interna.
-  3. **Todo el `git` de esta fase pasa por el buzón.** No hay ningún camino lateral:
-     - la tarjeta de publicación (`PreviewAsync`) se calcula dentro del buzón; con el proyecto ocupado no lanza nada y
-       dice «El proyecto está ocupado: podrás publicar cuando termine lo que está en marcha»;
-     - las dos líneas de Auto Doctor que necesitan la inspección (`doctor.remote.config` y `doctor.remote.lfs`) la piden
-       al buzón, y con el proyecto ocupado salen «sin comprobar»;
-     - **el sondeo no lanza `git` nunca:** el identificador del remoto se guarda al empezar a seguir un PR, y un
-       force-push se reconoce por la plataforma, no por la historia local (D-27).
-  4. **Mientras el buzón lo tiene,** una ejecución, un debate o una auditoría que quieran empezar **se rechazan** con su
-     motivo, como hoy cuando un debate tiene el proyecto: `Orchestrator.Enter` lanza si `TryEnter` da nulo; no espera.
-     Por eso el buzón lo tiene lo mínimo: lo toma y lo suelta en cada mensaje (unos milisegundos para una entrada del
-     registro; hasta 120 segundos para un `push`, que acabas de pedir tú). El motivo dice «Sincronizando con GitHub:
-     inténtalo en unos segundos».
-  5. **Lo que queda por comprobar** (§13): qué hace la reanudación automática de la Fase 8 si, al arrancar la app,
-     encuentra el proyecto tomado. Para no cruzarse con ella, el buzón no empieza hasta que esa reanudación ha terminado.
-- **`ProjectActivityKind.RemoteOperation`** se añade al final del enum. No comparte el proyecto con nada: en
-  `OrchestrationActivity.TryAdd` (`Orchestration/Engine/Orchestrator.cs`) entra en la rama de `Debate` y `Audit`.
-- **No es trabajo con agentes:** no gana un valor en `BackgroundWorkKind` ni aparece en la bandeja como una ejecución.
+- **`gh` nunca corre con el proyecto tomado.** Una llamada a `gh` espera su turno en la cola global y tarda hasta 20
+  segundos: dentro de la toma, tendría el proyecto parado por algo que no toca ni git ni el registro.
+
+**Cuándo se toma el proyecto, y solo entonces.** Con `IProjectActivity.TryEnter(proyecto, ProjectActivityKind.RemoteOperation)`:
+
+| Qué | Cuánto dura la toma |
+|---|---|
+| El tramo de git de una publicación: inspección → `push` → `ls-remote` → su anotación (D-18, tramo A). De una vez, sin soltar | Hasta unos 160 s en el peor caso (20 + 120 + 20); lo normal, segundos |
+| La parte de git de la tarjeta de publicación y de las dos líneas de Auto Doctor (inspección, `ls-remote`, recuento) | Segundos |
+| **Cada anotación del registro,** una a una: una operación hecha, una observación con huella nueva, dar o retirar una autorización | Milisegundos |
+
+- **El sondeo solo toma el proyecto si hay una huella nueva que anotar.** Una vuelta en la que todo dio 304, o cuya
+  instantánea es la ya registrada, no lo toma.
+- **Todo el `git` de esta fase pasa por el buzón,** también el que solo lee. No hay camino lateral:
+  - la tarjeta de publicación y las líneas `doctor.remote.config` y `doctor.remote.lfs` piden su parte de git al buzón; con
+    el proyecto ocupado no lanzan nada y dicen «ocupado» o «sin comprobar»;
+  - **el sondeo no lanza `git` nunca:** el identificador del remoto se guarda al empezar a seguir un PR, y un force-push se
+    reconoce por la plataforma (D-27).
+- **El buzón anota con `IDecisionRecorder` directamente.** No pasa por los servicios de «Trabajo», que escriben detrás de
+  `WorkWriteGate` (`Orchestration/Work/WorkLog.cs`): esa puerta espera a que `IsBusy` sea falso, y con el proyecto tomado
+  por el propio buzón se esperaría a sí mismo.
+
+**Un mensaje que necesita el proyecto y lo encuentra ocupado no bloquea al consumidor.**
+
+- `TryEnter` devuelve nulo → el mensaje se **aparca** en una lista aparte y el consumidor sigue con el siguiente. Así el
+  sondeo por `gh` continúa durante una ejecución, y una acción tuya pasa delante.
+- **Lo aparcado se reintenta con un temporizador,** cada 500 ms, como `WorkWriteGate.BusyPollInterval`:
+  `IProjectActivity` no tiene eventos (lo dice `ProjectActivityWork`, en `Desktop/Background/BackgroundWork.cs`), así que
+  no hay otra forma de saber que el proyecto quedó libre. El temporizador solo vuelve a meter el mensaje en el buzón: quien
+  lo procesa es el consumidor de siempre.
+- **Las observaciones aparcadas se funden por PR:** si una ejecución dura horas, no se acumula una por vuelta; queda la
+  última instantánea de cada PR, y al anotarla se compara con la última **registrada**.
+- **El orden se conserva por PR,** que es donde importa: dos anotaciones del mismo PR nunca se cruzan.
+- Lo aparcado vive también en el fichero de pendientes (§6): si cierras la app, no se pierde.
+
+**Y al revés: quien quiere el proyecto mientras el buzón lo tiene, espera; no se rechaza.**
+
+Hoy, quien encuentra el proyecto tomado **se niega:** `Orchestrator.Enter` lanza `InvalidOperationException` si `TryEnter`
+da nulo, y el debate y la auditoría lanzan su `UserTextException`. Con un debate o una auditoría delante eso es correcto
+(duran minutos u horas). Con una operación remota delante sería un fallo sin motivo, y con dos consecuencias comprobadas
+en el código:
+
+- **Reanudación desatendida (Fase 8).** `ResumeScheduler` captura la excepción y dice «No se pudo reanudar»; la pasada
+  sale completa (`ConsentedPass.Complete`) y `MainViewModel` da el proyecto por comprobado: **no lo vuelve a intentar.**
+  Una ejecución que tenía tu consentimiento para seguir sola se quedaría parada porque el buzón estaba anotando una
+  observación.
+- **«Ejecutar».** `StartAsync` fallaría con un mensaje técnico en inglés con el nombre del enum (lo que pinta
+  `OrchestratorErrorText.Detail` para lo que no es `UserTextException`), y la pantalla llama a `ForgetApproval`: se
+  perderían la aprobación del plan y el Hello.
+
+**La solución: una espera con tope, en un solo sitio** (decisión 18).
+
+- Una función nueva en Application, junto a `IProjectActivity`:
+  `ProjectActivityEntry.EnterAsync(activity, projectId, kind, time, ct)`. Mientras lo que tiene el proyecto es
+  `RemoteOperation`, espera preguntando cada 250 ms, **hasta 180 segundos** (más que el tramo de git más largo). Después
+  llama a `TryEnter` y devuelve lo que dé: con un debate o una auditoría delante sigue devolviendo nulo al momento, como
+  hoy.
+- **La usan los cuatro sitios que hoy toman el proyecto:** `Orchestrator.Enter` (planificar, empezar y reanudar),
+  `DebateCoordinator.Enter`, `ProjectAuditService` y `HeadTestsService`. Ninguno ha escrito nada todavía cuando la llama
+  (todos toman el proyecto «antes de su primera entrada»), así que esperar no deja nada a medias.
+- **Si se agota el tope** (no debería: un `push` se corta a los 120 s), se lanza una `UserTextException` con el código
+  `project.busy-remote` y el texto «Agent Studio está sincronizando con GitHub. Inténtalo en unos segundos», como hacen ya
+  el debate y la auditoría con el suyo. Y `OrchestratorDocumentViewModel` **no olvida la aprobación** ante ese código: no se
+  escribió nada, así que la aprobación sigue sin usar.
+- **Cortesía del buzón:** tras soltar el proyecto deja pasar un segundo antes de volver a tomarlo, para que quien esperaba
+  entre. Sin eso, dos anotaciones seguidas podrían dejar fuera a una ejecución hasta el tope.
+- **Por qué no la otra opción** (que la pasada de reanudación salga «incompleta» y se reintente): arregla la reanudación,
+  pero no «Ejecutar», ni el debate, ni la auditoría; habría que tocar el planificador de reanudaciones y la pantalla
+  principal; y seguiría enseñando un fallo por algo que se resuelve solo en segundos.
+- **Descartado:** que el buzón no empiece hasta que la reanudación termine. `ResumeScheduler.WaitForIdleAsync` solo espera
+  a las pasadas ya pedidas; nada impide que se pida otra después.
+
+**Lo que ve el resto de la app mientras el buzón tiene el proyecto.** `ProjectActivityKind.RemoteOperation` se añade al
+final del enum y no comparte el proyecto con nada (en `OrchestrationActivity.TryAdd` entra en la rama de `Debate` y
+`Audit`). `IsBusy` da verdadero durante la toma, y eso lo leen más piezas:
+
+| Quién | Qué hace hoy con `IsBusy` | Con una toma remota |
+|---|---|---|
+| `WorkWriteGate` (las escrituras de «Trabajo») | Espera, preguntando cada 500 ms | Espera un instante más. Correcto |
+| `MemoryDerivation` | No espera: dice por qué y no escribe | Una derivación que coincida con la toma no escribe y lo dice; la siguiente completa. Aceptado |
+| `DiagramCatalog`, `ClientDocumentExporter`, `MemoryMarkdownExporter` | No exportan al repositorio con el proyecto ocupado | Dirán «ocupado» si coinciden con la toma. Aceptado: dura segundos, y es cierto |
+| `ProjectActivityWork` (la bandeja) | `Kind` da `Audit` para lo que no conoce e `IsActive` es verdadero | **Hay que cambiarlo** (P0): una toma remota no es trabajo con agentes. `Current` la ignora, y no gana valor en `BackgroundWorkKind` ni clave `Background_Work_Activity_*` |
+| `LockScreenViewModel.Kinds` (el bloqueo) | Lista las cuatro clases | No la incluye: no hay nada que enseñar ni que parar |
+| `HeadTestsService` | Elige su texto de «ocupado» por clase | Usa la espera de arriba; su texto para el tope, del P0 |
+
 - **Lo que ya había y no cambia:** las pantallas de las Fases 6 y 9 que leen por la capa interna (los remotos, la
-  historia) siguen como están; esta fase no les añade ni les quita nada. La regla de arriba es para el `git` que lanza
-  esta fase.
-- **Las observaciones que esperan** viven en memoria y en el fichero de pendientes (§6): si cierras la app, se releen al
-  volver; no hay nada que perder, porque el estado se vuelve a observar.
-- **Una acción tuya pasa delante** del sondeo en el buzón.
-- **Al cerrar la app,** el buzón termina el mensaje en curso (un `push` no se corta a medias) y para.
+  historia) siguen como están. La regla de arriba es para el `git` que lanza esta fase.
+- **Al cerrar la app,** el buzón termina el tramo en curso (un `push` no se corta a medias) y para.
+- **Cómo se relee F10-6** (decisión 19): «ni git ni el registro se tocan mientras una ejecución, un debate o una auditoría
+  tienen el proyecto» se cumple al pie de la letra. Lo nuevo es lo simétrico, que el criterio no decía: una ejecución, un
+  debate o una auditoría que llegan durante una toma remota esperan unos segundos.
 
 **D-26 · Sin conexión o sin sesión: «pendiente de sincronizar», con su motivo.**
 
@@ -852,9 +1031,9 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 | Fusionado | `merged: true`, con `merge_commit_sha` y `merged_by.login` | Hecho de la plataforma |
 | Modo de la fusión | Si la hizo Agent Studio, el modo pedido. Si no: el commit de la fusión con dos padres es «commit de fusión»; con uno, se compara el autor, la fecha de autor y el mensaje de su padre con el penúltimo commit del PR: iguales, «rebase»; distintos, «squash». Con un solo commit en el PR, «squash o rebase» | Deducido, y así se enseña |
 | Cerrado sin fusionar, reabierto | `state` y `merged` | Hecho |
-| Rama borrada | La rama de cabeza ya no existe (404 al leerla) | Hecho |
+| Rama borrada | La rama de cabeza ya no existe (404 al leerla), o la línea de tiempo trae `head_ref_deleted` | Hecho |
 | Cabeza movida | `head.sha` distinto del anterior | Hecho |
-| Force-push | El número de eventos `head_ref_force_pushed` del PR creció. No se mira la historia local: el sondeo no lanza `git` (D-25) | Hecho de la plataforma; se cuenta, no se aplica |
+| Force-push | El número de eventos `head_ref_force_pushed` de la línea de tiempo del PR creció. No se mira la historia local: el sondeo no lanza `git` (D-25) | Hecho de la plataforma; se cuenta, no se aplica. **A confirmar con una respuesta real** qué punto trae ese evento y con qué campos (§13); si ninguno lo trae, el cambio se queda en «cabeza movida» |
 | Checks | El resumen cambió (pasan, fallan, esperan) | Hecho; los nombres no van al registro |
 | Revisiones | El resumen cambió | Hecho |
 | Revert | En la rama base, después de la fusión, hay un commit cuyo mensaje tiene la línea estándar de git `This reverts commit <commit de la fusión>.` | **Deducido de un texto:** se enseña «posible reversión (por el mensaje del commit)» y propone reabrir el hito; reabrirlo es decisión tuya |
@@ -870,7 +1049,7 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **Lo que ya hay:** el registro conoce los commits del sistema (por intento), el commit de la integración que el juez vio y
   las evidencias de cada diff, que la limpieza no borra (docs/16 D-31).
 - **Lo que añade la observación de una fusión** (`RemoteStateObserved` con el cambio `Merged`): los **commits originales**
-  del PR (`PullRequestCommits`, hasta 250, que es el tope de GitHub; más allá, «truncado») y los **commits resultantes**
+  del PR (`PullRequestCommits`, en hasta tres páginas de 100: 250 es el tope de GitHub; más allá, «truncado» y se dice) y los **commits resultantes**
   (uno en un squash; uno por original, en orden, en un rebase; el de fusión en una fusión con commit).
 - **La proyección** (`CommitSuccession`, pura, en Domain) responde dos preguntas:
   - de un commit original, ¿en qué quedó? → el PR, el modo y su commit resultante;
@@ -916,7 +1095,7 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 
 | Sección | Código | Qué dice | De dónde sale |
 |---|---|---|---|
-| Herramientas | `doctor.gh.installed` | `gh` instalado y su versión; o «no instalado» (sin él no hay PR) | `DoctorTool.GhVersion` (`gh --version`) |
+| Herramientas | `doctor.gh.installed` | `gh` instalado y su versión; o «no instalado» (sin él no hay PR) | `DoctorTool.GhVersion` (`gh --version`), con el entorno sin red de abajo |
 | Herramientas | `doctor.gh.version-untested` | Aviso: versión distinta de la probada | D-14 |
 | Proyecto | `doctor.remote.host` | El remoto es GitHub; o «no reconocido»; o «sin remoto» | `IRepositoryRemoteReader` y `RemoteRepository` |
 | Proyecto | `doctor.remote.transport` | Aviso: tu remoto es SSH; Agent Studio publica por HTTPS | La URL del remoto |
@@ -925,7 +1104,13 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 | Proyecto | `doctor.remote.session` | El último resultado conocido de la sesión de `gh`, con su fecha; o «sin comprobar» | El estado del buzón, sin preguntar nada |
 | Proyecto | `doctor.remote.sync` | Si la sincronización está permitida y cuándo fue la última buena | Ajustes y el buzón |
 
-- **Ninguna pregunta a la red.** «Sin comprobar» pesa más que «correcto», como siempre.
+- **Ninguna pregunta a la red, tampoco de rebote.** `gh` tiene telemetría y un aviso de actualización que salen a la red
+  con **cualquier** orden, también `--version` (`gh help environment`). Hoy `DoctorEnvironment.For` solo añade las
+  variables de `dotnet`, Docker y WSL: lanzar `gh --version` por la puerta tal como está rompería F10-13. El P0 le añade,
+  para `DoctorTool.GhVersion`: `GH_NO_UPDATE_NOTIFIER=1`, `GH_NO_EXTENSION_UPDATE_NOTIFIER=1`, `GH_TELEMETRY=false`,
+  `DO_NOT_TRACK=1` y `GH_PROMPT_DISABLED=1`. Y a `ToolOutputParsers.Version`, que hoy da «sin versión» para una
+  herramienta que no conoce, el lector de la primera línea de `gh --version` (`gh version 2.96.0 (2026-07-02)`).
+- «Sin comprobar» pesa más que «correcto», como siempre.
 - **Los arreglos son de «ir» o de «guía»:** «Ir a Repositorio › PR», «Instala la CLI de GitHub» (con la orden de `winget`
   para copiar), «Inicia sesión con `gh auth login`» (para copiar; la app no la ejecuta).
 - **La inspección de D-05 usa git dentro del repositorio,** por el ejecutor remoto y sin transporte: es la misma excepción
@@ -997,7 +1182,8 @@ public enum MergeMethod { MergeCommit, Squash, Rebase }
 public static class HostingPolicy
 {
     public static HostingOperationClass ClassOf(HostingOperationKind operation);
-    public static bool CanBePersistent(HostingOperationClass @class);      // false for MergePullRequest and Destructive
+    /// By operation: false for everything of MergePullRequest and Destructive, and for RequestReviewers (it notifies a person by name).
+    public static bool CanBePersistent(HostingOperationKind operation);
     /// By operation, not by class: false for PublishVerdictStatus and PublishVerdictComment (they must be able to say
     /// «not approved» and «in review») and for ClosePullRequest and DeleteRemoteBranch; true for everything else.
     public static bool RequiresApprovedVerdict(HostingOperationKind operation);
@@ -1029,6 +1215,9 @@ public sealed record HostingCapabilities(HostingCapability Supported, IReadOnlyL
     public bool Has(HostingCapability capability);
     public HostingCapabilities NarrowedBy(RemoteRepositoryFacts repository);   // the merge methods the repository allows, the permission of the account
 }
+
+// In Domain, with the capabilities that use them (NarrowedBy): Domain depends on nothing (ADR-0002).
+// RemoteRepositoryFacts, BranchRule and BranchRules live in Domain (§5.1): HostingCapabilities.NarrowedBy uses them.
 ```
 
 `src/AgentStudio.Domain/Hosting/RemoteSnapshot.cs`:
@@ -1049,7 +1238,7 @@ public sealed record RemoteSnapshot(
     PullRequestRef PullRequest, PullRequestState State, string HeadCommit, RemoteBranch BaseBranch, bool HeadBranchExists,
     string? MergeCommit, RemoteMergeMode? MergeMode, RemoteLogin? MergedBy,
     IReadOnlyList<string> OriginalCommits, IReadOnlyList<string> ResultCommits, bool CommitsTruncated,
-    ChecksSummary Checks, ReviewsSummary Reviews, int ForcePushes, IReadOnlyList<string> RevertCommits,
+    ChecksSummary Checks, ReviewsSummary Reviews, int ForcePushes, bool TimelineTruncated, IReadOnlyList<string> RevertCommits,
     RemoteDeployment? Deployment, DateTimeOffset UpdatedAt)
 {
     public string Fingerprint { get; }   // SHA-256 of the canonical form; UpdatedAt is not part of it
@@ -1122,7 +1311,7 @@ public sealed record BranchRules(bool Readable, IReadOnlyList<BranchRule> Rules)
 
 public sealed record PullRequestText(string Title, string Body);          // sent through standard input, never as an argument
 public sealed record PullRequestDraft(RemoteRepository Repository, RemoteBranch Head, RemoteBranch Base, PullRequestText Text, bool Draft);
-public enum ObservedResource { PullRequest, Commits, Events, Reviews, CheckRuns, CombinedStatus, WorkflowRuns, MergeCommit, BaseCommits, Deployments }
+public enum ObservedResource { PullRequest, Commits, Timeline, Reviews, CheckRuns, CombinedStatus, WorkflowRuns, MergeCommit, BaseCommits, Deployments }
 /// One ETag per resource (D-24): a 304 of the pull request says nothing of its checks, of the base branch or of the deployments.
 public sealed record ObservationCursor(IReadOnlyDictionary<ObservedResource, string> ETags, RemoteSnapshot? LastSnapshot);
 /// The snapshot composed from the resources that changed and the last known of those that answered 304. Outcome NotModified: every resource answered 304.
@@ -1182,7 +1371,7 @@ public sealed record RemoteConfigRefusal(string Key, string Scope, string Origin
 public sealed record RemoteGitInspection(bool Accepted, IReadOnlyList<RemoteConfigRefusal> Refusals, bool UsesLfs, string? FailureCode);
 
 public enum RemotePushOutcome { Pushed, AlreadyUpToDate, RejectedNotFastForward, CredentialsNeeded, Unreachable, Redirected, ConfigurationRefused, LfsRefused, NotConfirmed, Failed }
-public sealed record RemotePush(ProjectContext Project, RemoteRepository Destination, RunId Run, string Commit);   // no force, no refspec, no branch name
+public sealed record RemotePush(ProjectContext Project, RemoteRepository Destination, RunId Run, string Commit);   // no force, no refspec, no branch name, no address: the transport of the runner gives it
 public sealed record RemotePushResult(RemotePushOutcome Outcome, string? RemoteCommit, RemoteGitInspection Inspection);
 public sealed record RemoteBranchRead(bool Reached, string? Commit, string? FailureCode);
 
@@ -1215,6 +1404,8 @@ public enum HostingAuthorizationSource { StandingGrant, Approval }
 public sealed record HostingAuthorization(bool Allowed, HostingAuthorizationSource? Source, string? GrantId, string? ApprovalBinding, UserText? Refusal);
 
 /// The gate of the policies (D-15): every remote operation passes here, and only here, before it runs.
+/// GrantAsync and RevokeAsync write to the log: they go through the mailbox and take the project for an instant (D-16 and D-25).
+/// A grant of a class covers only the operations of that class for which HostingPolicy.CanBePersistent is true.
 public interface IHostingPolicyGate
 {
     Task<HostingAuthorization> AuthorizeAsync(HostingOperation operation, CancellationToken ct);
@@ -1279,7 +1470,14 @@ public interface IPullRequestProjector
     Task<IReadOnlyList<PullRequestView>> ListAsync(ProjectContext project, CancellationToken ct);
 }
 
-/// The local state that can be deleted (§6): ETags, display texts, what is followed and what is pending.
+/// The local state that can be deleted (§6). Read as not trusted: bounded, validated, and nothing in it authorizes anything.
+public sealed record FollowedPullRequest(PullRequestRef PullRequest, string? Run, ObservationCursor Cursor, RemoteDisplayTexts Display,
+    RemoteSnapshot? PendingConfirmation);                                 // a change of checks or reviews seen once (D-23)
+public sealed record PendingRemoteWork(RemoteWorkTicket Ticket, HostingOperation? Operation, RemoteSnapshot? Observation,
+    string Stage, PendingReason Reason, DateTimeOffset Since, DateTimeOffset? RetryAt);   // parked or waiting to sync; expires after 24 h
+public sealed record RemoteSyncState(RemoteRepository? Repository, IReadOnlyList<FollowedPullRequest> Followed,
+    IReadOnlyList<PendingRemoteWork> Pending, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome);
+
 public interface IRemoteSyncStore
 {
     Task<RemoteSyncState> LoadAsync(string projectId, CancellationToken ct);
@@ -1287,8 +1485,26 @@ public interface IRemoteSyncStore
 }
 ```
 
+`src/AgentStudio.Application/Orchestration/ProjectActivity.cs` (existe; lo amplía el P0):
+
+```csharp
+/// Entering a project when what may hold it is a remote operation of Agent Studio itself (docs/21 D-25): it lasts seconds, so the caller
+/// waits instead of refusing. With a run, a planning, a debate or an audit in the way nothing changes: TryEnter answers at once, as before.
+public static class ProjectActivityEntry
+{
+    public static readonly TimeSpan RemoteWaitCap = TimeSpan.FromSeconds(180);
+    public static readonly TimeSpan RemoteWaitPoll = TimeSpan.FromMilliseconds(250);
+    public const string BusyRemoteCode = "project.busy-remote";
+
+    /// Waits while Current(projectId) is RemoteOperation, up to RemoteWaitCap; then returns TryEnter(projectId, kind), null included.
+    /// Past the cap it throws a UserTextException with BusyRemoteCode: nothing was written, so an approval is not spent.
+    public static Task<IDisposable?> EnterAsync(IProjectActivity activity, string projectId, ProjectActivityKind kind,
+        TimeProvider time, CancellationToken ct);
+}
+```
+
 - `IRemoteGitRunner` no tiene ninguna sobrecarga con una orden, un argumento o un refspec libres: es la garantía de D-03
-  y D-07.
+  y D-07. Tampoco recibe una dirección: la da el transporte con el que se construyó (D-06).
 - `IHostingProvider` no tiene ningún miembro que envíe una revisión: es la garantía de D-21.
 - `IHostingPolicyGate` es el único camino: `PublicationService` no recibe los dos puertos de arriba directamente, sino
   detrás de la compuerta (una prueba de arquitectura exige que `IHostingProvider` e `IRemoteGitRunner` solo se inyecten
@@ -1320,7 +1536,21 @@ public sealed record HostingOperationPerformedPayload(
 public sealed record RemoteStateObservedPayload(
     HostingProviderKind Provider, string Host, string Owner, string Repository, int PullRequest, string? Run,
     string Fingerprint, string? PreviousFingerprint, IReadOnlyList<RemoteChangeKind> Changes,
-    RemoteSnapshotPayload Snapshot) : DecisionPayload;   // the snapshot of §5.1, field by field
+    RemoteSnapshotPayload Snapshot) : DecisionPayload;
+
+/// RemoteSnapshot (§5.1) as the log stores it: the same fields, flat, with primitives only (no domain type in the JSON).
+public sealed record RemoteSnapshotPayload(
+    PullRequestState State, string HeadCommit, string BaseBranch, bool HeadBranchExists,
+    string? MergeCommit, RemoteMergeMode? MergeMode, string? MergedBy,
+    IReadOnlyList<string> OriginalCommits, IReadOnlyList<string> ResultCommits, bool CommitsTruncated,
+    ChecksRollup ChecksRollup, int ChecksPassing, int ChecksFailing, int ChecksPending, bool ChecksTruncated,
+    int ReviewsApproved, int ReviewsChangesRequested, int ReviewsCommented, IReadOnlyList<string> Approvers,
+    int ForcePushes, bool TimelineTruncated, IReadOnlyList<string> RevertCommits,
+    long? DeploymentId, string? DeploymentCommit, DeploymentState? DeploymentState, DateTimeOffset UpdatedAt)
+{
+    public static RemoteSnapshotPayload From(RemoteSnapshot snapshot);
+    public RemoteSnapshot ToSnapshot(PullRequestRef pullRequest);   // validates again: the log is read as data
+}
 ```
 
 - **Las cuatro con `RunId = NoRun`,** como las de la memoria y los vínculos: la ejecución va en un campo. Así la
@@ -1335,8 +1565,9 @@ public sealed record RemoteStateObservedPayload(
 
 - **`Infrastructure/Git/Remote/`:** `RemoteGitRunner` (implementa `IRemoteGitRunner`), `RemoteGitCommandLine` (la constante
   de D-06 y la única función que escribe el refspec), `RemoteGitEnvironment` (la lista blanca), `RemoteConfigInspection`
-  (la lista de D-05, sobre el lector de `--show-scope` que ya tiene `GitCallbacks`) y `RemoteGitOptions`
-  (`AllowedTransport`: `Https` en la app; `File` solo en pruebas).
+  (las dos listas de D-05, sobre el lector público de `--show-scope` de `GitCallbacks`), `RemoteConfigRoots` (las raíces
+  «dentro del repositorio», propias: las de la capa interna viven en `GitCommandRunner`) y `RemoteTransport` (`internal`;
+  `GitHubHttps` es el único que nombra el código de producción, D-06).
 - **`Infrastructure/Hosting/Cli/`:** `GhRunner` (el único que lanza `gh`: ejecutable, carpeta neutra, entorno, topes),
   `GhQueue` (la cola de un consumidor, con el estado del límite por host) y `GhResponseReader` (línea de estado, cabeceras
   por lista y cuerpo).
@@ -1357,7 +1588,8 @@ public sealed record RemoteStateObservedPayload(
 | El título y el cuerpo enviados | Evidencia, con su SHA-256 | Texto; el registro guarda la referencia |
 | Lo observado del remoto | Registro: `RemoteStateObserved` | Es la fuente de «integrado», «desplegado» y la cadena |
 | `ETag`, textos para la pantalla, PR seguidos y cursor de cada uno | `%LOCALAPPDATA%\AgentStudio\hosting\<proyecto>\sync.json` | Caché: se borra y se relee una vez, sin duplicar nada (D-23) |
-| Acciones pendientes de sincronizar | `%LOCALAPPDATA%\AgentStudio\hosting\<proyecto>\pending.json` | No han pasado: no son historia. Caducan a las 24 h |
+| Acciones pendientes de sincronizar, y lo hecho en GitHub que espera a anotarse (D-18) | El mismo estado local (`RemoteSyncState.Pending`), en `…\hosting\<proyecto>\pending.json` | Lo primero no ha pasado: no es historia, y caduca a las 24 h. Lo segundo sí pasó: no caduca, y se anota al quedar libre el proyecto |
+| La hora hasta la que GitHub pide esperar | `RateLimitedUntil`, en `sync.json`, con tope de dos horas | Reiniciar la app no la olvida (D-24) |
 | Carpeta neutra y temporal | `%LOCALAPPDATA%\AgentStudio\hosting\{cwd,tmp}` | D-06 y D-11 |
 | El permiso «Sincronizar con GitHub» por proyecto y el intervalo | `AppSettings` (y `WithPreferencesOf`) | Como el permiso de red del doctor de skills |
 
@@ -1498,7 +1730,11 @@ El modelo de amenazas es el de §3. Aquí, superficie por superficie, cómo se c
 | Fusionar | Fusionar algo que el juez no vio; saltarse una protección | `sha` atado, aprobación atada y Hello; sin administrador (D-17 y D-20) | F10-4 |
 | Una fusión hecha fuera | Que cuente como integrado lo no juzgado | «Integrado» exige cabeza = commit juzgado (D-29) | F10-8 |
 | La red en segundo plano | Tráfico sin que lo sepas | Permiso por proyecto, apagado; solo lecturas; Auto Doctor sin red (D-02) | F10-13 |
-| El registro durante una ejecución | Mover su cabeza entre enseñar y usar un veredicto | El buzón entra en el proyecto o espera (D-25) | F10-6 |
+| El registro durante una ejecución | Mover su cabeza entre enseñar y usar un veredicto | El buzón entra en el proyecto o aparca el mensaje (D-25) | F10-6 |
+| Entre la inspección y el `push` | Que un agente cambie `.git/config` después de inspeccionada | Inspección, `push` y `ls-remote` van en una sola toma del proyecto, sin soltar (D-18) | F10-6 |
+| Una toma remota frente al motor | Que «Ejecutar» falle y pierda la aprobación, o que una reanudación con consentimiento no se haga | Espera con tope en un solo sitio; la aprobación no se olvida (D-25) | F10-6 |
+| Llaves en un argumento de `gh` | Activar los marcadores `{owner}`, `{repo}`, `{branch}` y la resolución desde la carpeta | `RemoteBranch` las rechaza, la consulta se escapa, y una prueba sobre cada argumento (D-10) | F10-12 |
+| La costura de pruebas del ejecutor remoto | Que producción pueda empujar a `file://` o a otra dirección | Transporte `internal`, registro sin parámetros y una prueba que escanea `src/` (D-06) | F10-3 |
 | Eventos repetidos o viejos | Duplicar o deshacer estado | Instantánea con huella; lo viejo se descarta (D-23) | F10-6 |
 | Los ficheros locales del buzón | Que alguien los edite para colar una acción | Lo pendiente vuelve a pasar la compuerta entera antes de ejecutarse (D-26); la caché se lee como no fiable | F10-6 |
 
@@ -1506,6 +1742,11 @@ El modelo de amenazas es el de §3. Aquí, superficie por superficie, cómo se c
 
 - Tu configuración global y de sistema de git, tu `gh` y tu gestor de credenciales son de confianza: un programa de tu
   usuario que los cambie engaña a esta fase (ya era el residual del proceso concurrente y del PATH de ADR-0018).
+- Seis variables de tu entorno llegan a `gh` (`XDG_CONFIG_HOME`, `GH_CONFIG_DIR`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` y
+  `SSL_CERT_FILE`): quien controle el entorno con el que arrancas Agent Studio puede llevar a `gh` a otra configuración o
+  ponerle un intermediario (D-11). Es el mismo residual, dicho con sus nombres.
+- Una derivación de la memoria o una exportación que coincida con una toma remota dirá «ocupado» durante unos segundos
+  (D-25).
 - `git push` arranca `git` con la carpeta de trabajo en el repositorio, y el gestor de credenciales corre como un
   proceso hijo suyo. No se puede publicar de otra forma.
 - GitHub ve tu dirección IP, tu cuenta y qué PR consultas.
@@ -1532,8 +1773,8 @@ sin cambiar su texto. Aquí se concreta la prueba de cada uno.
 | F10-3 | Un remoto local (carpeta bare) y repositorios temporales: publica y `ls-remote` confirma; la segunda vez, «ya al día»; un remoto que avanzó por otro lado → rechazado, sin forzar; **configuraciones plantadas**, una prueba por familia de D-05 (`credential.helper` local con un programa centinela, `url.*.insteadOf`, `pushInsteadOf`, `remote.origin.pushurl`, `core.sshCommand`, `core.fsmonitor`, `http.proxy`, `http.extraHeader`, `push.followTags`, un `includeIf` global hacia un fichero del repositorio): no se publica, el centinela no corre y el motivo nombra la clave; un hook `pre-push` plantado no corre; variables `GIT_SSH_COMMAND`, `GIT_ASKPASS`, `GIT_CONFIG_COUNT` y `GIT_TRACE` heredadas no llegan al proceso; el repositorio del usuario queda igual tras publicar (`UserRepositoryState.Compare`); la prueba de D-07 sobre todos los `ProcessSpec`; LFS → rechazado | `tests/.../Infrastructure/Git/Remote/**` (`Category=LocalTools`) |
 | F10-4 | La compuerta, con un registro en memoria: sin autorización pide aprobación, y con la respuesta atada a otra cosa no actúa; con autorización persistente no pide; una autorización de otro repositorio o de otra rama base no cubre; fusionar y lo destructivo piden siempre, y `GrantAsync` de esas clases se rechaza; con el veredicto impugnado se rechaza publicar la rama, abrir el PR y fusionar, **y se permite publicar el veredicto** (que sale «en revisión»); retirar la autorización vuelve a pedir; cada uso deja su entrada; las reglas de la rama llegan a la tarjeta, y «no se pudieron leer» también. Las seis acciones están en `KnownPresenceActions` como `RemoteOrSecretOperation` | `tests/.../Orchestration/Publication/**`, `tests/.../Security/Approvals/**` |
 | F10-5 | El adaptador publica el veredicto en sus tres estados: la orden es `POST …/statuses/{sha}` y `POST` o `PATCH` de un comentario; el comentario lleva la marca y no lleva texto del juez. **Ninguna llamada de revisión:** la prueba de D-21 sobre todos los `ProcessSpec` de la batería (ni `pr review`, ni `--approve`, ni una escritura en `/reviews`, ni `APPROVE`, ni `"event"`), y la de arquitectura | `tests/.../Infrastructure/Hosting/GitHub/VerdictPublicationTests.cs` |
-| F10-6 | `RemoteReconciler`, puro: la misma instantánea dos veces → un cambio; una secuencia desordenada (fusionado y después una respuesta vieja «abierto») → no vuelve atrás; una prueba de propiedad con permutaciones y repeticiones da siempre el mismo conjunto de observaciones. El buzón, con un reloj y un proveedor de prueba: 304 en todos los recursos → ninguna entrada; **304 en el PR y un cambio en los checks, en la rama base (un revert) o en los despliegues → se observa igual**; 429 con `retry-after` → nada sale hasta esa hora; 403 con el límite a cero y `x-ratelimit-reset`; sin cabeceras → un minuto y progresiva; sin conexión y sesión caducada → «pendiente de sincronizar» y ninguna entrada. **Proyecto ocupado:** con una ejecución, un debate o una auditoría dentro (`TryEnter` de cada clase), el buzón no lanza **ningún** `git` (ni `push`, ni `ls-remote`, ni la inspección, ni una lectura de historia) ni escribe en el registro (un lanzador y un registro que cuentan); la tarjeta de publicación y las dos líneas de Auto Doctor dicen «ocupado» sin lanzar nada; sí lee por el proveedor, y al quedar libre registra una sola vez. Y al revés: mientras el buzón lo tiene, `TryEnter` de una ejecución da nulo, y lo suelta al acabar cada mensaje | `tests/.../Domain/Hosting/**`, `tests/.../Orchestration/Publication/**` |
-| F10-7 | Integración: una ejecución guionizada con dos tareas y veredicto aprobado; se publica a un remoto local; un ayudante de la prueba hace en el remoto un **squash**, un **rebase** y una **fusión con commit** (tres casos) y después un **revert**; el proveedor de prueba responde con esos commits. La cadena, desde un commit original, llega al commit resultante y vuelve; tras el revert, lo dice; los commits originales y sus evidencias siguen en el registro, y `Verify` pasa | `tests/.../Integration/Phase10/**` (`Category=LocalTools`) |
+| F10-6 | `RemoteReconciler`, puro: la misma instantánea dos veces → un cambio; una secuencia desordenada (fusionado y después una respuesta vieja «abierto») → no vuelve atrás; una prueba de propiedad sobre el **estado final** (no sobre el conjunto de observaciones, que depende del orden): para cualquier permutación con repeticiones de una serie de lecturas, el último estado registrado es el de la lectura más reciente de cada recurso, y es **monótono** (fusionado no vuelve a abierto, las listas no encogen, el contador de force-push no baja); un resumen de checks que oscila entre dos valores en vueltas alternas no deja ninguna entrada. El buzón, con un reloj y un proveedor de prueba: 304 en todos los recursos → ninguna entrada; **304 en el PR y un cambio en los checks, en la rama base (un revert) o en los despliegues → se observa igual**; 429 con `retry-after` → nada sale hasta esa hora; 403 con el límite a cero y `x-ratelimit-reset`; sin cabeceras → un minuto y progresiva; sin conexión y sesión caducada → «pendiente de sincronizar» y ninguna entrada. **Proyecto ocupado:** con una ejecución, un debate o una auditoría dentro (`TryEnter` de cada clase), el buzón no lanza **ningún** `git` (ni `push`, ni `ls-remote`, ni la inspección, ni una lectura de historia) ni escribe en el registro (un lanzador y un registro que cuentan); la tarjeta de publicación y las dos líneas de Auto Doctor dicen «ocupado» sin lanzar nada; sí lee por el proveedor, y al quedar libre registra una sola vez. Y al revés: mientras el buzón lo tiene, `ProjectActivityEntry.EnterAsync` de una ejecución **espera y entra** cuando lo suelta (con un reloj de prueba), `StartAsync` termina bien y la aprobación del plan no se olvida; `ResumeConsentedAsync` reanuda la ejecución en vez de decir «no se pudo»; con un debate delante, sigue negándose al momento; agotado el tope, lanza `UserTextException` con `project.busy-remote`. **Alcance de la toma:** ningún `ProcessSpec` de `gh` se lanza con el proyecto tomado; el tramo inspección → `push` → `ls-remote` va en una sola toma; un mensaje aparcado no detiene el sondeo de otro PR ni una acción de la persona; tras una ejecución larga queda una observación por PR, no una por vuelta; una vuelta sin huella nueva no toma el proyecto | `tests/.../Domain/Hosting/**`, `tests/.../Orchestration/Publication/**` |
+| F10-7 | Integración: una ejecución guionizada con dos tareas y veredicto aprobado; se publica a un remoto local; el proveedor de prueba **hace de plataforma con git real** sobre ese remoto (`LocalRemoteHostingProvider`, sin guion: ver «sin rodeos», abajo): un **squash**, un **rebase** y una **fusión con commit** (tres casos) y después un **revert**, y contesta leyendo el remoto. La cadena, desde un commit original, llega al commit resultante y vuelve; tras el revert, lo dice; los commits originales y sus evidencias siguen en el registro, y `Verify` pasa | `tests/.../Integration/Phase10/**` (`Category=LocalTools`) |
 | F10-8 | ViewModel de «PR»: cada estado de la lista, lo pendiente, «la cabeza cambió». Tablero: PR fusionado con la cabeza juzgada → «Integrado»; con otra cabeza → «Hecho» con su motivo; prueba de propiedad: ninguna tarjeta en «Integrado» sin veredicto aprobado. Hito: «integrado» por PR; «desplegado» solo con la observación, y sin ella el estado no existe en el ViewModel | `tests/.../Desktop/{Repository,Work}/**`, `tests/.../Orchestration/Work/**` |
 | F10-9 | Fuera de esta entrega (decisión 1). Lo que sí se prueba: un segundo proveedor de prueba con votos numéricos y sin estado de commit pasa por las mismas pantallas sin tocar su código | `tests/.../Desktop/Repository/PullRequests/**` |
 | F10-10 | Dos pruebas. **De comportamiento:** un `IProcessRunner` que registra, bajo toda la batería de la capa interna (`GitWorktreeManager`, los lectores de historia y de remotos): cada orden lleva `GIT_ALLOW_PROTOCOL=-`, `credential.helper=`, `core.askPass=` y `core.sshCommand=`. **De arquitectura:** ningún fichero de `Infrastructure/Git/` fuera de `Remote/` nombra `push`, `fetch`, `pull`, `clone` ni `ls-remote` como subcomando, y `Remote/` no usa `GitCommandRunner` | `tests/.../Infrastructure/Git/InternalLayerHasNoNetworkTests.cs` |
@@ -1553,9 +1794,33 @@ cabeceras, línea en blanco y cuerpo). Viven en `tests/AgentStudio.Tests/Infrast
 con el prefijo `handmade-` y un `README.md` que lo dice. **No son capturas reales:** lo serán cuando hagas la prueba en vivo
 (decisión 14), y entonces se sustituyen por capturas con el prefijo `real-`, revisadas para que no lleven nada tuyo.
 
-**Las pruebas en vivo quedan pendientes de tu OK** (decisión 14): un repositorio **privado de prueba que creas tú,** y una
-lista cerrada de pasos: publicar, abrir, publicar el veredicto, leer checks, fusionar con squash, observar, cerrar otro PR
-y borrar su rama. Van con `Category=HostingLive`, fuera de la suite y de la CI.
+**Las pruebas en vivo quedan pendientes de tu OK** (decisión 14, que no toma el orquestador): un repositorio **privado de
+prueba que creas tú,** y una lista cerrada de pasos: publicar, abrir, publicar el veredicto, leer checks, fusionar un PR
+con **squash,** otro con **rebase** y otro con **commit de fusión,** **revertir** uno desde la web, observar cada cosa,
+cerrar otro PR y borrar su rama. Van con `Category=HostingLive`, fuera de la suite y de la CI.
+
+**F10-2 y F10-7, sin rodeos.** Tal como están escritos en docs/08, esta entrega no los cumple al pie de la letra hasta la
+prueba en vivo:
+
+- **F10-2 dice «respuestas grabadas de `gh` 2.96.0».** No hay ninguna grabada: son respuestas **escritas a mano.** Prueban
+  que el adaptador lanza la orden que debe y que interpreta bien la forma que **creemos** que tiene la respuesta; no
+  prueban que GitHub responda así.
+- **F10-7 dice «prueba de integración con un remoto local que hace squash».** Sin `fetch` (D-03), lo que pase en el remoto
+  local **no llega nunca a Agent Studio por git:** llega por el proveedor. Si el proveedor de la prueba devolviera unos SHA
+  escritos en la propia prueba, la prueba sería una tautología: comprobaría que la cadena une lo que se le dice que una.
+- **Lo que se hace para que no lo sea:** el proveedor de la prueba de integración (`LocalRemoteHostingProvider`, solo en
+  `tests/`) **no tiene guion:** hace de plataforma sobre la carpeta bare con git de verdad. Fusiona con squash, rebase o
+  commit de fusión, revierte, y contesta a `ObserveAsync` **leyendo el remoto** (los commits del PR, el commit resultante
+  y sus padres). Así los SHA son reales, el modo se **deduce** de commits reales (D-27) y la unión se comprueba contra lo
+  que git hizo.
+- **Lo que sigue sin probar hasta la prueba en vivo:** que GitHub dé esos mismos datos con esa forma (`merge_commit_sha`,
+  que además cambia de significado según el estado del PR; el autor del squash; la línea de tiempo), y el revert hecho
+  desde su web.
+- **La redacción que se propone para los dos criterios** (decisión 20; docs/08 no se toca hasta que la aceptes):
+  - F10-2: «…Tests contra respuestas de `gh` 2.96.0 **escritas a mano desde la documentación** y, con tu OK, una prueba en
+    vivo sobre un repositorio privado de prueba que creas tú, **cuyas capturas las sustituyen**».
+  - F10-7: «…Prueba de integración con un remoto local y un proveedor de prueba **que hace de plataforma con git real**
+    (squash, rebase, fusión y revert); **la forma de los datos de GitHub, en la prueba en vivo**».
 
 **Reglas de todas las pruebas:**
 
@@ -1563,8 +1828,8 @@ y borrar su rama. Van con `Category=HostingLive`, fuera de la suite y de la CI.
 - **nunca se crea `App`;** las de ViewModel usan los dobles de siempre;
 - **nunca red ni CLIs reales en la suite:** ni `gh` ni un remoto de verdad. El `git` real, solo contra remotos locales y
   con `Category=LocalTools`;
-- las pruebas del ejecutor remoto usan `RemoteGitOptions.AllowedTransport = File`; una prueba de la composición exige
-  `Https` en la app;
+- las pruebas del ejecutor remoto usan su constructor `internal` con el esquema `file` (D-06); una prueba escanea `src/`
+  y otra resuelve la composición de la app, y las dos exigen que producción solo conozca `GitHubHttps`;
 - antes de un PR, la pasada completa incluye `LocalTools` y `ConPty`, que la CI deja fuera.
 
 ---
@@ -1583,10 +1848,15 @@ Las de [20 §9.1](20-fase-6-auto-doctor-y-auto-graph.md#91-reglas-comunes):
 **Dueños únicos:**
 
 - **El P0:** los enums compartidos, los contratos de §5, `DecisionPayloadSerializer.cs`, `ApprovalRiskClassifier.cs`,
-  `DoctorToolCatalog.cs`, `Help/HelpScreens.cs` y `tests/.../UiInventory/UiScreens.cs`.
+  `Infrastructure/Diagnostics/{DoctorToolCatalog,DoctorEnvironment,ToolOutputParsers}.cs`,
+  `AgentStudio.Infrastructure.csproj` (`InternalsVisibleTo`), todo lo que recorre `ProjectActivityKind` o toma el proyecto
+  (lista en §10.2), `Help/HelpScreens.cs` y `tests/.../UiInventory/UiScreens.cs`. Después del P0, ningún paquete toca
+  esos ficheros.
 - **El lead, en la integración:** `src/AgentStudio.Desktop/Composition/**`, `MainViewModel*.cs`, `MainWindow.xaml(.cs)`,
-  `Settings/**`, `Services/AppSettings.cs`, `Orchestrator/**` (el botón junto a «Entregar»), `Background/**` y `Lock/**`
-  (el nombre de la actividad nueva), `docs/03`, `docs/08`, `docs/18`, `docs/README.md` y la bitácora.
+  `Settings/**`, `Services/AppSettings.cs`, `Orchestrator/**` (el botón junto a «Entregar»; el P0 ya dejó ahí lo de no
+  olvidar la aprobación), `src/AgentStudio.Orchestration/OrchestrationServiceCollectionExtensions.cs` (ningún paquete lo
+  toca: cada uno trae su `AddAgentStudio…` en su carpeta, y el lead los llama), `docs/03`, `docs/08`, `docs/18`,
+  `docs/README.md` y la bitácora.
 
 **«Hecho»** exige `dotnet build AgentStudio.slnx` con 0 avisos, `dotnet test` en verde (sin `ProviderLive` ni
 `HostingLive`), las categorías `LocalTools` y `ConPty` pasadas a mano, los ADR y documentos del paquete, su artículo de
@@ -1602,19 +1872,34 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - **Registro:** `Domain/Decisions/DecisionLog.cs` (cuatro valores al final) y
   `Application/Decisions/DecisionPayloadSerializer.cs`.
 - **Seguridad:** `src/AgentStudio.Security/Approvals/ApprovalRiskClassifier.cs` (las seis acciones).
-- **Auto Doctor:** `DoctorTool.GhVersion` y su entrada en `Infrastructure/Diagnostics/DoctorToolCatalog.cs`.
+- **Auto Doctor:** `DoctorTool.GhVersion`, y en `Infrastructure/Diagnostics/` (existen): su entrada en
+  `DoctorToolCatalog.cs`, sus variables sin red en `DoctorEnvironment.cs` y su lector de versión en
+  `ToolOutputParsers.cs` (D-31). Con su prueba: el `ProcessSpec` de `gh --version` lleva las cinco variables.
+- **La costura de pruebas del ejecutor remoto:** `InternalsVisibleTo` a `AgentStudio.Tests` en
+  `src/AgentStudio.Infrastructure/AgentStudio.Infrastructure.csproj`, y el tipo `internal` `RemoteTransport` con
+  `GitHubHttps` (D-06). WP1 escribe el ejecutor y la prueba que escanea `src/`.
+- **La espera ante una toma remota** (D-25): `ProjectActivityEntry.EnterAsync` en
+  `Application/Orchestration/ProjectActivity.cs`, el código `project.busy-remote` y sus cuatro usos:
+  `Orchestration/Engine/Orchestrator.cs` (`Enter`), `Debate/Arena/DebateCoordinator.cs` (`Enter`),
+  `Debate/Audit/ProjectAuditService.cs` y `Desktop/Panels/HeadTestsService.cs`; y en
+  `Desktop/Orchestrator/OrchestratorDocumentViewModel.cs`, no llamar a `ForgetApproval` ante ese código. Con sus pruebas
+  (las de F10-6 que no necesitan el buzón: una toma remota de prueba).
 - **Lo mínimo para que cada paquete llegue a verde solo:**
-  - `ProjectActivityKind.RemoteOperation` en todos los sitios que lo recorren, que son seis ficheros (búsqueda completa
-    de `ProjectActivityKind` en `src/`): `Orchestration/Engine/Orchestrator.cs` (`OrchestrationActivity.TryAdd` y
-    `Remove`: sin su rama, `TryEnter` daría siempre nulo), `Desktop/Background/{BackgroundWork,BackgroundWorkInProgress}.cs`,
-    `Desktop/Lock/{LockScreenViewModel,LockServices}.cs` y `Desktop/Panels/HeadTestsService.cs` (su texto de «ocupado»).
-    Con un texto provisional en recursos; el lead lo deja fino. `DebateCoordinator` y `ProjectAuditService` solo llaman
-    a `TryEnter` con su clase y no cambian;
+  - `ProjectActivityKind.RemoteOperation` en todos los sitios que lo recorren (búsqueda completa de `ProjectActivityKind`
+    en `src/`: nueve ficheros): `Orchestration/Engine/Orchestrator.cs` (`OrchestrationActivity.TryAdd` y `Remove`: sin su
+    rama, `TryEnter` daría siempre nulo); `Desktop/Background/BackgroundWork.cs` (`ProjectActivityWork`: hoy `Kind` da
+    `Audit` para lo que no conoce e `IsActive` es verdadero, así que la bandeja enseñaría una «auditoría»; `Current` pasa
+    a ignorar la toma remota) y `BackgroundWorkInProgress.cs`; `Desktop/Lock/{LockScreenViewModel,LockServices}.cs` (no
+    la listan, y se comprueba que nada falle por ello); y `Desktop/Panels/HeadTestsService.cs` (su texto para el tope).
+    **No hacen falta** claves `Background_Work_Activity_RemoteOperation` ni de bloqueo: la toma no se enseña como trabajo.
+    Sí las del texto `project.busy-remote`, en los `.resx` de quien lo pinta (`OrchestratorStrings`, `DebateStrings`,
+    `AuditStrings` y `PanelsStrings`), que el P0 añade;
   - el par `HostingStrings.resx` / `.en.resx` en `Desktop/Resources/`, con las claves de §7.7, y en
     `DoctorStrings*.resx` (existen) los textos de las ocho líneas de D-31;
   - el código `publishing` en `Help/HelpScreens.cs` con la primera versión de su artículo (`Help/{es-ES,en}/publishing.md`);
   - `tests/AgentStudio.Tests/Desktop/UiInventory/UiScreensHosting.cs` con su lista vacía, ya sumada en `UiScreens.cs`;
-  - `tests/AgentStudio.Tests/AgentStudio.Tests.csproj`: las carpetas `Fixtures` de la fase, como contenido.
+  - `tests/AgentStudio.Tests/AgentStudio.Tests.csproj` **no se toca:** ya copia como contenido cualquier carpeta
+    `Fixtures` bajo `Domain/`, `Infrastructure/` e `Integration/`.
 - **Pruebas:** `tests/AgentStudio.Tests/Domain/Hosting/**` (validación adversaria de `RemoteRepository`, `RemoteBranch` y
   `RemoteLogin`; `HostingPolicy`), `Application/Phase10PayloadTests.cs`, `DecisionKindCompatibilityTests`,
   `DecisionPayloadTests`, `ContractSurfaceTests` y `CriticalApprovalCoverageTests` al día.
@@ -1629,8 +1914,11 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - `src/AgentStudio.Infrastructure/Git/Remote/**` (nuevo): lo de §5.4, y `AddAgentStudioRemoteGit` en esa carpeta.
 - Pruebas: `tests/AgentStudio.Tests/Infrastructure/Git/Remote/**` y
   `tests/AgentStudio.Tests/Infrastructure/Git/InternalLayerHasNoNetworkTests.cs` (nuevos).
-- No toca ningún fichero existente de `Infrastructure/Git/`. Si necesita el lector de `--show-scope` de `GitCallbacks`,
-  lo usa tal cual (es `internal` del mismo ensamblado); si hay que tocarlo, vuelve al lead.
+- No toca ningún fichero existente de `Infrastructure/Git/`. De `GitCallbacks` (que es `public static`, y puro) puede
+  usar el lector de la salida de `--show-scope` y la resolución de rutas finales. **No** puede reutilizar la lógica de
+  raíces ni `ClassifyRepositoryCallbacksAsync`: son de `GitCommandRunner`, que la prueba de arquitectura le veta. Lanza
+  su propia consulta de configuración con su propio entorno y calcula sus raíces (`RemoteConfigRoots`).
+- La prueba que escanea `src/` y prohíbe `file://` y cualquier forma de abrir la costura (D-06).
 - Criterios: F10-3, F10-10 y la mitad de F10-11 y F10-12. ADR-0064 (adenda con lo medido).
 - **Hecho cuando:** las pruebas de F10-3 y F10-10 de §9 pasan con `LocalTools`; la medición de que publicar a una dirección
   deja el repositorio del usuario igual está escrita en el ADR; cada punto de §13 que le toca queda «medido» o «sigue sin
@@ -1652,8 +1940,10 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 ### 10.5 WP3 · Compuerta, publicación, buzón y reconciliador (L)
 
 - `src/AgentStudio.Orchestration/Publication/**` (nuevo): `HostingPolicyGate`, `PublicationService`,
-  `ProjectRemoteMailbox`, `RemoteSyncService` (el sondeo y su reloj), `PullRequestTextComposer` (D-19),
-  `VerdictNoticeBuilder` (sobre `VerdictReach`) y `PullRequestProjector`.
+  `ProjectRemoteMailbox` (con lo aparcado, su temporizador y la fusión por PR), `RemoteSyncService` (el sondeo y su
+  reloj), `PullRequestTextComposer` (D-19) y `VerdictNoticeBuilder` (sobre `VerdictReach`). `PullRequestProjector` **no:**
+  es una proyección y va con WP4.
+- Anota con `IDecisionRecorder` directamente: nunca por un servicio que escriba detrás de `WorkWriteGate` (D-25).
 - `src/AgentStudio.Domain/Hosting/RemoteReconciler.cs` (lo completa).
 - `src/AgentStudio.Infrastructure/Hosting/State/**` (nuevo): `RemoteSyncStore`.
 - `AddAgentStudioPublication`, en su carpeta.
@@ -1662,12 +1952,15 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - Usa `IRemoteGitRunner` e `IHostingProvider` por sus puertos, con dobles: no espera a WP1 ni a WP2 para sus pruebas.
 - Criterios: F10-4, F10-6, F10-13 y la parte de servicio de F10-5. ADR-0067 y ADR-0068.
 - **Hecho cuando:** las pruebas de F10-4, F10-6 y F10-13 de §9 pasan; la prueba del proyecto ocupado falla si se quita la
-  toma del proyecto; ninguna clase de la carpeta lanza un proceso.
+  toma del proyecto, y la del alcance falla si un `gh` se lanza con el proyecto tomado; ninguna clase de la carpeta lanza
+  un proceso; ningún fichero de la carpeta nombra `WorkWriteGate`.
 
 ### 10.6 WP4 · Proyecciones: cadena, tablero, participación e hito (M)
 
-- `src/AgentStudio.Orchestration/Work/{TraceChainReader,BoardProjector,ParticipationProjector}.cs` (existen) y lo que
-  haga falta junto a ellos para leer las observaciones.
+- `src/AgentStudio.Orchestration/Work/{TraceChainReader,BoardProjector,ParticipationProjector}.cs` (existen) y, junto a
+  ellos, `PullRequestProjector.cs` (nuevo; implementa `IPullRequestProjector`) y lo que haga falta para leer las
+  observaciones. `AddAgentStudioHostingProjections`, en esa carpeta: no toca
+  `OrchestrationServiceCollectionExtensions.cs`, que es del lead.
 - `src/AgentStudio.Domain/Hosting/CommitSuccession.cs` (lo completa).
 - `src/AgentStudio.Debate/Audit/MilestoneReport.cs` y `MilestoneCloser.cs` (existen): «integrado» por PR, «desplegado» y la
   desviación «fusionado con cambios que el juez no vio».
@@ -1702,14 +1995,18 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 ### 10.9 Integración (el lead; M)
 
 - La composición (`Composition/HostingServices.cs`, nuevo): los tres `AddAgentStudio…`, `IRemoteSyncPolicy` sobre
-  `AppSettings`, y `RemoteGitOptions` con `Https`.
+  `AppSettings`. `AddAgentStudioRemoteGit()` no lleva parámetros: no hay transporte que elegir (D-06).
 - `AppSettings` (el permiso por proyecto y el intervalo, también en `WithPreferencesOf`) y la sección «Git remoto» de
   Ajustes.
 - «Publicar y abrir PR» junto a «Entregar» en el monitor de la ejecución.
 - El nombre de la actividad nueva en la bandeja y en la pantalla de bloqueo.
-- `tests/AgentStudio.Tests/Integration/Phase10/**`: la app compuesta con `AddAgentStudioApp`, un remoto local, git real y
-  un `gh` de prueba (un `IProcessRunner` que responde con las respuestas grabadas): publicar → PR → veredicto → squash en el remoto →
-  observación → tablero «Integrado» y cadena unida (F10-7); y el mismo recorrido con una ejecución en marcha (F10-6).
+- `tests/AgentStudio.Tests/Integration/Phase10/**`: la app compuesta con `AddAgentStudioApp`, un remoto local y git
+  real, en dos montajes:
+  - con `LocalRemoteHostingProvider` (el proveedor de prueba que hace de plataforma con git real, §9): publicar → PR →
+    veredicto → squash, rebase, fusión y revert en el remoto → observación → tablero «Integrado» y cadena unida (F10-7);
+    y el mismo recorrido con una ejecución que arranca a mitad (F10-6: espera y entra);
+  - con el adaptador real y un `gh` de prueba (un `IProcessRunner` que responde con las respuestas escritas a mano):
+    que la composición entera lanza las órdenes que debe y ninguna con el proyecto tomado.
 - Documentos: [03](03-pantallas-y-navegacion.md), [08](08-plan-y-criterios-de-aceptacion.md) (el estado, y F10-11 a
   F10-13), [18](18-peticiones-y-pendientes.md) (los pendientes nuevos, desde P70) y el README.
 - `CLAUDE.md`: si eliges la decisión 6 (a), la lista de lo que se puede lanzar gana `gh --version` y las lecturas de
@@ -1720,7 +2017,7 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 
 | Paquete | Depende de | Tamaño | Tanda |
 |---|---|---|---|
-| P0 | `main` con la Fase 6 | M | 0, en serie |
+| P0 | `main` con la Fase 6 | M-L (crece: la espera ante una toma remota y la puerta de Auto Doctor) | 0, en serie |
 | WP1 | P0 | M-L | 1 |
 | WP2 | P0 | M-L | 1 |
 | WP4 | P0 | M | 1 si hay tres manos; si no, 2 |
@@ -1770,7 +2067,9 @@ sustituyen estos, que nacen con este documento en estado «propuesta» y se acep
 | Un proyecto con LFS no puede publicar desde aquí | Se dice antes, en Auto Doctor y en la tarjeta; decisión 16 |
 | El límite de GitHub con muchos PR abiertos | Peticiones condicionales, en serie, solo lo seguido; una petición por PR sin cambios y por vuelta |
 | Un 304 sí contara contra el límite | El coste sigue siendo una petición cada 5 minutos por PR; el intervalo se puede subir |
-| El buzón retrasa el arranque de una ejecución | Suelta el proyecto tras cada mensaje; lo más largo es un `push` (120 s como mucho) |
+| El buzón retrasa el arranque de una ejecución | Toma el proyecto solo para git y para anotar, nunca durante `gh`; lo más largo es el tramo de un `push`; quien llega espera con tope en vez de fallar (D-25) |
+| La espera nueva cambia el arranque de ejecuciones, debates y auditorías | Solo actúa cuando lo que tiene el proyecto es una operación remota; con cualquier otra cosa, todo sigue como hoy. La hace el P0, con sus pruebas, antes de que exista el buzón |
+| Lo hecho en GitHub tarda en anotarse si arranca una ejecución larga | Se dice en la pantalla; lo aparcado sobrevive a un cierre; se anota con la hora en que pasó |
 | El modo de fusión deducido se equivoca | Se enseña como deducido; la unión de commits no depende de él cuando hay un solo commit resultante |
 | Falsos positivos de «posible reversión» | No reabre nada sola; solo propone |
 | Dos fases tocan el tablero y la cadena | WP4 no cambia `BoardRules`; las pruebas de propiedad de la Fase 9 siguen pasando |
@@ -1789,11 +2088,16 @@ medir:** no se ejecutó nada con red ni con cuenta.
 - **`gh api`:**
   - la forma exacta de la salida con `-i` en Windows (versión de HTTP en la línea de estado, fin de línea, orden de las
     cabeceras);
-  - **el código de salida con un 304** y con un 4xx o 5xx, y si el cuerpo se imprime en esos casos;
+  - **un 304 es un error para `gh`** (según su manual, cualquier estado por encima de 299: código de salida distinto de 0 y
+    `gh: HTTP 304` en el error estándar). *Probable, sin ejecutar:* que con `-i` la línea de estado y las cabeceras salen
+    igualmente por la salida estándar, que es de lo que depende todo el sondeo condicional. **Es lo primero que mide WP2;**
+    si no salieran, no hay 304 legible y el sondeo pasa a comparar huellas sin ahorro;
+  - si con un 4xx o un 5xx el cuerpo se imprime, y por dónde;
   - que `If-None-Match` pasado con `-H` llega tal cual y `gh` no añade su propia caché;
   - que con una ruta completa y `--hostname` **no lanza `git`** ni lee el repositorio de la carpeta de trabajo;
   - que `--input -` con `-X POST` o `PATCH` envía el JSON sin tocarlo;
-  - desde qué versión existen `--input`, `-i` y el código de salida 4 (para fijar la mínima de D-14);
+  - desde qué versión existen `--input`, `-i` y el código de salida 4: no se encontró en la documentación, y hasta
+    confirmarlo la mínima es la probada (D-14);
   - qué imprime sin conexión, y con qué código termina.
 - **`gh` y el entorno:** que con `GH_PROMPT_DISABLED`, `GH_NO_UPDATE_NOTIFIER` y `GH_TELEMETRY=false` no hace ninguna
   petición más que la pedida; y que con la lista blanca de D-11 encuentra su sesión (dónde guarda el token en Windows:
@@ -1804,11 +2108,11 @@ medir:** no se ejecutó nada con red ni con cuenta.
     `updated_at`) y su vocabulario;
   - **qué punto de las protecciones es legible sin ser administrador:** `rules/branches/{rama}` y el campo `protection` de
     `branches/{rama}`; `branches/{rama}/protection` exige administración;
-  - `issues/{n}/events` y el evento `head_ref_force_pushed`;
+  - la línea de tiempo del PR (`issues/{n}/timeline`) y el evento `head_ref_force_pushed` (ver más abajo);
   - `deployments?sha=` y los estados de un despliegue;
   - el tope de 250 commits de `pulls/{n}/commits`;
   - el `PUT …/merge` con `sha`, y sus códigos de rechazo (405, 409 y 422);
-  - `POST …/statuses/{sha}`: el permiso que exige, y el tope de la descripción (140 caracteres);
+  - `POST …/statuses/{sha}`: el permiso que exige (el tope de su descripción no está documentado; ver más abajo);
   - que un 304 no cuenta contra el límite principal con una petición autenticada, y los nombres de las cabeceras de
     límite; `x-poll-interval` puede no venir en estos puntos;
   - si los puntos con una rama en la ruta (`branches/{rama}`, `rules/branches/{rama}`, `git/refs/heads/{rama}`) quieren
@@ -1828,11 +2132,24 @@ medir:** no se ejecutó nada con red ni con cuenta.
   que funciona con el entorno de D-06 y que no pide nada por pantalla.
 - **Detectar Git LFS** sin ejecutar `git lfs`: qué combinación de configuración y atributos basta para decidir «este
   `push` llevaría objetos LFS».
-- **`IProjectActivity`:** `ProjectActivityKind` aparece en nueve ficheros de `src/` (búsqueda completa; §10.2 lista los
-  seis que hay que tocar). Sin comprobar: las pruebas que lo recorren; y **qué hace la reanudación automática de la Fase 8
-  si `TryEnter` le da nulo al arrancar** (el orquestador lanza una excepción al planificar, empezar o reanudar; no espera).
-  Las escrituras sin ejecución de la Fase 9 esperan preguntando `IsBusy` (`Orchestration/Work/WorkLog.cs`): si conviene
-  que tomen el proyecto como aquí, es un pendiente para docs/18, no de esta fase.
+- **`IProjectActivity`:** `ProjectActivityKind` aparece en nueve ficheros de `src/` (búsqueda completa; §10.2 dice qué se
+  hace en cada uno). Sin comprobar: las pruebas que lo recorren. Lo que hace la reanudación de la Fase 8 ante un proyecto
+  tomado sí se leyó (se niega y no reintenta), y por eso D-25 pone la espera; **sin comprobar** que los cuatro sitios que
+  toman el proyecto lo hagan antes de escribir nada en todos sus caminos (lo dicen sus comentarios; el P0 lo confirma con
+  una prueba por sitio). Las escrituras sin ejecución de la Fase 9 esperan preguntando `IsBusy`
+  (`Orchestration/Work/WorkLog.cs`): si conviene que tomen el proyecto como aquí, es un pendiente para docs/18.
+- **Lo que las pruebas con un remoto `file` no ejercen:** el gestor de credenciales, HTTPS y sus redirecciones. Y que
+  `remote.*` no interviene cuando se empuja a una dirección y no a un nombre.
+- **De la documentación, sin confirmar con una respuesta real:**
+  - qué punto trae `head_ref_force_pushed` y `head_ref_deleted` (la línea de tiempo o los eventos) y con qué campos;
+  - el vocabulario de `mergeable_state` y del `state` de una revisión; un valor que no se conozca sale «desconocido»;
+  - que `merge_commit_sha` cambia de significado según el estado del PR (antes de fusionar es un commit de prueba): solo
+    se lee con `merged: true`;
+  - el tope de la descripción de un estado de commit (no documentado; se recorta a 120);
+  - que `X-Poll-Interval` viene en estos puntos (existe en las buenas prácticas), y que un 304 no cuenta contra el límite
+    **solo si la petición va autenticada,** que es el caso de `gh`.
+- **`GIT_ALLOW_PROTOCOL=-`** («ningún transporte») no está documentado así: es lo que la capa interna midió con git
+  2.45.2. No se cambia. La documentación de git sugiere `core.hooksPath=/dev/null`; aquí se usa el fichero vacío medido.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
 - **No se compiló ni se ejecutó nada** para escribir este documento: las firmas de §5 son propuestas.
 
@@ -1840,15 +2157,23 @@ medir:** no se ejecutó nada con red ni con cuenta.
 
 ## 14. Decisiones que necesitan a la persona
 
-Dieciséis decisiones: de alcance, de red, de credenciales, de qué se publica con tu cuenta y de cómo leer un criterio. La
+Veintiuna decisiones: de alcance, de red, de credenciales, de qué se publica con tu cuenta y de cómo leer un criterio. La
 recomendada va primero, marcada.
+
+**Tres no las puede tomar el orquestador por ti,** aunque tenga permiso para seguir sin esperar: la **6** (amplía lo que
+`CLAUDE.md` deja lanzar: hasta tu OK, de `gh` solo se lanzan `gh --version` y su ayuda, también al implementar), la **10**
+(F10-11 a F10-13 siguen «propuestos») y la **14** (la prueba en vivo, con tu cuenta y un repositorio que creas tú).
+
+**Seis cambian cómo se lee un criterio de docs/08,** y por eso se te preguntan aunque tengan recomendación: la 2 (F10-6:
+el sondeo es opt-in), la 15 (F10-8), la 17 (F10-3), la 19 (F10-6), la 20 (F10-2 y F10-7) y la 21 (F10-1). docs/08 no se
+cambia hasta que las aceptes.
 
 1. **Azure DevOps (F10-9)** (D-09).
    - **(a) Recomendada:** fuera de esta entrega. Se deja la costura (`IHostingProvider` con capacidades, los modelos comunes
      de revisiones, reglas y checks) y entra más adelante como WP-AZ, con su ADR. Es coherente con tu decisión 2 (a) de
      docs/16.
    - (b) Dentro, como WP-AZ, tras la integración. Añade un paquete M y su prueba en vivo.
-2. **La red del sondeo** (D-02 y D-24).
+2. **La red del sondeo** (D-02 y D-24). **Cambia cómo se lee F10-6,** que pide un sondeo sin decir que sea opcional.
    - **(a) Recomendada:** un permiso por proyecto, apagado por defecto. Con él, sondeo cada 5 minutos (configurable) con la
      app abierta, solo lecturas. Sin él, solo «Sincronizar ahora».
    - (b) Solo a mano, siempre. F10-6 se cumple con el botón; nada sale sin un clic.
@@ -1870,6 +2195,7 @@ recomendada va primero, marcada.
      en medio de una acción de Agent Studio, que no se puede probar en la suite.
    - Vale para Git Credential Manager. Con otro ayudante global (el de `gh`), la opción no cambia nada: no abre ventanas.
 6. **Cómo se sabe si hay sesión de `gh`, y qué puede lanzarse** (D-13). Amplía la lista de sondas de `CLAUDE.md`.
+   **No la toma el orquestador.**
    - **(a) Recomendada:** nunca `gh auth …`. La sesión se deduce de la primera petición; «Comprobar la conexión» lanza
      `GET /user` con tu clic. `CLAUDE.md` gana: `gh --version` siempre; `gh api` de la lista cerrada, con tu permiso o tu
      clic.
@@ -1889,7 +2215,7 @@ recomendada va primero, marcada.
    - **(a) Recomendada:** el que compone el sistema, que puedes editar. Ningún texto de un agente.
    - (b) Además, el resumen del agente, dentro de un bloque de código. Más contexto para quien revisa; es texto de un
      agente publicado con tu cuenta.
-10. **F10-11 a F10-13** (§9).
+10. **F10-11 a F10-13** (§9). **No la toma el orquestador:** hasta tu OK quedan «propuestos».
     - **(a) Recomendada:** entran en docs/08 como criterios de la Fase 10.
     - (b) Se quedan como pruebas de los paquetes, sin número.
 11. **El orden** (§10.10).
@@ -1904,17 +2230,49 @@ recomendada va primero, marcada.
     - **(a) Recomendada:** solo a `agentstudio/run-<id>`. Lo demás llega por PR.
     - (b) También a la rama que nombre tu aprobación (lo que admitía docs/16 D-24), por uso y con Hello: una entrega
       directa al remoto, sin PR.
-14. **La prueba en vivo** (§9).
+14. **La prueba en vivo** (§9). **No la toma el orquestador.**
     - **(a) Recomendada:** al final de la integración, con tu OK, sobre un repositorio privado de prueba que creas tú, con
       la lista cerrada de pasos; sus capturas sustituyen a las respuestas escritas a mano.
     - (b) Más adelante: la fase se cierra con respuestas escritas a mano y se anota como pendiente en docs/18.
-15. **Un PR fusionado con una cabeza que el juez no vio** (D-29).
+15. **Un PR fusionado con una cabeza que el juez no vio** (D-29). **Cambia cómo se lee F10-8,** que dice «"integrado" (PR
+    fusionado)» sin más.
     - **(a) Recomendada:** no cuenta como «integrado»: la tarjeta se queda en «hecho» con su motivo y el informe del hito
       lo da como desviación.
     - (b) Cuenta como «integrado», con un aviso. Más simple; rompe «nada integrado sin veredicto de eso mismo».
 16. **Proyectos con Git LFS** (D-08).
     - **(a) Recomendada:** no se publica desde Agent Studio, y se dice por qué.
     - (b) Se publica avisando de que los objetos LFS no suben. El PR puede quedar con punteros rotos.
+17. **La URL del remoto y el literal de F10-3** (D-04 y D-05). F10-3 dice «se rechaza la configuración de credenciales o
+    de URLs del repositorio» y «tu gestor de credenciales».
+    - **(a) Recomendada:** `remote.<nombre>.url` del repositorio **no** se rechaza: se lee solo para identificar el
+      repositorio, y la dirección del envío la escribe el código, por HTTPS. Sí se rechazan `url.*.insteadOf`,
+      `pushInsteadOf`, `pushurl` y las `http.*` y `credential.*` locales. Lo que el repositorio anula sin peligro
+      (`core.hooksPath` de husky, `core.fsmonitor`) no impide publicar. F10-3 se lee así, y docs/08 lo dice.
+    - (b) Al pie de la letra: cualquier clave de URL o de transporte en el repositorio impide publicar. Deja fuera a todo
+      repositorio (todos tienen `remote.origin.url`), salvo que el destino lo escribas tú a mano en Agent Studio.
+18. **Qué pasa si «Ejecutar», un debate, una auditoría o una reanudación automática llegan mientras Agent Studio publica o
+    anota** (D-25). Cambia código de las Fases 3, 5 y 8 (cuatro llamadas).
+    - **(a) Recomendada:** esperan, con un tope de 180 segundos, solo cuando lo que tiene el proyecto es una operación
+      remota. No se pierde la aprobación del plan ni se queda sin reanudar una ejecución con tu consentimiento.
+    - (b) Se rechazan con su texto, como hoy ante un debate, y la pasada de reanudación se marca incompleta para
+      reintentarse. No toca el arranque; «Ejecutar» puede fallar por una anotación de milisegundos.
+    - (c) No tomar el proyecto para anotar: esperar con `IsBusy`, como las escrituras de «Trabajo». Sin cambios en el
+      motor; vuelve la ventana entre mirar y escribir, que F10-6 quiere cerrada.
+19. **Cómo se lee F10-6 tras la 18** (D-25).
+    - **(a) Recomendada:** como está escrito (ni git ni el registro se tocan con el proyecto ocupado), **más** lo
+      simétrico: lo que llega durante una toma remota espera unos segundos. `gh` nunca corre con el proyecto tomado.
+    - (b) Sin lo simétrico: solo lo que dice el criterio.
+20. **F10-2 y F10-7, con respuestas escritas a mano** (§9).
+    - **(a) Recomendada:** los dos se dan por cumplidos **en dos pasos:** ahora, con respuestas escritas a mano y un
+      proveedor de prueba que hace de plataforma con git real; y del todo, con la prueba en vivo. docs/08 pasa a decirlo
+      con la redacción de §9. Hasta la prueba en vivo, su estado es «a falta de la prueba en vivo», no «hecho».
+    - (b) No se dan por cumplidos hasta la prueba en vivo, y la fase no se cierra sin ella.
+    - (c) Se dan por cumplidos con lo escrito a mano. No lo recomiendo: nadie habría visto una respuesta real.
+21. **«Por versión de su CLI», en F10-1** (D-14).
+    - **(a) Recomendada:** en esta entrega hay una sola versión probada (2.96.0), que es también la mínima hasta que se
+      confirme otra; cualquier otra igual o superior ofrece lo mismo con el aviso «versión no probada». La tabla de
+      capacidades por versión existe, con una fila.
+    - (b) Probar además una versión anterior y una posterior antes de cerrar, con sus propias respuestas.
 
 ---
 
