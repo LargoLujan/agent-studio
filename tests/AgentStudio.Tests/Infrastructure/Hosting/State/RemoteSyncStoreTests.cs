@@ -206,6 +206,26 @@ public sealed class RemoteSyncStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ThePendingRevocationsAreSavedLoadedBackValidatedAndBounded()
+    {
+        var ids = Enumerable.Range(0, 80).Select(i => "grant-" + i).Concat(["bad id!", "../x", new string('a', 65), "grant-1"]).ToList();
+        await Store().SaveAsync(Project, RemoteSyncState.Empty with { PendingRevocations = ["g-1", "g-2"] }, CancellationToken.None);
+
+        var loaded = await Store().LoadAsync(Project, CancellationToken.None);
+        Assert.Equal(["g-1", "g-2"], loaded.PendingRevocations);
+
+        // A file that is edited by hand: ids that are not ids go, repeated ones go, and the list is cut. It can only take authority away, never give it.
+        var json = System.IO.File.ReadAllText(File("sync.json"));
+        var tampered = json.Replace("\"PendingRevocations\":[\"g-1\",\"g-2\"]", "\"PendingRevocations\":[" + string.Join(",", ids.Select(i => "\"" + i + "\"")) + "]", StringComparison.Ordinal);
+        System.IO.File.WriteAllText(File("sync.json"), tampered);
+
+        var again = await Store().LoadAsync(Project, CancellationToken.None);
+
+        Assert.Equal(RemoteSyncStore.MaxRevocations, again.PendingRevocations!.Count);
+        Assert.DoesNotContain(again.PendingRevocations, i => i.Contains(' ', StringComparison.Ordinal) || i.Contains('/', StringComparison.Ordinal) || i.Length > 64);
+        Assert.Equal(again.PendingRevocations.Distinct(StringComparer.Ordinal).Count(), again.PendingRevocations.Count);
+    }
+    [Fact]
     public void TheStateHoldsNothingThatAuthorises()
     {
         // The records of the local state have no grant, no approval and no secret: what they carry is repositories, pull requests, cursors, texts for the screen and parked work.

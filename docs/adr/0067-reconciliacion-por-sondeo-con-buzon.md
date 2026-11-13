@@ -126,3 +126,12 @@
   escribir historia sería el fichero autorizando). Viven en memoria; si la app se cierra antes de anotarlas, la siguiente observación recoge el estado real del PR.
 - **Residuales:** el sondeo no respeta `x-poll-interval` (el puerto no lo expone); la hora en que pasó cada cosa no se puede dar al anotar (el registrador pone «ahora»); entre leer la rama remota y borrarla hay una ventana mínima; el recuento de commits de la
   tarjeta de publicación (`SystemCommits`, `OwnUnpublishedCommits`) queda sin dar: ningún puerto de este paquete lee la historia.
+
+### Ronda de arreglos tras la revisión (2026-11-13)
+
+- **El permiso se pide al lanzar.** Toda observación que no nazca de un clic exige `PeriodicSyncAllowed` en el momento de lanzarse, también las que vuelven de `pending.json` y los reintentos; sin él no sale ninguna llamada a `gh`.
+- **Revocaciones pendientes.** `RemoteSyncState.PendingRevocations` guarda los ids de las autorizaciones cuya retirada se pidió y no está anotada. Vale desde el instante en que se pide (la compuerta no cuenta esa autorización), se ve en `IRemoteSync.Pending` y sobrevive a un reinicio; viene de un fichero no fiable, y por eso es seguro: solo puede quitar autoridad. Se valida cada id y la lista se acota a 50. Una autorización dada y aparcada sigue sin valer y no se guarda.
+- **Cierre ordenado.** Antes de parar, el buzón hace un último intento, sin la cortesía, de anotar lo aparcado (anotaciones y observaciones, no el trabajo de la persona). Residual si no puede o la app cae: la siguiente observación registra el hecho (fusionado, cerrado…) y quién lo hizo según la plataforma, pero no qué aprobación lo amparó.
+- **Escrituras dudosas.** Un «sin conexión», un «prohibido» o una respuesta ilegible no son un fallo seguro: se pregunta el estado antes (el PR existe, la rama ya no está) y se anota lo que de verdad pasó. Una lectura imposible tras ese intento deja el trabajo pendiente de sincronizar, y la siguiente vuelta lee antes de repetir.
+- **Fusionar.** Se relee el PR antes de pedir la aprobación, después de aprobar y otra vez dentro del flujo; si no se pudo leer, la cabeza no es el commit juzgado o la base no es la de la aprobación, no se fusiona. `RemoteChangeKind.BaseChanged` lo da el reconciliador.
+- **Pendientes visibles.** Lo aparcado de dar y retirar autorizaciones sale en `Pending` con el código `hosting.pending.annotation`.
