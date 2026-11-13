@@ -143,6 +143,36 @@ public sealed class SkillDetailViewModel
     public IReadOnlyList<string> Warnings { get; init; } = [];
 
     public bool HasWarnings => Warnings.Count > 0;
+
+    /// <summary>The scripts of the skill, relative to its <c>scripts/</c> folder (docs/20 D-14); empty when it has none. None is ever run.</summary>
+    public IReadOnlyList<string> ScriptFiles { get; init; } = [];
+
+    /// <summary>The scripts as links «abrir»; empty when the screen cannot open a file, and then <see cref="ScriptFilesText"/> lists them as plain text.</summary>
+    public IReadOnlyList<SkillScriptLink> ScriptLinks { get; init; } = [];
+
+    public bool HasScriptLinks => ScriptLinks.Count > 0;
+
+    public bool HasScripts => ScriptFiles.Count > 0;
+
+    /// <summary>The scripts, one per line, for the card.</summary>
+    public string ScriptFilesText => string.Join('\n', ScriptFiles.Take(MaxScriptLines).Concat(ScriptFiles.Count > MaxScriptLines ? ["…"] : []));
+
+    /// <summary>«Ya los marcaste como revisados», or null while they are not.</summary>
+    public string? ScriptsReviewedText { get; init; }
+
+    /// <summary>Marks the scripts as they are now as reviewed; null when there is nothing to mark (no scripts, or already reviewed).</summary>
+    public IAsyncRelayCommand? MarkScriptsReviewedCommand { get; init; }
+
+    public bool CanMarkScripts => MarkScriptsReviewedCommand is not null;
+
+    internal const int MaxScriptLines = 25;
+}
+
+/// <summary>One script of a skill as a link: its relative path, what a screen reader says and the command that opens it in the editor.</summary>
+public sealed record SkillScriptLink(string Path, string AutomationName, IAsyncRelayCommand OpenCommand)
+{
+    /// <summary>What a screen reader says of the link (A1-bis): its path, never the members of the record.</summary>
+    public override string ToString() => Path;
 }
 
 /// <summary>

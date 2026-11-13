@@ -69,9 +69,9 @@ public sealed class SkillsRenderTests
         Assert.True(warning > 20, $"Only {warning} pixels have the warning colour: the warnings and the amber dot were not drawn.");
         Assert.True(error > 10, $"Only {error} pixels have the error colour: the critical dot was not drawn.");
 
-        // Four sectors and their five skills, all expanded; five switches on the card plus the one of the assisted recommendation.
+        // Four sectors and their five skills, all expanded; five switches on the card plus the one of the assisted recommendation and the one of «Comprobar en GitHub».
         Assert.Equal(9, treeItems);
-        Assert.Equal(6, switches);
+        Assert.Equal(7, switches);
     }
 
     [Fact]

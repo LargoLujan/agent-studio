@@ -129,13 +129,21 @@ public enum SkillHealthFailure
 
     /// <summary>The answer was not what the schema expects, or was longer than 1 MB.</summary>
     UnreadableResponse,
+
+    /// <summary>GitHub answered 401: the stored token is not valid or was revoked. The batch stops: every other skill would get the same answer.</summary>
+    InvalidToken,
 }
 
 /// <summary>One skill of a batch: its report, and why the checks that need GitHub were not made when they were not.</summary>
 public sealed record SkillHealthBatchEntry(SkillId Skill, SkillHealthReport Report, SkillHealthFailure? Failure);
 
 /// <summary>The result of a batch of checks against GitHub (docs/20 D-14): one entry per skill, whether the token was used and, at the limit, when it is reset.</summary>
-public sealed record SkillHealthBatchResult(IReadOnlyList<SkillHealthBatchEntry> Entries, bool UsedToken, DateTimeOffset? RateLimitResetsAt);
+/// <param name="TokenState">Whether the token was used and, if not, why: <see cref="SkillsDoctorTokenState.PresenceDenied"/> says the batch went without it because the presence was not confirmed.</param>
+public sealed record SkillHealthBatchResult(
+    IReadOnlyList<SkillHealthBatchEntry> Entries,
+    bool UsedToken,
+    DateTimeOffset? RateLimitResetsAt,
+    SkillsDoctorTokenState TokenState = SkillsDoctorTokenState.NoneStored);
 
 /// <summary>
 /// Checks a batch of skills against GitHub, in series, with the answers cached by <c>ETag</c> (docs/20 D-14). It asks only when
@@ -239,6 +247,65 @@ public sealed record SkillsDoctorTokenUse
 public interface ISkillsDoctorSecrets
 {
     Task<SkillsDoctorTokenUse> UseTokenAsync(CancellationToken ct);
+}
+
+/// <summary>Why the person is asked to confirm their presence (Windows Hello) around the token of GitHub: every one is <c>RemoteOrSecretOperation</c>, «siempre» (ADR-0053).</summary>
+public enum SkillsDoctorPresenceReason
+{
+    /// <summary>A batch of «Comprobar en GitHub» is going to use the stored token: one confirmation for the whole batch.</summary>
+    UseToken,
+
+    /// <summary>The token is going to be stored or replaced.</summary>
+    StoreToken,
+
+    /// <summary>The token is going to be deleted.</summary>
+    DeleteToken,
+}
+
+/// <summary>
+/// Confirms the presence of the person for one use of the token (docs/20 D-15). The desktop implements it over <c>ReinforcedConfirmation</c>, the one rule of the
+/// fixed barrier (Windows Hello, or the verified lock of Windows without it). Anything but a confirmation, an error included, is a no.
+/// </summary>
+public interface ISkillsDoctorPresence
+{
+    Task<bool> ConfirmAsync(SkillsDoctorPresenceReason reason, CancellationToken ct);
+}
+
+/// <summary>What storing or deleting the token did.</summary>
+public enum SkillsDoctorTokenChange
+{
+    Done,
+
+    /// <summary>The presence was not confirmed: nothing was written.</summary>
+    PresenceDenied,
+
+    /// <summary>There was no token to delete.</summary>
+    NothingStored,
+}
+
+/// <summary>
+/// Storing, replacing and deleting the token of GitHub from the screen (docs/20 D-15). The three ask for presence first; the token is never read back
+/// and the screen only learns <see cref="HasTokenAsync"/>, which decrypts nothing.
+/// </summary>
+public interface ISkillsDoctorTokenManager
+{
+    Task<bool> HasTokenAsync(CancellationToken ct);
+
+    Task<SkillsDoctorTokenChange> StoreAsync(GitHubToken token, CancellationToken ct);
+
+    Task<SkillsDoctorTokenChange> DeleteAsync(CancellationToken ct);
+}
+
+/// <summary>What the scripts of a skill are right now: the SHA-256 of their content and their relative paths, for the review.</summary>
+public sealed record SkillScriptsInfo(string Sha256, IReadOnlyList<string> RelativePaths);
+
+/// <summary>
+/// Reads the <c>scripts/</c> folder of a skill without running anything (docs/20 D-14): the fingerprint of what is there, to compare with the one the person
+/// reviewed. Null when the skill has no scripts.
+/// </summary>
+public interface ISkillScriptsInspector
+{
+    Task<SkillScriptsInfo?> InspectAsync(string skillFolder, CancellationToken ct);
 }
 
 // Phase 4 contracts (docs/14 section 5.5): the catalog screen and the assisted recommendation.

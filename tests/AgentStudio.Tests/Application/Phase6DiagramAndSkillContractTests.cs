@@ -193,7 +193,7 @@ public sealed class Phase6DiagramAndSkillContractTests
     public void The_doctor_has_a_code_for_each_failure_and_the_ports_the_design_lists()
     {
         Assert.Equal(
-            ["NetworkNotAllowed", "InvalidOrigin", "NoNetwork", "Forbidden", "NotFound", "RateLimited", "RedirectRefused", "UnreadableResponse"],
+            ["NetworkNotAllowed", "InvalidOrigin", "NoNetwork", "Forbidden", "NotFound", "RateLimited", "RedirectRefused", "UnreadableResponse", "InvalidToken"],
             Enum.GetNames<SkillHealthFailure>());
         Assert.Equal(["get_NetworkAllowed"], typeof(ISkillsDoctorPolicy).GetMethods().Select(m => m.Name));
         Assert.Equal(["UseTokenAsync"], typeof(ISkillsDoctorSecrets).GetMethods().Select(m => m.Name));

@@ -542,8 +542,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
   siguen en «sin comprobar», y no sale ni una petición.
 - **Solo cuando pulsas** «Comprobar en GitHub», en la pantalla de skills. Nunca al abrir, nunca en segundo plano.
 - **Solo `https://api.github.com`.** El cliente rechaza cualquier otro host; las redirecciones se siguen a mano y solo al
-  mismo host (D-14). 10
-  segundos y 1 MB por respuesta.
+  mismo host (D-14). 10 segundos y 1 MB por respuesta.
 - **Se dice qué sale:** el propietario, el repositorio y el commit de cada skill fijada. Nada del proyecto, ni rutas, ni tu
   nombre.
 
@@ -572,7 +571,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
   `/repos/{owner}/{repo}`. Así un `..`, un `?` o un `#` en un dato no llevan a otro punto de la API con tu token.
 - **Redirecciones a mano:** `AllowAutoRedirect = false`. Una redirección solo se sigue si es `https` y al mismo host, como
   mucho tres veces (GitHub redirige los repositorios renombrados). Un `DelegatingHandler` comprueba el host de **cada**
-  petición que sale, también de las seguidas a mano, y la cabecera del token solo se pone ahí, tras esa comprobación.
+  petición que sale, también de las seguidas a mano. **Corregido por WP-S:** la cabecera del token (y el `ETag`) van solo en la primera petición, nunca en una redirección seguida, aunque sea al mismo host; una redirección solo se sigue bajo `/repos/` o `/repositories/`.
 - **`scripts`:** «Marcar los scripts como revisados» guarda la huella (SHA-256) del contenido de `scripts/`. Si un script
   cambia, la skill vuelve a «sin revisar». Nunca se ejecuta ningún script.
 - **En serie, con una cola y un solo consumidor,** como pide GitHub y como prefieres para las carreras.
@@ -1131,7 +1130,7 @@ Los contratos de arriba son los del diseño; al escribirlos el P0 cambió esto, 
 | Los diagramas, la versión anterior de cada uno y su índice | `%LOCALAPPDATA%\AgentStudio\diagrams\<proyecto>\` | Derivado, y de tu equipo (D-25) |
 | Los diagramas exportados | La carpeta del repositorio que elijas (por defecto `docs/generado/diagramas/`), solo si lo pides | Tu elección (decisión 9) |
 | Respuestas de GitHub con su `ETag` | `%LOCALAPPDATA%\AgentStudio\skills-doctor\cache.json` | Caché: se puede borrar |
-| Huella revisada de los scripts de una skill | El almacén de activaciones de skills (`SkillActivationStore`), con un campo nuevo | Va con la skill, no con un proyecto |
+| Huella revisada de los scripts de una skill | `skill-script-reviews.json`, junto a las decisiones globales de skills (**corregido por WP-S:** un fichero propio, no un campo de `SkillActivationStore`, que es un historial de decisiones) | Va con la skill, no con un proyecto |
 | El token de GitHub | La bóveda (`%LOCALAPPDATA%\AgentStudio\vault\`), cifrado con DPAPI | D-15 |
 | El ajuste «Comprobar las skills en GitHub» | `AppSettings` (y `WithPreferencesOf`) | Como los demás permisos de Ajustes |
 | La carpeta neutra, la temporal y la configuración vacía de Docker | `%LOCALAPPDATA%\AgentStudio\doctor\{cwd,tmp,docker-config}` | D-02 y D-09 |
@@ -1168,6 +1167,11 @@ automático.
 - **Ayuda:** el artículo `skills` se amplía.
 
 ### 6.3 Ajustes
+
+> **Corregido por WP-S (2026-11-13):** el permiso y la clave de acceso se manejan en la propia pantalla de Skills (la petición de WP-S lo pidió así), no solo en Ajustes. El permiso vive en
+> `AppSettings.SkillsDoctorNetworkEnabled` y la clave en la bóveda; el lead puede repetirlos en Ajustes sobre `ISkillsDoctorNetworkSetting` e `ISkillsDoctorTokenManager`, que ya existen.
+> **Auto Doctor no aloja ninguna comprobación de skills:** D-01 fija cinco secciones (proveedores, herramientas, proyecto, entorno declarado y contenedores) y D-10 solo nombra los arreglos
+> «Ver la skill» y «Desactivar la skill archivada», que §9.8 deja al lead («cruzan paquetes»). WP-S no añadió una fuente a `IDoctorService`.
 
 - El permiso «Comprobar las skills en GitHub» (apagado), y debajo «Token de GitHub (opcional)»: guardar, sustituir y borrar,
   cada uno con Hello. El token nunca se vuelve a mostrar: solo «hay un token guardado». Un texto avisa de que, con token,
@@ -1537,6 +1541,11 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   tiene `ReparsePoint` **y** destino (`LinkTarget`). Una unión y un enlace simbólico de fichero se probaron en esta máquina
   (`DeclaredEnvironmentReaderTests`); el marcador de sincronización de OneDrive no se puede plantar en una prueba, y su comportamiento
   (punto de reanálisis sin destino: se lee) solo se fija en la función pura `DeclaredEnvironmentReader.IsLink`.
+- **El doctor de skills (WP-S, 2026-11-13): nada se probó contra GitHub.** Las pruebas usan un `HttpMessageHandler` falso y respuestas **escritas a mano** a partir de la documentación de la API REST (`tests/**/Infrastructure/Skills/GitHub/Fixtures`, con su `README.md`); ninguna toca la red ni lleva un token real. Queda sin verificar:
+  - **Las respuestas reales:** que `GET /repos/{owner}/{repo}` trae `archived` como booleano, que `commits?sha=…&path=…&per_page=1` devuelve una lista con `sha` también cuando `sha` es un commit, que la carpeta raíz (sin `path`) funciona y que el último commit de la carpeta del commit fijado coincide con el de la rama cuando nada cambió.
+  - **Los códigos reales:** el `403` y el `429` de límite (cabeceras `x-ratelimit-remaining`, `x-ratelimit-reset` y `retry-after`), el `404` de un repositorio privado, la redirección `301` de un repositorio renombrado (a `/repositories/{id}`) y que un `304` no cuenta contra el límite sin token. El cliente solo sigue una redirección a `/repos/` o `/repositories/`; si GitHub usara otra ruta, saldría «redirección rechazada».
+  - **El límite de tiempo (10 s con el cuerpo) y la conexión real:** ninguna prueba espera diez segundos ni abre un socket; `GitHubApiClient.CreateTransport()` solo se comprueba por sus propiedades (`AllowAutoRedirect = false`, sin cookies ni credenciales).
+  - **DPAPI y Hello en la aplicación:** la bóveda se prueba con DPAPI real en una carpeta temporal (ida y vuelta, el fichero no lleva el texto en claro), pero Windows Hello y el bloqueo de Windows de `ReinforcedConfirmation` no se ejercen en una prueba. **Prueba manual que lo cierra, con tu OK:** abrir Skills, encender el permiso, guardar una clave de solo lectura (Hello), pulsar «Comprobar en GitHub» (Hello una vez) y comprobar el estado, el límite y que «Borrar» pide Hello.
 - **`git archive` y `export-ignore`:** que la copia de la verificación se comporta así en esta capa.
 - **El coste de «Proponer relaciones»** (D-21): tokens por lanzamiento. Es una estimación hasta medirlo.
 - **Los tamaños de los paquetes** son estimaciones del diseño.

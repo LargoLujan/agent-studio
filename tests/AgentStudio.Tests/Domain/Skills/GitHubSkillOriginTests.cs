@@ -72,7 +72,6 @@ public sealed class GitHubSkillOriginTests
     [InlineData("a")]
     [InlineData("my.repo_name-2")]
     [InlineData(".github")]
-    [InlineData("...")]
     public void A_repository_is_letters_digits_dots_underscores_and_hyphens(string repository)
     {
         Assert.True(GitHubSkillOrigin.IsRepository(repository));
@@ -83,6 +82,9 @@ public sealed class GitHubSkillOriginTests
     [InlineData("")]
     [InlineData(".")]
     [InlineData("..")]
+    [InlineData("...")]
+    [InlineData("a..b")]
+    [InlineData("a..")]
     [InlineData("a/b")]
     [InlineData("a\\b")]
     [InlineData("a b")]

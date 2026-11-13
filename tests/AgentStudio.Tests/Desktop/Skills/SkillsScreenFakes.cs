@@ -100,6 +100,28 @@ internal sealed class SkillsWorld
         workspace ? Workspace : null,
         prompt ? Gate : null);
 
+    /// <summary>
+    /// The backend with the doctor of skills wired to doubles: the permission on, a stored access key, and scripts in the first skill, so the panels that stay out
+    /// of sight without them (the key, the scripts) are drawn and inventoried.
+    /// </summary>
+    public SkillsBackend DoctorBackend()
+    {
+        var inspector = new FakeInspector();
+        foreach (var skill in Catalog.Where(c => c.LocalPath is not null))
+        {
+            inspector[skill.LocalPath!] = new SkillScriptsInfo(new string('a', 64), ["run.ps1", "lib/helper.py"]);
+        }
+
+        return Backend() with
+        {
+            Doctor = new FakeDoctor(),
+            NetworkSetting = new FakeNetworkSetting(true),
+            Tokens = new FakeTokens { Has = true },
+            ScriptsInspector = inspector,
+            ScriptReviews = new FakeReviews(),
+        };
+    }
+
     public SkillsDocumentViewModel Document(SkillsBackend? backend = null, string? projectRoot = SkillsScreenSamples.ProjectRoot, TimeProvider? time = null) =>
         new(projectRoot, backend ?? Backend(), time ?? new Microsoft.Extensions.Time.Testing.FakeTimeProvider(T0), (_, _) => ProjectFiles);
 
@@ -189,5 +211,105 @@ internal sealed class FakePrompt : IApprovalPrompt
     {
         Asked.Add(request);
         return Task.FromResult(new ApprovalDecision(Approve, "user", T0.AddSeconds(Asked.Count), Approve ? "OK" : "No."));
+    }
+}
+
+// The doctor of skills (docs/20 D-13 to D-15): doubles for its screen, shared by the tests of the view model and the inventory of the interface.
+internal sealed class FakeDoctor : ISkillHealthBatchChecker
+{
+    public int Calls { get; private set; }
+
+    public IReadOnlyList<SkillEntry> Asked { get; private set; } = [];
+
+    public Func<IReadOnlyList<SkillEntry>, SkillHealthBatchResult> Answer { get; set; } =
+        entries => new SkillHealthBatchResult([.. entries.Select(e => new SkillHealthBatchEntry(e.Id, new SkillHealthReport([]), null))], false, null);
+
+    public Task<SkillHealthBatchResult> CheckAsync(IReadOnlyList<SkillEntry> skills, CancellationToken ct)
+    {
+        Calls++;
+        Asked = skills;
+        return Task.FromResult(Answer(skills));
+    }
+}
+
+internal sealed class FakeNetworkSetting(bool allowed) : ISkillsDoctorNetworkSetting
+{
+    public bool NetworkAllowed { get; private set; } = allowed;
+
+    public int Writes { get; private set; }
+
+    public void Set(bool value)
+    {
+        NetworkAllowed = value;
+        Writes++;
+    }
+}
+
+internal sealed class FakeTokens : ISkillsDoctorTokenManager
+{
+    public bool Has { get; set; }
+
+    public int Stores { get; private set; }
+
+    public GitHubToken? Stored { get; private set; }
+
+    public SkillsDoctorTokenChange Change { get; set; } = SkillsDoctorTokenChange.Done;
+
+    public Exception? Throw { get; set; }
+
+    public Task<bool> HasTokenAsync(CancellationToken ct) => Task.FromResult(Has);
+
+    public Task<SkillsDoctorTokenChange> StoreAsync(GitHubToken token, CancellationToken ct)
+    {
+        if (Throw is not null)
+        {
+            throw Throw;
+        }
+
+        Stores++;
+        if (Change == SkillsDoctorTokenChange.Done)
+        {
+            Stored = token;
+            Has = true;
+        }
+
+        return Task.FromResult(Change);
+    }
+
+    public Task<SkillsDoctorTokenChange> DeleteAsync(CancellationToken ct)
+    {
+        Has = false;
+        return Task.FromResult(SkillsDoctorTokenChange.Done);
+    }
+}
+
+internal sealed class FakeInspector : Dictionary<string, SkillScriptsInfo>, ISkillScriptsInspector
+{
+    public Task<SkillScriptsInfo?> InspectAsync(string skillFolder, CancellationToken ct) => Task.FromResult(TryGetValue(skillFolder, out var info) ? info : null);
+}
+
+internal sealed class FakeReviews : ISkillScriptReviews
+{
+    public Dictionary<SkillId, string> Marked { get; } = [];
+
+    public Task<string?> ReviewedSha256Async(SkillId skill, CancellationToken ct) => Task.FromResult(Marked.TryGetValue(skill, out var hash) ? hash : null);
+
+    public Task MarkReviewedAsync(SkillId skill, string scriptsSha256, CancellationToken ct)
+    {
+        Marked[skill] = scriptsSha256;
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>A checker that never answers until it is cancelled: the batch in progress, for the button that cancels it.</summary>
+internal sealed class BlockingDoctor : ISkillHealthBatchChecker
+{
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public async Task<SkillHealthBatchResult> CheckAsync(IReadOnlyList<SkillEntry> skills, CancellationToken ct)
+    {
+        Started.TrySetResult();
+        await Task.Delay(Timeout.Infinite, ct);
+        throw new InvalidOperationException("Unreachable.");
     }
 }

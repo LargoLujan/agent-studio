@@ -17,7 +17,7 @@ public enum GitHubOriginProblem
 /// typed: they are not trusted, and an address is only ever built from a value that passed here. The rules are the ones of the design:
 /// <list type="bullet">
 /// <item><c>owner</c>: 1 to 39 characters, letters, digits and <c>-</c>, starting with a letter or digit;</item>
-/// <item><c>repo</c>: 1 to 100 characters, letters, digits, <c>.</c>, <c>_</c> and <c>-</c>, and never <c>.</c> or <c>..</c>;</item>
+/// <item><c>repo</c>: 1 to 100 characters, letters, digits, <c>.</c>, <c>_</c> and <c>-</c>, never <c>.</c> and never with <c>..</c> anywhere (<c>a..b</c> is out: the address builder refuses every <c>..</c>);</item>
 /// <item><c>commit</c>: 40 lowercase hexadecimal characters;</item>
 /// <item><c>branch</c>: 1 to 200 characters, letters, digits, <c>.</c>, <c>_</c>, <c>-</c> and <c>/</c>, no <c>..</c>, not starting or ending with <c>/</c>;</item>
 /// <item><c>folder</c>: empty (the root of the repository) or segments joined by <c>/</c> that follow the rule of <c>repo</c>, up to 400 characters.</item>
@@ -116,7 +116,7 @@ public sealed record GitHubSkillOrigin
         && value.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
 
     public static bool IsRepository([NotNullWhen(true)] string? value) =>
-        value is { Length: >= 1 and <= MaxRepositoryLength } && value is not ("." or "..") && value.All(IsNameCharacter);
+        value is { Length: >= 1 and <= MaxRepositoryLength } && !value.Contains("..", StringComparison.Ordinal) && value is not "." && value.All(IsNameCharacter);
 
     public static bool IsCommit([NotNullWhen(true)] string? value) =>
         value is { Length: CommitLength } && value.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
