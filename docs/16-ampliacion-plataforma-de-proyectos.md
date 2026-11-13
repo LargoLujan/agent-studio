@@ -1546,6 +1546,19 @@ sobre un registro real y el cierre con un juez guionizado.
 
 ### 4.7 Fase 10: Git remoto (publicación, PR y sincronización)
 
+> **Nota (2026-11-13).** El diseño de esta fase está en [21-fase-10-git-remoto.md](21-fase-10-git-remoto.md), que **sustituye** a los paquetes de este
+> apartado y concreta D-24 a D-28, D-31 y D-46 a D-48. Lo que cambia respecto a lo escrito aquí, pendiente de tus decisiones de su §14:
+>
+> - **los paquetes** son P0, WP1 a WP5 e integración, con otro reparto de ficheros (docs/21 §10); las proyecciones de la cadena, el tablero y el hito pasan a un paquete propio (WP4);
+> - **sin `git fetch`:** el ejecutor remoto solo hace `push` y `ls-remote`, y el estado del remoto se lee por `gh` (D-24 hablaba de `push` y `fetch`);
+> - **el destino del `push`** lo construye el código desde un identificador validado, por HTTPS, y solo a ramas `agentstudio/run-*` (D-24 admitía «la rama que nombre tu aprobación»);
+> - **GitHub, solo por `gh api`** con un catálogo cerrado, no por `gh pr …` (el título iría como argumento y no se verían `ETag` ni los límites);
+> - **Azure DevOps (WP5 de aquí)** queda fuera de la primera entrega: solo su costura (`IHostingProvider` con capacidades);
+> - **los ADR** son 0064 a 0068, que ocupan el lugar de los 0041 y 0042 reservados en §5 y nunca escritos;
+> - **tres criterios más,** F10-11 a F10-13 (el token, la inyección de argumentos y el permiso de red).
+>
+> Los criterios F10-1 a F10-10 de abajo siguen valiendo tal cual.
+
 **Objetivo.** Publicar el trabajo aprobado en GitHub (y en Azure DevOps si lo decides), seguir sus PR y reconciliar lo que
 cambie en el remoto, sin que Agent Studio toque nunca un token ni abra la red en la capa interna.
 
@@ -1614,8 +1627,8 @@ WP3, las comprobaciones y los `.http` (`src\AgentStudio.Infrastructure\Http\**`)
 | 0038 | El hito como conjunto de requisitos congelado con nombre, el backlog anclado y el tablero como proyección del registro | F9, P0 |
 | 0039 | Vínculos de trazabilidad explícitos y append-only, inferencias como sugerencia y seis papeles de participación | F9, P0 y WP1 |
 | 0040 | Consumo por hito y por actividad, estimación del sistema desde el historial y presupuestos por proyecto (amplía ADR-0019) | F9, WP2 |
-| 0041 | Git remoto en un componente aparte, con tu gestor de credenciales y políticas por clase de operación; enmienda el punto 10 de ADR-0012 solo para ese componente | F10, P0 y WP1 |
-| 0042 | Plataformas por sus CLIs oficiales y con capacidades declaradas; sincronización por sondeo que reconcilia estado; sin webhooks | F10, P0 y WP3 |
+| 0041 | Git remoto en un componente aparte, con tu gestor de credenciales y políticas por clase de operación; enmienda el punto 10 de ADR-0012 solo para ese componente. **No se escribió con este número:** lo sustituyen [ADR-0064](adr/0064-ejecutor-remoto-de-git.md) y [ADR-0068](adr/0068-politicas-por-clase-de-operacion-remota.md) ([docs/21 §11](21-fase-10-git-remoto.md#11-adr-a-escribir)) | F10, P0 y WP1 |
+| 0042 | Plataformas por sus CLIs oficiales y con capacidades declaradas; sincronización por sondeo que reconcilia estado; sin webhooks. **No se escribió con este número:** lo sustituyen [ADR-0065](adr/0065-github-por-gh-sin-leer-el-token.md), [ADR-0066](adr/0066-el-veredicto-en-el-pr-nunca-es-una-aprobacion.md) y [ADR-0067](adr/0067-reconciliacion-por-sondeo-con-buzon.md) | F10, P0 y WP3 |
 | 0043 | Permisos efectivos visibles, bóveda por proyecto y qué se cifra y qué no (amplía ADR-0018) | F7, W-P y W-V |
 | 0044 | El aislamiento fuerte de la verificación: AppContainer o contenedor Linux sin red, y lo que se decida del sandbox `elevated` de Codex (decide F7-4; amplía ADR-0017) | F7, W-AI |
 | 0045 | Diagramas y documentación generados con la versión que describen y su comprobación de vigencia | F6, WP-D |

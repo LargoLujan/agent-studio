@@ -651,6 +651,10 @@ F9-6 (consumo por hito, que suma el total) y F9-9 (commits del sistema anotados 
 **Objetivo.** Publicar el trabajo aprobado en GitHub (y en Azure DevOps si lo decides), seguir sus PR y reconciliar lo que
 cambie en el remoto, sin que Agent Studio toque nunca un token ni abra la red en la capa interna.
 
+**Diseño:** [21-fase-10-git-remoto.md](21-fase-10-git-remoto.md) (propuesta del 2026-11-13, pendiente de tus decisiones de su §14). Concreta la prueba de cada criterio
+en su §9 y propone tres más, de seguridad (F10-11 a F10-13), que entran en esta tabla si aceptas su decisión 10. Azure DevOps (F10-9) queda fuera de la primera entrega
+salvo que decidas otra cosa (su decisión 1).
+
 | ID | Criterio de aceptación | Cómo se verifica |
 |---|---|---|
 | F10-1 | `IHostingProvider` con capacidades declaradas por proveedor y versión de su CLI; lo no declarado no aparece | Tests de ViewModel con capacidades parciales |
