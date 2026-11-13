@@ -743,7 +743,7 @@ Los nombres de proyecto, de espacio de nombres, de agente y los títulos de las 
 - **Identificadores propios** (`n1`, `n2`…, `p1`, `p2`… para los participantes), asignados por orden ordinal del modelo.
   Ningún nombre del repositorio ni del registro es un identificador de Mermaid.
 - **Un solo escapador para todo texto que venga de datos,** antes de escribirlo en cualquier sitio:
-  - se sustituyen por su entidad de Mermaid (`#NN;`) las comillas, `#`, `<`, `>`, `&`, **`;`** y **`%`**;
+  - se sustituyen por su entidad de Mermaid (`#NN;`) las comillas, `#`, `<`, `>`, `&`, **`;`** y **`%`** (WP-D añadió el acento grave, `\` y `|`: §4.4);
   - los saltos de línea, las tabulaciones y los caracteres de control se cambian por un espacio;
   - `:` se sustituye también en los nombres de participante, donde separa el nombre del mensaje;
   - tope de 80 caracteres, con «…».
@@ -780,7 +780,7 @@ Los nombres de proyecto, de espacio de nombres, de agente y los títulos de las 
   - **Un solo dueño de esa carpeta y de esa regla:** este paquete (ADR-0045). La Fase 16 exporta sus documentos al lado
     (`docs/generado/`) con el mismo exportador y la misma cabecera.
   - Esto corrige docs/16 D-21, que los ponía en `.agentstudio/diagrams/`: queda como la opción (b) de la decisión 9.
-- **La cabecera,** un comentario al principio de cada diagrama, en la caché y en lo exportado:
+- **La cabecera,** un comentario al principio de cada diagrama, en la caché y en lo exportado (WP-D la escribe como tres líneas `%%` dentro del texto Mermaid: §4.4):
 
   ```text
   <!-- Generado por Agent Studio. Editarlo no cambia nada: se regenera.
@@ -1092,6 +1092,12 @@ Los contratos de arriba son los del diseño; al escribirlos el P0 cambió esto, 
   declaran cada espacio de nombres, que viajan al lado y no entran en la huella); `CommitAnalysis` lleva `Files`; `IGraphInferenceStore` tiene `AddAsync`; `AgentRunPurpose.GraphRelations`; los códigos de hueco
   son los de `GraphGapCodes`; el desbordamiento de pila de Roslyn con anidamiento extremo está medido (§12 queda resuelto en este punto: sí ocurre, y el relanzamiento lo cubre); y los relanzamientos suben a 16, con un último lanzamiento sin fuentes (`--sources none`) que da el grafo «parcial» con todos los proyectos marcados (D-18); el worker termina por sí mismo (código 6, `FileStuck`) si el analizador no devuelve un fichero en 10 s, y el anfitrión lo salta; todo tope de
   la lectura **trunca con un hueco `graph.limit`** y sigue, nunca lanza; el analizador corre en un hilo con 64 MB de pila; el proceso tiene un tope de 1,5 GB de memoria en su Job Object.
+- **Lo que WP-D ajustó (2026-11-13), documentado en [04 §25.7](04-contratos.md#257-diagramas-y-discrepancias-wp-d) y en la adenda de ADR-0045:** `IDiagramTextReader` (nuevo; la pantalla necesita el texto y `IDiagramCatalog` no cambia);
+  `ConsistencyScope.Graph` y `IConsistencyService.RunAsync(project, snapshot, graph, ct)` (con implementación por defecto: el análisis entrega a las comprobaciones el modelo que acaba de hacer, y `doc.diagram-stale` no cierra
+  un ciclo con el servicio del análisis); `ConsistencyCodes.CheckFailed` (una comprobación que falla es un hallazgo, no un «no aplica»); `DoctorFixCatalog.OpenGraph` (el arreglo de la línea de Auto Doctor). Respecto a **D-24**: el
+  escapador también escribe como entidad el acento grave, `\` y `|`, en una sola pasada, y corta antes de escapar. Respecto a **D-25**: la cabecera son tres líneas `%%` dentro del texto Mermaid (el Markdown exportado añade un comentario
+  HTML antes del bloque); «desactualizado» es la huella del modelo **o** la versión de los generadores; la huella de un diagrama de proyecto es la de su propio texto y la de la secuencia, la de la última entrada de la ejecución que
+  el diagrama dibuja; un enlace en el destino de una exportación nunca se sobrescribe. La línea de Auto Doctor de D-30 la da `DiscrepanciesCheckSource`, no la integración (§9.8 la reservaba al lead; no depende de ningún otro paquete).
 - **No están en el P0:** `IUntrustedRoots` (WP-0), `EvidenceToolVersions` (WP-E, que decide cómo embebe el bloque `tools:` en la cabecera de la evidencia, hoy líneas `# …`) y el escapador de
   Mermaid (WP-D, en Memory). `DoctorFactNames` se reduce a lo que el §4.2 listaba.
 

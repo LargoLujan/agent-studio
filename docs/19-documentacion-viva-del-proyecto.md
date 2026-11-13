@@ -951,6 +951,12 @@ gantt
   diagramas, los de agentes y el resto de `doc.*`. Si lo aceptas (decisión 1 de aquí y de docs/20), WP-16B amplía esos
   generadores en vez de crearlos, ADR-0045 lo escribe la Fase 6 y aquí lleva una adenda con el motor, y la fila «F6-10 y
   F6-11» de §11.3 sobra.
+- **Lo que la Fase 6 dejó construido (2026-11-13, WP-D; [04 §25.7](04-contratos.md#257-diagramas-y-discrepancias-wp-d) y la adenda de [ADR-0045](adr/0045-diagramas-generados-con-su-version.md)) y esta fase debe saber:**
+  `IDiagramGenerator`, `IDiagramCatalog` e `IDiagramTextReader` (el texto de la caché) ya tienen implementación en `Memory/Diagrams`; la cabecera es **tres líneas `%%` dentro del texto Mermaid** (no `<!-- -->`) y el
+  Markdown exportado lleva un comentario HTML y un bloque `mermaid`; el escapador único es `MermaidText` (y escribe como entidad también el acento grave, `\` y `|`); «desactualizado» es la huella del modelo **o** la versión de
+  los generadores, decidida solo con el índice de la caché (`DiagramStaleness`); `DiagramKind` y los tipos de `IConsistencyCheck` se amplían añadiendo valores y comprobaciones, y el servicio aísla cada comprobación
+  (`consistency.check-failed`). El texto generado **no** se ha pasado por `mermaid.parse`: el motor de esta fase debe hacerlo con los dorados de `tests/AgentStudio.Tests/Memory/Diagrams/Fixtures`, en particular con el alias
+  entre comillas de `participant`.
 - **Dos reglas compartidas con la Fase 6,** para que no haya dos dueños:
   - **dónde vive lo generado** (D-26 y decisión 8): la misma regla vale para los diagramas de la Fase 6 (docs/20 D-25). Caché
     de tu equipo por defecto, y al repositorio solo si lo pides, en `docs/generado/` (los diagramas, en
