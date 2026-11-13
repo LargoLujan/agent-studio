@@ -109,7 +109,10 @@ public sealed class DiagramReviewTests
                 TestContext.Current.CancellationToken));
         }
 
-        Assert.True(failed is IOException or UnauthorizedAccessException, failed?.ToString());
+        // The failure says what was written before it, and keeps the cause.
+        var interrupted = Assert.IsType<DiagramExportInterruptedException>(failed);
+        Assert.True(interrupted.InnerException is IOException or UnauthorizedAccessException, interrupted.ToString());
+        Assert.Single(interrupted.Written);
         Assert.True(File.Exists(Path.Combine(folder, "solucion.md")));
         Assert.Empty(Directory.EnumerateFiles(folder, "*.tmp"));
         var list = await world.Catalog.ListAsync(world.Project, TestContext.Current.CancellationToken);
