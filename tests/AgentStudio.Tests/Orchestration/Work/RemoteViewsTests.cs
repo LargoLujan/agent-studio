@@ -258,8 +258,8 @@ public sealed class RemoteViewsTests
     {
         using var world = await JudgedAsync();
         await world.OperationAsync(HostingOperationKind.MergePullRequest, 12, MergeMethod.Squash, HostingOutcome.RateLimited);
-        await world.ObserveAsync(Open());
-        await world.ObserveAsync(Merged(RemoteMergeMode.Squash));
+        await world.ObserveAsync(Open(), Run, RemoteChangeKind.Opened);
+        await world.ObserveAsync(Merged(RemoteMergeMode.Squash), Run, RemoteChangeKind.Merged, RemoteChangeKind.BaseChanged);
 
         var events = await new RepositoryActivityReader(world.Instance.Recorder).ListAsync(world.Project, null, Ct);
 
@@ -267,7 +267,7 @@ public sealed class RemoteViewsTests
         Assert.Equal((HostingOperationKind.MergePullRequest, HostingOutcome.RateLimited, 12, false), (operation.Operation, operation.Outcome, operation.PullRequest, operation.Succeeded));
         var observations = events.Where(e => e.Kind == RepositoryActivityKind.RemoteObservation).ToList();
         Assert.Contains(RemoteChangeKind.Opened, observations[0].Changes!);
-        Assert.Contains(RemoteChangeKind.Merged, observations[1].Changes!);
+        Assert.Equal([RemoteChangeKind.Merged, RemoteChangeKind.BaseChanged], observations[1].Changes!);
         Assert.All(observations, o => Assert.Equal(12, o.PullRequest));
     }
 
