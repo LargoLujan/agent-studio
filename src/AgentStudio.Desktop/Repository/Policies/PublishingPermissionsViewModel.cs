@@ -28,6 +28,9 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
     private RemoteRepository? _repository;
     private int _generation;
 
+    // Counts the projects the section has been for: a grant or a withdrawal that was waiting for Windows Hello when the project changed must not repopulate the list of the new one.
+    private int _epoch;
+
     public PublishingPermissionsViewModel(IHostingPolicyGate? gate, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(time);
@@ -75,6 +78,7 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
     public void Reset()
     {
         _generation++;
+        _epoch++;
         _project = null;
         _repository = null;
         Grants.Clear();
@@ -87,6 +91,11 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
     public async Task LoadAsync(ProjectContext? project, RemoteRepository? repository)
     {
         var generation = ++_generation;
+        if (!Equals(_project, project) || !Equals(_repository, repository))
+        {
+            _epoch++;
+        }
+
         _project = project;
         _repository = repository;
         OnPropertyChanged(nameof(CanGrant));
@@ -143,35 +152,41 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
             }
         }
 
+        var epoch = _epoch;
         IsBusy = true;
         Note = null;
+        string? result;
         try
         {
             var granted = await _gate.GrantAsync(project, option.Class, repository, baseBranch, CancellationToken.None).ConfigureAwait(true);
-            Note = granted is null ? Texts.Get("Hosting_Permissions_NotGiven") : Texts.Get("Hosting_Permissions_Given");
+            result = granted is null ? Texts.Get("Hosting_Permissions_NotGiven") : Texts.Get("Hosting_Permissions_Given");
         }
         catch (UserTextException refusal)
         {
-            Note = HostingTexts.Say(refusal.Text);
+            result = HostingTexts.Say(refusal.Text);
         }
 #pragma warning disable CA1031 // The gate is behind a port: a failure is said in the section, never thrown into the UI.
         catch (Exception exception) when (exception is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Note = Texts.Get("Hosting_Card_Failed");
+            result = Texts.Get("Hosting_Card_Failed");
         }
         finally
         {
-            IsBusy = false;
+            if (epoch == _epoch)
+            {
+                IsBusy = false;
+            }
         }
 
-        var message = Note;
-        await LoadAsync(project, repository).ConfigureAwait(true);
-        Note ??= message;
-        if (message is not null)
+        if (epoch != _epoch)
         {
-            Note = message;
+            // The project changed while the gate waited: neither the list nor the note of the old one belongs on screen.
+            return;
         }
+
+        await LoadAsync(project, repository).ConfigureAwait(true);
+        Note = result;
     }
 
     /// <summary>«Retirar»: asks the gate to revoke the permission; the next publication asks again.</summary>
@@ -183,6 +198,7 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
             return;
         }
 
+        var epoch = _epoch;
         IsBusy = true;
         string? message;
         try
@@ -202,7 +218,15 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
         }
         finally
         {
-            IsBusy = false;
+            if (epoch == _epoch)
+            {
+                IsBusy = false;
+            }
+        }
+
+        if (epoch != _epoch)
+        {
+            return;
         }
 
         await LoadAsync(project, _repository).ConfigureAwait(true);

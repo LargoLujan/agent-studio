@@ -123,7 +123,18 @@ internal sealed class FakeProvider : IHostingProvider
         return Task.FromResult(Facts);
     }
 
-    public Task<HostingResult<BranchRules>> ReadBranchRulesAsync(RemoteRepository repository, RemoteBranch branch, CancellationToken ct) => Task.FromResult(Rules);
+    /// <summary>When set, the next read of the rules waits for it (a detail that is still being read).</summary>
+    public TaskCompletionSource? HoldRules { get; set; }
+
+    public async Task<HostingResult<BranchRules>> ReadBranchRulesAsync(RemoteRepository repository, RemoteBranch branch, CancellationToken ct)
+    {
+        if (HoldRules is { } hold)
+        {
+            await hold.Task.WaitAsync(ct);
+        }
+
+        return Rules;
+    }
 
     public Task<HostingResult<PullRequestRef?>> FindPullRequestAsync(RemoteRepository repository, RemoteBranch head, CancellationToken ct) => throw new NotSupportedException("The screen never writes or reads the PR by itself.");
 
@@ -203,9 +214,17 @@ internal sealed class FakeSync : IRemoteSync
     /// <summary>When set, «Sincronizar ahora» waits for it, honouring the token it was given: a read that cancelled it would throw.</summary>
     public TaskCompletionSource? HoldSync { get; set; }
 
+    /// <summary>When set, «Sincronizar ahora» waits for it and ignores its token: the answer of a port that ends after the person changed project.</summary>
+    public TaskCompletionSource? HoldSyncRaw { get; set; }
+
     public async Task SyncNowAsync(ProjectContext project, CancellationToken ct)
     {
         SyncNows++;
+        if (HoldSyncRaw is { } raw)
+        {
+            await raw.Task;
+        }
+
         if (HoldSync is { } hold)
         {
             await hold.Task.WaitAsync(ct);
@@ -307,23 +326,35 @@ internal sealed class FakeGate : IHostingPolicyGate
 
     public Task<HostingAuthorization> AuthorizeAsync(HostingOperation operation, CancellationToken ct) => throw new InvalidOperationException("The screen asked the gate to authorize.");
 
-    public Task<HostingPolicyGrant?> GrantAsync(ProjectContext project, HostingOperationClass @class, RemoteRepository repository, RemoteBranch? baseBranch, CancellationToken ct)
+    /// <summary>When set, a grant or a withdrawal waits for it, as the gate does while Windows Hello waits for the person.</summary>
+    public TaskCompletionSource? HoldHello { get; set; }
+
+    public async Task<HostingPolicyGrant?> GrantAsync(ProjectContext project, HostingOperationClass @class, RemoteRepository repository, RemoteBranch? baseBranch, CancellationToken ct)
     {
+        if (HoldHello is { } hold)
+        {
+            await hold.Task;
+        }
+
         if (GrantAnswersNull)
         {
-            return Task.FromResult<HostingPolicyGrant?>(null);
+            return null;
         }
 
         var grant = new HostingPolicyGrant("g-" + (Held.Count + 1), @class, repository, baseBranch, "person", PrData.Now);
         Held.Add(grant);
-        return Task.FromResult<HostingPolicyGrant?>(grant);
+        return grant;
     }
 
-    public Task RevokeAsync(ProjectContext project, string grantId, CancellationToken ct)
+    public async Task RevokeAsync(ProjectContext project, string grantId, CancellationToken ct)
     {
+        if (HoldHello is { } hold)
+        {
+            await hold.Task;
+        }
+
         Revoked.Add(grantId);
         Held.RemoveAll(g => g.GrantId == grantId);
-        return Task.CompletedTask;
     }
 
     public Task<IReadOnlyList<HostingPolicyGrant>> GrantsAsync(ProjectContext project, CancellationToken ct) => Task.FromResult<IReadOnlyList<HostingPolicyGrant>>([.. Held]);
@@ -344,11 +375,17 @@ internal sealed class FakePermission : IRemoteSyncPermission
 
     public bool IsAllowed(string projectId) => _allowed.Contains(projectId);
 
-    public Task SetAsync(string projectId, bool allowed, CancellationToken ct)
+    public TaskCompletionSource? HoldSet { get; set; }
+
+    public async Task SetAsync(string projectId, bool allowed, CancellationToken ct)
     {
+        if (HoldSet is { } hold)
+        {
+            await hold.Task;
+        }
+
         Sets.Add((projectId, allowed));
         _ = allowed ? _allowed.Add(projectId) : _allowed.Remove(projectId);
-        return Task.CompletedTask;
     }
 
     public event EventHandler<string>? Changed;

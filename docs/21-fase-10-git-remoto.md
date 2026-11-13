@@ -2305,6 +2305,12 @@ Dónde el diseño y el código chocaron al escribir las pantallas, qué dato no 
 - **Textos y accesibilidad:** «revisiones/checks que pide: N» (sin plural), nombre propio para los botones repetidos por fila, las tarjetas de cerrar y borrar dicen repositorio y commit, la del veredicto dice qué la ampara, y la sección dice que hay peticiones de otro repositorio en el historial.
 - **Datos nuevos (contratos con valor por defecto al final):** `PullRequestView.{ModeIsDeduced, PublishedVerdict, Milestone}` y `RepositoryActivity.{Operation, Outcome, Changes, PullRequest}`, rellenados en `PullRequestProjector` y `RepositoryActivityReader`, con pruebas en `Orchestration.WorkTracking`.
 - **Códigos:** `HostingTexts.KnownCodes` toma los del ejecutor de `RemoteGitCodes`.
+- **Última ronda (una línea por punto):**
+  1. *Permisos con Windows Hello esperando:* `PublishingPermissionsViewModel` cuenta los proyectos por los que ha pasado (`_epoch`); un «Dar permiso…» o «Retirar» que acaba tras cambiar de proyecto no recarga la lista, ni pone nota, ni reactiva botones.
+  2. *«Actualizar el PR…»:* la tarjeta solo se abre si `preview.Existing` es el mismo PR de la fila (repositorio y número); si no, se dice (`Hosting_Update_Mismatch`) y no hay tarjeta. No se ofrece sobre un PR cerrado o fusionado.
+  3. *Tarjeta de fusión con datos viejos:* no se abre mientras el detalle de la fila actual no esté leído, ni sin commit juzgado o con la cabeza movida; la tarjeta guarda commit, commit juzgado, base y modos y se cierra, diciéndolo, si cambia cualquiera.
+  4. *Bajos:* el contexto de la interfaz se conserva (`Current ?? anterior`); la casilla «Sincronizar con GitHub» se desactiva sin proyecto y dice a la vista qué sale a la red; un mensaje o una tarjeta de una acción que acaba tras cambiar de proyecto se descarta (`_projectEpoch`); `PullRequestProjector` exige un nombre de veredicto definido (no numérico) y, con varios hitos, elige el primero en orden ordinal, dicho en el comentario.
+  5. *Ayuda:* `publishing` explica la casilla de la cabecera y «Actualizar el PR…».
 - **Constructores cambiados:** `PullRequestsViewModel(..., IAddressOpener? opener = null, IRemoteSyncPermission? syncPermission = null)`, `PullRequestView` y `RepositoryActivity` (miembros finales con valor por defecto) y `HostingCapabilities.NarrowedBy(hechos, protecciones = null)`.
 
 ### 10.8 WP-AZ · Azure DevOps por `az` (M; solo con la decisión 1 (b))

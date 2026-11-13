@@ -240,6 +240,19 @@ public sealed class RemoteViewsTests
         Assert.Equal(Head, published.Commit);
     }
 
+    [Theory]
+    [InlineData("1")]
+    [InlineData("42")]
+    [InlineData("Nonsense")]
+    public async Task A_verdict_name_that_is_not_a_standing_is_not_a_published_verdict_even_when_it_parses_as_a_number(string name)
+    {
+        using var world = await JudgedAsync();
+        await world.ObserveAsync(Open());
+        await world.OperationAsync(HostingOperationKind.PublishVerdictStatus, 12, verdict: name);
+
+        Assert.Null(Assert.Single(await Views(world).ListAsync(world.Project, Ct)).PublishedVerdict);
+    }
+
     [Fact]
     public async Task The_milestone_of_the_run_comes_from_its_links_and_a_run_in_none_has_no_milestone()
     {
