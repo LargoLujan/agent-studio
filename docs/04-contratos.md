@@ -2665,6 +2665,6 @@ sumado en el inventario. `ProjectActivityWork` (la bandeja) y `ProjectsWorkInPro
   conoce el transporte `GitHubHttps` (el ejecutor no tiene parámetros). Lo que una prueba registre antes se conserva (`TryAdd`).
 - `AppSettingsRemoteSyncPermission` (`Desktop/Services/RemoteSyncPermission.cs`) es **a la vez** `IRemoteSyncPermission` (`IsAllowed`, `SetAsync` —que solo llama un clic—, `Changed`) e `IRemoteSyncPolicy` (`PeriodicSyncAllowed`, `Interval`), sobre `AppSettings.RemoteSyncProjects`
   y `RemoteSyncIntervalMinutes`: un solo valor, leído en cada llamada, apagado por defecto.
-- `RemoteSyncAttachment` (`Desktop/Services`) abre el buzón al abrir un proyecto con almacén (`RemoteSyncService.AttachAsync`) y lo cierra en orden al salir (`ShutdownAsync`, tope de 170 s, antes de parar el host). `RemoteSyncService` pasa a ser también `IDisposable`.
+- `RemoteSyncAttachment` (`Desktop/Services`) abre el buzón al abrir un proyecto con almacén (`RemoteSyncService.AttachAsync`) y lo cierra en orden al salir (`ShutdownBlocking`, que bloquea porque WPF no espera a un `OnExit` asíncrono; tope de 170 s, antes de parar el host). `RemoteSyncService` pasa a ser también `IDisposable`.
 - `PullRequestsViewModel` (con `ShellAddressOpener`) es el último parámetro de `RepositoryViewModel`; `WorkBackend.PullRequests` es `IPullRequestProjector`. `RunMonitorViewModel` gana `IsPublishAvailable`, `PublishCommand` y `PublishRequested(RunId)`;
   `DoctorFixCatalog.OpenPullRequests` (`doctor.fix.open-pull-requests`) navega a `pull-requests`.

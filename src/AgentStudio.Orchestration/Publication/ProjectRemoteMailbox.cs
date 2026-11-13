@@ -55,6 +55,9 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     private readonly Dictionary<string, DateTimeOffset> _lastPolled = new(StringComparer.Ordinal);
     private readonly List<PendingRemoteWork> _restored = [];
     private readonly ITimer? _pollTimer;
+
+    // The interval the poll timer is set to (only the consumer reads and writes it): the one of the settings is read again at every round.
+    private TimeSpan _pollEvery;
     private ITimer? _retryTimer;
     private int _retryQueued;
     private int _inFlight;
@@ -133,6 +136,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
         if (services.Policy is { } policy && policy.Interval > TimeSpan.Zero)
         {
+            _pollEvery = policy.Interval;
             _pollTimer = services.Time.CreateTimer(_ => PostQuiet(new PollMessage()), null, policy.Interval, policy.Interval);
         }
     }
@@ -877,6 +881,13 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     private async Task PollAsync()
     {
+        // The interval of the settings applies from the next round, without a restart: when it changed, the timer is set again (the permission is read at every round as well).
+        if (_pollTimer is not null && _services.Policy is { Interval: var interval } && interval > TimeSpan.Zero && interval != _pollEvery)
+        {
+            _pollEvery = interval;
+            _pollTimer.Change(interval, interval);
+        }
+
         if (_services.Policy?.PeriodicSyncAllowed(Project.ProjectId) != true || _signInStopped)
         {
             return;

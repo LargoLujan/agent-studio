@@ -283,6 +283,28 @@ public sealed class RemoteMailboxTests
     }
 
     [Fact]
+    public async Task AChangeOfTheIntervalInTheSettingsAppliesFromTheNextRoundWithoutARestart()
+    {
+        await using var rig = new PublicationRig();
+        rig.Policy.Interval = TimeSpan.FromMinutes(5);
+        await Follow(rig);
+        await rig.AdvanceAsync(TimeSpan.FromMinutes(5));
+        Assert.True(rig.Trace.Count("gh:observe") >= 1, "the poll runs with the first interval");
+
+        // The person sets one hour. The round that is already due notices it and sets the timer again.
+        rig.Policy.Interval = TimeSpan.FromMinutes(60);
+        await rig.AdvanceAsync(TimeSpan.FromMinutes(5));
+        var noticed = rig.Trace.Count("gh:observe");
+
+        // With the old interval ten more rounds would have run in fifty minutes; with the new one, none.
+        await rig.AdvanceAsync(TimeSpan.FromMinutes(50));
+        Assert.Equal(noticed, rig.Trace.Count("gh:observe"));
+
+        await rig.AdvanceAsync(TimeSpan.FromMinutes(15));
+        Assert.Equal(noticed + 1, rig.Trace.Count("gh:observe"));
+    }
+
+    [Fact]
     public async Task WithoutThePermissionThereIsNoNetworkInTheBackgroundEvenAfterADay()
     {
         await using var rig = new PublicationRig();

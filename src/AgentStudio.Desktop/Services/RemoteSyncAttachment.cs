@@ -48,6 +48,14 @@ public sealed class RemoteSyncAttachment(
         }
     }
 
+    /// <summary>
+    /// The same, for the exit of the app, where nobody waits for a task: WPF does not wait for an <c>async void</c> <c>OnExit</c>, so with an <c>await</c> there the
+    /// process would end with a <c>push</c> halfway (docs/21 D-25). This blocks the caller until the mailboxes stopped or <paramref name="wait"/> went by. The work
+    /// runs on the thread pool and nothing in the closing of a mailbox needs the thread of the interface (the service never captures a context, and what it
+    /// tells the screen it posts), so the thread of the interface can block on it without a deadlock.
+    /// </summary>
+    public void ShutdownBlocking(TimeSpan wait) => Task.Run(() => ShutdownAsync(wait)).GetAwaiter().GetResult();
+
     /// <summary>A project was opened. Returns when the mailbox is open, or at once when there is nothing to open.</summary>
     public async Task OnProjectOpenedAsync(string projectRoot, CancellationToken ct = default)
     {

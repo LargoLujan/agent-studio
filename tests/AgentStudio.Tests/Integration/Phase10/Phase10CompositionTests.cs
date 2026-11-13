@@ -98,6 +98,9 @@ public sealed class Phase10CompositionTests
         Assert.False(permission.IsAllowed(project.ProjectId));
         var beforeTheDay = rig.Script.Calls.Count(IsApi);
 
+        // Opening the mailbox and following a pull request launch nothing either: without the permission not one call has gone out so far.
+        Assert.Equal(0, beforeTheDay);
+
         // A day, in steps that are longer than the longest interval: the clock of the mailbox is the one of the test.
         for (var i = 0; i < 24; i++)
         {
