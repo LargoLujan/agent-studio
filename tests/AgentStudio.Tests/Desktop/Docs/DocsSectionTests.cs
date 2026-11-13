@@ -136,6 +136,39 @@ public sealed class DocsSectionTests
         Assert.Equal("Texto copiado.", section.Message);
     }
 
+    /// <summary>A catalog that exports for real and then fails, as an export does when a later file cannot be written.</summary>
+    private sealed class InterruptedAfterWriting(DiagramFakes.World world) : AgentStudio.Application.Diagrams.IDiagramCatalog
+    {
+        public Task<IReadOnlyList<DiagramStatus>> ListAsync(AgentStudio.Application.Projects.ProjectContext project, CancellationToken ct) => world.Catalog.ListAsync(project, ct);
+
+        public Task<DiagramStatus> GenerateAsync(AgentStudio.Application.Projects.ProjectContext project, DiagramKind kind, string subject, CancellationToken ct) => world.Catalog.GenerateAsync(project, kind, subject, ct);
+
+        public Task<DiagramStatus> RestorePreviousAsync(AgentStudio.Application.Projects.ProjectContext project, DiagramKind kind, string subject, CancellationToken ct) => world.Catalog.RestorePreviousAsync(project, kind, subject, ct);
+
+        public async Task<DiagramExportResult> ExportAsync(AgentStudio.Application.Projects.ProjectContext project, DiagramExportRequest request, CancellationToken ct)
+        {
+            var done = await world.Catalog.ExportAsync(project, request, ct);
+            throw new DiagramExportInterruptedException(done.Written, [new DiagramExportConflict(Solution, "docs/generado/diagramas/otro.md", DiagramExportState.Unknown)], new IOException("disk"));
+        }
+    }
+
+    [Fact]
+    public async Task An_export_that_fails_after_writing_says_what_was_written_shows_the_conflicts_and_reads_the_list_again()
+    {
+        using var world = new DiagramFakes.World();
+        var section = new DocsDiagramsSection(new DocsBackend(new InterruptedAfterWriting(world), world.Catalog, world.Analysis, world.History, null), Spanish);
+        await new GraphDocumentViewModel([section]).SetProjectAsync(world.Project, CancellationToken.None);
+        await section.GenerateCommand.ExecuteAsync(null);
+
+        await section.ExportCommand.ExecuteAsync(null);
+
+        Assert.Contains("ya se escribió", section.Message, StringComparison.Ordinal);
+        Assert.Contains("solucion.md", section.Message, StringComparison.Ordinal);
+        Assert.NotNull(section.Error);
+        Assert.Single(section.Conflicts);
+        Assert.Equal("Exportado y al día", section.SelectedRow!.ExportText);
+    }
+
     [Fact]
     public async Task Exporting_writes_the_file_and_a_file_changed_outside_is_asked_about_and_only_overwritten_when_the_person_says_so()
     {
