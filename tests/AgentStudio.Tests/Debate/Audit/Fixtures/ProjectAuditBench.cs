@@ -349,6 +349,9 @@ internal sealed class FakeProjectActivity : IProjectActivity
 
     public void Hold(ProjectActivityKind kind) => _held = kind;
 
+    /// <summary>Lets go of what <see cref="Hold"/> holds (the remote operation of Phase 10 that ends while an audit waits).</summary>
+    public void Release() => _held = null;
+
     public IDisposable? TryEnter(string projectId, ProjectActivityKind kind)
     {
         if (_held is not null)

@@ -906,4 +906,130 @@ Agent Studio no arranca ni instala nada: la guía te dice qué hacer.</value>
   <data name="Doctor_Value_extends" xml:space="preserve">
     <value>extiende {0}</value>
   </data>
+  <!-- Phase 10 (docs/21 D-31, ADR-0065): the eight checks of the source of the remote and the sentences of their fixes. The P0 gives them, so that WP2 (HostingCheckSource) does not share this file with anyone.
+       The facts of a check are the arguments of its explanation, in this order: gh.installed and gh.version-untested {0} the version; remote.host {0} the repository; remote.config {0} the keys that
+       refuse (names only, never values); remote.session and remote.sync {0} the date of the last known result. -->
+  <data name="Doctor_Check_gh_installed_Title" xml:space="preserve">
+    <value>Programa gh de GitHub</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Ok" xml:space="preserve">
+    <value>gh {0} está instalado.</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Warning" xml:space="preserve">
+    <value>gh solo está dentro del proyecto, y no se usa.</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Error" xml:space="preserve">
+    <value>gh no está instalado. Sin él no se pueden abrir peticiones de fusión (PR).</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Unknown" xml:space="preserve">
+    <value>No se pudo leer la versión de gh.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Title" xml:space="preserve">
+    <value>Versión de gh</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Ok" xml:space="preserve">
+    <value>Agent Studio probó la versión {0} de gh.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Warning" xml:space="preserve">
+    <value>Agent Studio no probó la versión {0} de gh. Alguna función podría no estar.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Unknown" xml:space="preserve">
+    <value>No se pudo comprobar la versión de gh.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_NotApplicable" xml:space="preserve">
+    <value>No se comprueba: gh no está instalado.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Title" xml:space="preserve">
+    <value>Remoto del proyecto</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Ok" xml:space="preserve">
+    <value>El remoto es GitHub: {0}.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Warning" xml:space="preserve">
+    <value>El remoto no es de GitHub, así que Agent Studio no lo reconoce.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Unknown" xml:space="preserve">
+    <value>No se pudo leer el remoto del proyecto.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_NotApplicable" xml:space="preserve">
+    <value>El proyecto no tiene remoto.</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_Title" xml:space="preserve">
+    <value>Dirección del remoto</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_Ok" xml:space="preserve">
+    <value>Tu remoto usa HTTPS, como Agent Studio.</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_Warning" xml:space="preserve">
+    <value>Tu remoto usa SSH. Agent Studio publica por HTTPS con tu gestor de credenciales.</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_NotApplicable" xml:space="preserve">
+    <value>No se comprueba: el proyecto no tiene un remoto de GitHub.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Title" xml:space="preserve">
+    <value>Configuración para publicar</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Ok" xml:space="preserve">
+    <value>La configuración del repositorio no impide publicar.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Error" xml:space="preserve">
+    <value>El repositorio define claves que impiden publicar: {0}. Quítalas o publica con tu programa de git.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Unknown" xml:space="preserve">
+    <value>Sin comprobar: el proyecto está ocupado.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_NotApplicable" xml:space="preserve">
+    <value>No se comprueba: el proyecto no tiene un remoto de GitHub.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Title" xml:space="preserve">
+    <value>Git LFS</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Ok" xml:space="preserve">
+    <value>El proyecto no usa Git LFS.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Warning" xml:space="preserve">
+    <value>El proyecto usa Git LFS y Agent Studio no sube esos ficheros. Publica la rama con tu programa de git.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Unknown" xml:space="preserve">
+    <value>Sin comprobar: el proyecto está ocupado.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_NotApplicable" xml:space="preserve">
+    <value>No se comprueba: el proyecto no tiene un remoto de GitHub.</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Title" xml:space="preserve">
+    <value>Sesión de GitHub</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Ok" xml:space="preserve">
+    <value>La última vez que se comprobó, el {0}, la sesión de gh era válida.</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Warning" xml:space="preserve">
+    <value>La última vez que se comprobó, el {0}, no había sesión de gh. Abre una terminal y escribe: gh auth login</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Unknown" xml:space="preserve">
+    <value>Sin comprobar: Agent Studio no pregunta a GitHub por su cuenta.</value>
+  </data>
+  <data name="Doctor_Check_remote_session_NotApplicable" xml:space="preserve">
+    <value>No se comprueba: el proyecto no tiene un remoto de GitHub.</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_Title" xml:space="preserve">
+    <value>Sincronizar con GitHub</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_Ok" xml:space="preserve">
+    <value>La sincronización está permitida. La última buena fue el {0}.</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_Unknown" xml:space="preserve">
+    <value>La sincronización está permitida, pero aún no hay ninguna buena.</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_NotApplicable" xml:space="preserve">
+    <value>No se sincroniza con GitHub. Si quieres, lo enciendes en Ajustes.</value>
+  </data>
+  <data name="Doctor_Fix_install_gh" xml:space="preserve">
+    <value>Instala el programa gh de GitHub con la orden de abajo, o desde la página oficial.</value>
+  </data>
+  <data name="Doctor_Fix_login_gh" xml:space="preserve">
+    <value>Inicia sesión en GitHub con la orden de abajo, en una terminal. Agent Studio no la ejecuta.</value>
+  </data>
+  <data name="Doctor_Fix_open_pull_requests" xml:space="preserve">
+    <value>Abre Repositorio y cambios, y mira la sección Peticiones de fusión (PR).</value>
+  </data>
 </root>

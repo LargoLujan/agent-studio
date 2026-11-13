@@ -200,7 +200,7 @@ public sealed class Phase5ContractTests
         Assert.True(typeof(IRunActivity).IsAssignableFrom(typeof(IProjectActivity)));
         Assert.Equal(["Current", "TryEnter"], MethodNames(typeof(IProjectActivity)));
         Assert.Equal(["IsBusy"], MethodNames(typeof(IRunActivity)));
-        Assert.Equal(["Run", "Planning", "Debate", "Audit"], Enum.GetNames<ProjectActivityKind>());
+        Assert.Equal(["Run", "Planning", "Debate", "Audit", "RemoteOperation"], Enum.GetNames<ProjectActivityKind>()); // Phase 10 appends the remote operation (docs/21 D-25)
         Assert.Equal(typeof(IDisposable), typeof(IProjectActivity).GetMethod(nameof(IProjectActivity.TryEnter))!.ReturnType);
     }
 

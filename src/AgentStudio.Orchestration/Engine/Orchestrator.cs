@@ -30,6 +30,8 @@ namespace AgentStudio.Orchestration.Engine;
 /// <item>The orchestrator's own activities, its plannings and its runs, share a project between them, counted; a debate or
 /// an audit shares it with nothing, not even another of its kind. <see cref="TryEnter"/> returns null, and enters nothing,
 /// when the project is held otherwise: the caller refuses before writing anything.</item>
+/// <item>A remote operation of Agent Studio itself (Phase 10, <see cref="ProjectActivityKind.RemoteOperation"/>, docs/21 D-25) shares the project with nothing either, like a
+/// debate or an audit, but whoever arrives while it holds the project waits for it (<see cref="ProjectActivityEntry.EnterAsync"/>) instead of being refused.</item>
 /// <item>Each lease releases its hold once, at once and only once, however often it is disposed; a run of the orchestrator
 /// disposes its lease before its end can be seen (<c>OrchestrationRun</c> calls back before it completes its events and
 /// its result), so what reacts to that end finds the project free.</item>
@@ -114,7 +116,7 @@ public sealed class OrchestrationActivity : IProjectActivity
                 case ProjectActivityKind.Planning when _exclusive is null:
                     _plannings++;
                     return true;
-                case ProjectActivityKind.Debate or ProjectActivityKind.Audit when Current is null:
+                case ProjectActivityKind.Debate or ProjectActivityKind.Audit or ProjectActivityKind.RemoteOperation when Current is null:
                     _exclusive = kind;
                     return true;
                 default:
@@ -264,7 +266,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Project);
-        using (Enter(request.Project.ProjectId, ProjectActivityKind.Planning))
+        using (await EnterAsync(request.Project.ProjectId, ProjectActivityKind.Planning, cancellationToken).ConfigureAwait(false))
         {
             return await _planner.PlanAsync(request, progress, cancellationToken).ConfigureAwait(false);
         }
@@ -288,7 +290,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
 
         // Held before anything is written (refused while a debate or an audit holds the project); once the run is tracked,
         // the run itself keeps the project held.
-        using var busy = Enter(request.Project.ProjectId, ProjectActivityKind.Run);
+        using var busy = await EnterAsync(request.Project.ProjectId, ProjectActivityKind.Run, cancellationToken).ConfigureAwait(false);
         if (request.PlanApproval is not { Approved: true })
         {
             throw new InvalidOperationException("The plan was not approved: nothing runs without the user's approval.");
@@ -402,7 +404,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     public async Task<IOrchestrationRun> ResumeAsync(ProjectContext project, RunId run, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
-        using var busy = Enter(project.ProjectId, ProjectActivityKind.Run);
+        using var busy = await EnterAsync(project.ProjectId, ProjectActivityKind.Run, cancellationToken).ConfigureAwait(false);
         using var reservation = Reserve(project.ProjectId, run);
         var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         return await GoOnAsync(project, run, log, RunResumeCause.UserRequested, cancellationToken).ConfigureAwait(false);
@@ -419,7 +421,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     internal async Task<ConsentResume> ResumeByConsentAsync(ProjectContext project, RunId run, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
-        using var busy = Enter(project.ProjectId, ProjectActivityKind.Run);
+        using var busy = await EnterAsync(project.ProjectId, ProjectActivityKind.Run, cancellationToken).ConfigureAwait(false);
         using var reservation = Reserve(project.ProjectId, run);
         var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         var (cause, reason) = _stoppedByError.TryGetValue(Key(project.ProjectId, run), out var error)
@@ -674,9 +676,18 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// written, while another activity holds it (a debate or an audit; docs/15 D-05).
     /// </summary>
     private IDisposable Enter(string projectId, ProjectActivityKind kind) =>
-        Activity.TryEnter(projectId, kind)
-        ?? throw new InvalidOperationException(
-            $"Project '{projectId}' is held by {Activity.Current(projectId)?.ToString() ?? "another activity"} in this process: one activity with agents per project (docs/15 D-05), so the orchestrator does not plan, start or resume until it ends.");
+        Activity.TryEnter(projectId, kind) ?? throw Refusal(projectId);
+
+    /// <summary>
+    /// The same for a planning, a start and a resume, which have written nothing yet: while what holds the project is a remote operation of Agent Studio (docs/21
+    /// D-25) it waits up to <see cref="ProjectActivityEntry.RemoteWaitCap"/> instead of refusing, and past it throws a <see cref="UserTextException"/> with
+    /// <see cref="ProjectActivityEntry.BusyRemoteCode"/>. With a run, a debate or an audit in the way it refuses at once, with the same error as ever.
+    /// </summary>
+    private async Task<IDisposable> EnterAsync(string projectId, ProjectActivityKind kind, CancellationToken cancellationToken) =>
+        await ProjectActivityEntry.EnterAsync(Activity, projectId, kind, _ports.Time, cancellationToken).ConfigureAwait(false) ?? throw Refusal(projectId);
+
+    private InvalidOperationException Refusal(string projectId) => new(
+        $"Project '{projectId}' is held by {Activity.Current(projectId)?.ToString() ?? "another activity"} in this process: one activity with agents per project (docs/15 D-05), so the orchestrator does not plan, start or resume until it ends.");
 
     /// <summary>
     /// A run of this process: tracked, and its project held until it ends. The start or the resume that tracks it already

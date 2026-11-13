@@ -51,7 +51,7 @@ public sealed class TracingAndMetricsTests
     [Fact]
     public void The_kinds_of_node_are_the_documented_ones_in_order() =>
         Assert.Equal(
-            ["Requirement", "BacklogItem", "Milestone", "Run", "Task", "Attempt", "Commit", "Evidence", "Verdict", "Debate", "Audit", "Document"],
+            ["Requirement", "BacklogItem", "Milestone", "Run", "Task", "Attempt", "Commit", "Evidence", "Verdict", "Debate", "Audit", "Document", "PullRequest"],
             Enum.GetNames<TraceNodeKind>());
 
     // ---- links ----

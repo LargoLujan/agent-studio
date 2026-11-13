@@ -3450,4 +3450,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Text_task_no_integration" xml:space="preserve">
     <value>{0} starts from the code of several tasks ({1}) without an integration.</value>
   </data>
+  <data name="Text_project_busy_remote" xml:space="preserve">
+    <value>Agent Studio is syncing with GitHub. Try again in a few seconds.</value>
+  </data>
 </root>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Hosting area in English: the same keys and placeholders as HostingStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Hosting_Publish_Button" xml:space="preserve">
+    <value>Publish and open the pull request</value>
+  </data>
+  <data name="Hosting_Publish_Button_What" xml:space="preserve">
+    <value>Uploads the branch of this run to GitHub and opens a pull request (PR). Your branch does not change.</value>
+  </data>
+  <data name="Hosting_Publish_Uploads" xml:space="preserve">
+    <value>{0} saved versions (commit) will be published: {1} from Agent Studio and {2} yours.</value>
+  </data>
+  <data name="Hosting_Publish_Uploads_What" xml:space="preserve">
+    <value>The branch of the run starts from yours. Whatever you had not published yet goes up with it.</value>
+  </data>
+  <data name="Hosting_Publish_NotReady" xml:space="preserve">
+    <value>This run cannot be published yet. Reason: {0}</value>
+  </data>
+  <data name="Hosting_Publish_NotReady_What" xml:space="preserve">
+    <value>Only work approved by an independent reviewer (judge) is published, just as when it is moved to your branch.</value>
+  </data>
+  <data name="Hosting_Publish_Busy" xml:space="preserve">
+    <value>The project is busy. You can publish when what is going on ends.</value>
+  </data>
+  <data name="Hosting_Publish_Busy_What" xml:space="preserve">
+    <value>A run, a debate or an audit is using the project. Agent Studio does not touch your repository until it ends.</value>
+  </data>
+  <data name="Hosting_Verdict_NotApproval" xml:space="preserve">
+    <value>The result of the review is published as a status and a comment. It is not an approval from you.</value>
+  </data>
+  <data name="Hosting_Verdict_NotApproval_What" xml:space="preserve">
+    <value>Agent Studio never approves a pull request with your account. Approving stays a task for a person.</value>
+  </data>
+  <data name="Hosting_Head_Moved" xml:space="preserve">
+    <value>The pull request changed after the review.</value>
+  </data>
+  <data name="Hosting_Head_Moved_What" xml:space="preserve">
+    <value>Someone uploaded changes that the independent reviewer did not see. If they are merged, this work will not count as integrated.</value>
+  </data>
+  <data name="Hosting_Merge_Hello" xml:space="preserve">
+    <value>Merging changes the branch {0} on GitHub. Windows Hello is asked every time.</value>
+  </data>
+  <data name="Hosting_Merge_Hello_What" xml:space="preserve">
+    <value>Merging and deleting on GitHub do not accept a saved permission.</value>
+  </data>
+  <data name="Hosting_Rules_Unreadable" xml:space="preserve">
+    <value>The protections of {0} could not be read. GitHub will apply them anyway.</value>
+  </data>
+  <data name="Hosting_Rules_Unreadable_What" xml:space="preserve">
+    <value>Your account has no permission to see them, or GitHub does not show them.</value>
+  </data>
+  <data name="Hosting_Pending_Offline" xml:space="preserve">
+    <value>Waiting to sync: there is no connection. It will be tried again at {0}.</value>
+  </data>
+  <data name="Hosting_Pending_Offline_What" xml:space="preserve">
+    <value>Nothing is taken as done until GitHub confirms it.</value>
+  </data>
+  <data name="Hosting_SignIn" xml:space="preserve">
+    <value>There is no GitHub session. Open a terminal and type: gh auth login</value>
+  </data>
+  <data name="Hosting_SignIn_What" xml:space="preserve">
+    <value>Agent Studio uses the session of the gh program. It never sees or stores your access key.</value>
+  </data>
+  <data name="Hosting_Credentials" xml:space="preserve">
+    <value>Git could not sign in to GitHub. Check your credential manager.</value>
+  </data>
+  <data name="Hosting_Credentials_What" xml:space="preserve">
+    <value>Git does the upload with your credential manager. Agent Studio does not see the key.</value>
+  </data>
+  <data name="Hosting_RateLimited" xml:space="preserve">
+    <value>GitHub asks to wait until {0}.</value>
+  </data>
+  <data name="Hosting_RateLimited_What" xml:space="preserve">
+    <value>This is the usage limit of GitHub for your account. Agent Studio does not insist.</value>
+  </data>
+  <data name="Hosting_Config_Refused" xml:space="preserve">
+    <value>It cannot be published: the repository defines {0} in {1}. Remove that line or publish with your own git program.</value>
+  </data>
+  <data name="Hosting_Config_Refused_What" xml:space="preserve">
+    <value>Your repository does not choose where the work goes. It does not choose how you sign in either.</value>
+  </data>
+  <data name="Hosting_Lfs_Refused" xml:space="preserve">
+    <value>This project uses Git LFS and Agent Studio does not upload those files. Publish the branch with your own git program.</value>
+  </data>
+  <data name="Hosting_Lfs_Refused_What" xml:space="preserve">
+    <value>Uploading them needs a program of the repository to run during the upload.</value>
+  </data>
+  <data name="Hosting_Sync_Permission" xml:space="preserve">
+    <value>Sync with GitHub</value>
+  </data>
+  <data name="Hosting_Sync_Permission_What" xml:space="preserve">
+    <value>Every few minutes it asks GitHub about your pull requests. The name of the repository and their numbers go out; nothing else of the project.</value>
+  </data>
+  <data name="Hosting_Deployed" xml:space="preserve">
+    <value>Deployed</value>
+  </data>
+  <data name="Hosting_Deployed_What" xml:space="preserve">
+    <value>GitHub says so. Agent Studio deploys nothing.</value>
+  </data>
+  <data name="Hosting_Revert_Suspected" xml:space="preserve">
+    <value>Possible revert, from the message of a saved version</value>
+  </data>
+  <data name="Hosting_Revert_Suspected_What" xml:space="preserve">
+    <value>This is a deduction. If it is true, you can reopen the milestone.</value>
+  </data>
+</root>

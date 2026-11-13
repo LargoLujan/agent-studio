@@ -725,6 +725,18 @@ Centra la cadena en cualquier nodo.</value>
     <value>Entrega</value>
     <comment>Text.</comment>
   </data>
+  <data name="Work_Stage_Publication" xml:space="preserve">
+    <value>Publicación</value>
+    <comment>Text. Stage of the chain (Phase 10, docs/21 D-28): the pull request.</comment>
+  </data>
+  <data name="Work_Stage_RemoteMerge" xml:space="preserve">
+    <value>Fusión en GitHub</value>
+    <comment>Text. Stage of the chain (Phase 10, docs/21 D-28): how it was merged, or reverted.</comment>
+  </data>
+  <data name="Work_Stage_Deployment" xml:space="preserve">
+    <value>Despliegue</value>
+    <comment>Text. Stage of the chain (Phase 10, docs/21 D-28): what the platform says it deployed.</comment>
+  </data>
   <data name="Work_Node_Requirement" xml:space="preserve">
     <value>Requisito</value>
     <comment>Text.</comment>
@@ -772,6 +784,10 @@ Centra la cadena en cualquier nodo.</value>
   <data name="Work_Node_Document" xml:space="preserve">
     <value>Documento</value>
     <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_PullRequest" xml:space="preserve">
+    <value>Petición de fusión (PR)</value>
+    <comment>Text. Kind of node of the trace (Phase 10, docs/21 D-28).</comment>
   </data>
   <data name="Info_Work_Participation_Title" xml:space="preserve">
     <value>Participantes</value>

@@ -3450,4 +3450,8 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
   <data name="Text_task_no_integration" xml:space="preserve">
     <value>{0} parte del código de varias tareas ({1}) sin una integración.</value>
   </data>
+  <data name="Text_project_busy_remote" xml:space="preserve">
+    <value>Agent Studio está sincronizando con GitHub. Prueba otra vez en unos segundos.</value>
+    <comment>Code project.busy-remote (docs/21 D-25): the project stayed held by a remote operation past the wait. One key for every screen that paints it (a key lives in one file only): the orchestrator, the debates, the audit.</comment>
+  </data>
 </root>

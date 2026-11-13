@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Hosting area (Phase 10, docs/21 section 7.7, ADR-0054) in Spanish of Spain, the source language. The P0 gives the ones of the table of 7.7: the visible text
+       (Hosting_<Name>) and its «Qué es esto» (Hosting_<Name>_What). WP5 completes the file and turns each explanation into the three texts of an ⓘ when it mounts it; nobody
+       else touches it. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Hosting_Publish_Button" xml:space="preserve">
+    <value>Publicar y abrir la petición de fusión</value>
+  </data>
+  <data name="Hosting_Publish_Button_What" xml:space="preserve">
+    <value>Sube a GitHub la rama de esta ejecución y abre una petición de fusión (PR). Tu rama no cambia.</value>
+  </data>
+  <data name="Hosting_Publish_Uploads" xml:space="preserve">
+    <value>Se publican {0} versiones guardadas (commit): {1} de Agent Studio y {2} tuyas.</value>
+    <comment>{0}: how many in all. {1}: those of Agent Studio. {2}: the person's own, not published yet.</comment>
+  </data>
+  <data name="Hosting_Publish_Uploads_What" xml:space="preserve">
+    <value>La rama de la ejecución sale de la tuya. Lo que tenías sin publicar sube con ella.</value>
+  </data>
+  <data name="Hosting_Publish_NotReady" xml:space="preserve">
+    <value>Esta ejecución aún no se puede publicar. Motivo: {0}</value>
+    <comment>{0}: the reason, already a sentence.</comment>
+  </data>
+  <data name="Hosting_Publish_NotReady_What" xml:space="preserve">
+    <value>Solo se publica el trabajo que aprobó un revisor independiente (juez), igual que al pasarlo a tu rama.</value>
+  </data>
+  <data name="Hosting_Publish_Busy" xml:space="preserve">
+    <value>El proyecto está ocupado. Podrás publicar cuando termine lo que está en marcha.</value>
+  </data>
+  <data name="Hosting_Publish_Busy_What" xml:space="preserve">
+    <value>Una ejecución, un debate o una auditoría usan el proyecto. Agent Studio no toca tu repositorio hasta que acaben.</value>
+  </data>
+  <data name="Hosting_Verdict_NotApproval" xml:space="preserve">
+    <value>El resultado de la revisión se publica como un estado y un comentario. No es una aprobación tuya.</value>
+  </data>
+  <data name="Hosting_Verdict_NotApproval_What" xml:space="preserve">
+    <value>Agent Studio nunca aprueba una petición de fusión con tu cuenta. Aprobar sigue siendo cosa de una persona.</value>
+  </data>
+  <data name="Hosting_Head_Moved" xml:space="preserve">
+    <value>La petición de fusión cambió después de la revisión.</value>
+  </data>
+  <data name="Hosting_Head_Moved_What" xml:space="preserve">
+    <value>Alguien subió cambios que el revisor independiente no vio. Si se fusionan, este trabajo no contará como integrado.</value>
+  </data>
+  <data name="Hosting_Merge_Hello" xml:space="preserve">
+    <value>Fusionar cambia la rama {0} de GitHub. Se pide Windows Hello cada vez.</value>
+    <comment>{0}: the base branch.</comment>
+  </data>
+  <data name="Hosting_Merge_Hello_What" xml:space="preserve">
+    <value>Fusionar y borrar en GitHub no admiten un permiso guardado.</value>
+  </data>
+  <data name="Hosting_Rules_Unreadable" xml:space="preserve">
+    <value>No se pudieron leer las protecciones de {0}. GitHub las aplicará igualmente.</value>
+    <comment>{0}: the base branch.</comment>
+  </data>
+  <data name="Hosting_Rules_Unreadable_What" xml:space="preserve">
+    <value>Tu cuenta no tiene permiso para verlas, o GitHub no las enseña.</value>
+  </data>
+  <data name="Hosting_Pending_Offline" xml:space="preserve">
+    <value>Pendiente de sincronizar: no hay conexión. Se volverá a intentar a las {0}.</value>
+    <comment>{0}: the time of the next try.</comment>
+  </data>
+  <data name="Hosting_Pending_Offline_What" xml:space="preserve">
+    <value>Nada se da por hecho hasta que GitHub lo confirma.</value>
+  </data>
+  <data name="Hosting_SignIn" xml:space="preserve">
+    <value>No hay sesión de GitHub. Abre una terminal y escribe: gh auth login</value>
+  </data>
+  <data name="Hosting_SignIn_What" xml:space="preserve">
+    <value>Agent Studio usa la sesión del programa gh. Nunca ve ni guarda tu clave de acceso.</value>
+  </data>
+  <data name="Hosting_Credentials" xml:space="preserve">
+    <value>Git no pudo identificarse en GitHub. Comprueba tu gestor de credenciales.</value>
+  </data>
+  <data name="Hosting_Credentials_What" xml:space="preserve">
+    <value>El envío lo hace git con tu gestor de credenciales. Agent Studio no ve la clave.</value>
+  </data>
+  <data name="Hosting_RateLimited" xml:space="preserve">
+    <value>GitHub pide esperar hasta las {0}.</value>
+    <comment>{0}: the time until which GitHub asks to wait.</comment>
+  </data>
+  <data name="Hosting_RateLimited_What" xml:space="preserve">
+    <value>Es el límite de uso de GitHub para tu cuenta. Agent Studio no insiste.</value>
+  </data>
+  <data name="Hosting_Config_Refused" xml:space="preserve">
+    <value>No se puede publicar: el repositorio define {0} en {1}. Quita esa línea o publica con tu programa de git.</value>
+    <comment>{0}: the name of the key (never its value). {1}: the file that defines it.</comment>
+  </data>
+  <data name="Hosting_Config_Refused_What" xml:space="preserve">
+    <value>Tu repositorio no elige adónde va el trabajo. Tampoco elige cómo entras.</value>
+  </data>
+  <data name="Hosting_Lfs_Refused" xml:space="preserve">
+    <value>Este proyecto usa Git LFS y Agent Studio no sube esos ficheros. Publica la rama con tu programa de git.</value>
+  </data>
+  <data name="Hosting_Lfs_Refused_What" xml:space="preserve">
+    <value>Subirlos exige ejecutar un programa del repositorio durante el envío.</value>
+  </data>
+  <data name="Hosting_Sync_Permission" xml:space="preserve">
+    <value>Sincronizar con GitHub</value>
+  </data>
+  <data name="Hosting_Sync_Permission_What" xml:space="preserve">
+    <value>Cada pocos minutos pregunta a GitHub por tus peticiones de fusión. Sale el nombre del repositorio y sus números; nada más del proyecto.</value>
+  </data>
+  <data name="Hosting_Deployed" xml:space="preserve">
+    <value>Desplegado</value>
+  </data>
+  <data name="Hosting_Deployed_What" xml:space="preserve">
+    <value>Lo dice GitHub. Agent Studio no despliega nada.</value>
+  </data>
+  <data name="Hosting_Revert_Suspected" xml:space="preserve">
+    <value>Posible reversión, por el mensaje de una versión guardada</value>
+  </data>
+  <data name="Hosting_Revert_Suspected_What" xml:space="preserve">
+    <value>Es una deducción. Si es cierta, puedes reabrir el hito.</value>
+  </data>
+</root>

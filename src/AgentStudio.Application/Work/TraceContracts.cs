@@ -48,6 +48,11 @@ public enum TraceChainStage
     Verification,
     Verdict,
     Delivery,
+
+    // Phase 10 (docs/21 D-28), appended: the pull request, how it was merged (or «revertido por…»), and the deployment.
+    Publication,
+    RemoteMerge,
+    Deployment,
 }
 
 /// <summary>
@@ -109,6 +114,17 @@ public static class ParticipationSources
     public const string Approval = "participation.approval";
     public const string LocalDelivery = "participation.local-delivery";
     public const string SkippedReview = "participation.review-skipped";
+
+    // Phase 10 (docs/21 D-30): where the remote roles come from.
+
+    /// <summary>The account that published, from the <c>login</c> that stayed in <c>HostingOperationPerformed</c>.</summary>
+    public const string RemotePublication = "participation.remote-publication";
+
+    /// <summary>The people who reviewed the pull request, with their decision, from the observation.</summary>
+    public const string RemoteReview = "participation.remote-review";
+
+    /// <summary>Who merged, from <c>merged_by</c> of the observation <c>Merged</c>.</summary>
+    public const string RemoteMerge = "participation.remote-merge";
 }
 
 /// <summary>

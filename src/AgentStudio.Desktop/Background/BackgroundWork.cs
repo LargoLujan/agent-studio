@@ -452,8 +452,12 @@ public sealed class ProjectActivityWork : IBackgroundWork
         _activity = activity;
     }
 
-    /// <summary>What holds the project now; null when nothing does or the project was not opened yet.</summary>
-    public ProjectActivityKind? Current => _project() is { } project ? _activity.Current(project.ProjectId) : null;
+    /// <summary>
+    /// What holds the project now; null when nothing does or the project was not opened yet. A remote operation of Agent Studio itself (Phase 10, docs/21 D-25) is
+    /// not work with agents and is not shown as such: it is ignored here, so the tray does not show an «auditoría» for a synchronisation of a few seconds.
+    /// </summary>
+    public ProjectActivityKind? Current =>
+        _project() is { } project && _activity.Current(project.ProjectId) is { } kind && kind != ProjectActivityKind.RemoteOperation ? kind : null;
 
     public BackgroundWorkKind Kind => Current switch
     {

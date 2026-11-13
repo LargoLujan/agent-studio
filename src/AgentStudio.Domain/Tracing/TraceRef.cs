@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Hosting;
 
 namespace AgentStudio.Domain.Tracing;
 
@@ -25,6 +26,9 @@ public enum TraceNodeKind
 
     /// <summary>A file of the repository at a commit (<c>path@commit</c>): an ADR, a document of <c>docs</c>, a diagram.</summary>
     Document,
+
+    /// <summary>A pull request of the remote (Phase 10, docs/21 D-28): <c>github.com/&lt;owner&gt;/&lt;name&gt;#&lt;number&gt;</c>.</summary>
+    PullRequest,
 }
 
 /// <summary>
@@ -60,6 +64,11 @@ public sealed record TraceRef
         if (kind == TraceNodeKind.Document)
         {
             RequireDocument(id);
+        }
+
+        if (kind == TraceNodeKind.PullRequest && PullRequestRef.TryParseTraceId(id) is null)
+        {
+            throw new ArgumentException($"A pull request is named 'github.com/<owner>/<name>#<number>', not '{id}'.", nameof(id));
         }
 
         Kind = kind;
@@ -105,6 +114,13 @@ public sealed record TraceRef
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return new TraceRef(TraceNodeKind.Document, path.Replace('\\', '/') + "@" + commit);
+    }
+
+    /// <summary>A pull request of the remote: <c>github.com/&lt;owner&gt;/&lt;name&gt;#&lt;number&gt;</c> (Phase 10).</summary>
+    public static TraceRef PullRequest(PullRequestRef pullRequest)
+    {
+        ArgumentNullException.ThrowIfNull(pullRequest);
+        return new TraceRef(TraceNodeKind.PullRequest, pullRequest.TraceId);
     }
 
     /// <summary>Whether <paramref name="id"/> is a full commit id: 40 or 64 lowercase hexadecimal characters.</summary>

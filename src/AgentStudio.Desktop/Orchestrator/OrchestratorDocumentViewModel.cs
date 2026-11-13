@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
@@ -1097,8 +1098,14 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 #pragma warning restore CA1031
         {
             // The engine may have recorded the start before failing: the approval is never used twice, so the next «Ejecutar»
-            // asks for a new one (and for Windows Hello again when it is on).
-            ForgetApproval();
+            // asks for a new one (and for Windows Hello again when it is on). Except when Agent Studio was synchronising with the remote
+            // and the project stayed busy past the wait (docs/21 D-25): the engine writes nothing before it has the project, so the
+            // approval is unused and stays.
+            if (ex is not UserTextException { Text.Code: ProjectActivityEntry.BusyRemoteCode })
+            {
+                ForgetApproval();
+            }
+
             ErrorMessage = Texts.Format("Orchestrator_Doc_StartFailed", OrchestratorErrorText.Detail(ex));
         }
         finally

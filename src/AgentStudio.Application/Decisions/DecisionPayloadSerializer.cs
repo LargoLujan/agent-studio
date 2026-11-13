@@ -86,6 +86,12 @@ public static class DecisionPayloadSerializer
         // Phase 6 (docs/20 §4.3): the fixes of Auto Doctor and the relations an AI proposed for Auto Graph, outside every run.
         [DecisionKind.DoctorFixApplied] = typeof(DoctorFixAppliedPayload),
         [DecisionKind.GraphRelationsProposed] = typeof(GraphRelationsProposedPayload),
+
+        // Phase 10 (docs/21 §5.3): the standing authorisations, what was done on the remote and what was observed there, outside every run.
+        [DecisionKind.HostingPolicyGranted] = typeof(HostingPolicyGrantedPayload),
+        [DecisionKind.HostingPolicyRevoked] = typeof(HostingPolicyRevokedPayload),
+        [DecisionKind.HostingOperationPerformed] = typeof(HostingOperationPerformedPayload),
+        [DecisionKind.RemoteStateObserved] = typeof(RemoteStateObservedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();

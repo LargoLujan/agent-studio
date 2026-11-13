@@ -17,7 +17,7 @@ public sealed class NoProcessInsideTheRepositoryTests : IDisposable
 {
     private static readonly string[] Planted =
     [
-        "dotnet.cmd", "dotnet.exe", "node.exe", "npm.cmd", "python.exe", "py.exe", "git.exe", "docker.exe", "wsl.exe", "claude.cmd", "codex.cmd", "gemini.cmd",
+        "dotnet.cmd", "dotnet.exe", "node.exe", "npm.cmd", "python.exe", "py.exe", "git.exe", "docker.exe", "wsl.exe", "gh.exe", "claude.cmd", "codex.cmd", "gemini.cmd",
     ];
 
     private readonly TempDirectory _temp = new();
@@ -38,7 +38,7 @@ public sealed class NoProcessInsideTheRepositoryTests : IDisposable
         _temp.WriteFile("repo/global.json", """{"sdk":{"version":"10.0.303","paths":[".dotnet","$host$"]}}""");
 
         // The stand-ins the system has: the same names, with the extensions the real ones have.
-        foreach (var name in new[] { "dotnet.exe", "node.exe", "npm.cmd", "python.exe", "py.exe", "git.exe", "docker.exe", "wsl.exe", "claude.cmd", "codex.cmd" })
+        foreach (var name in new[] { "dotnet.exe", "node.exe", "npm.cmd", "python.exe", "py.exe", "git.exe", "docker.exe", "wsl.exe", "gh.exe", "claude.cmd", "codex.cmd" })
         {
             _temp.WriteFile("system-tools/" + name, "system");
         }

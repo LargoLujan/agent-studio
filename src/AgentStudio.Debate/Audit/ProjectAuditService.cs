@@ -125,7 +125,8 @@ public sealed class ProjectAuditService(
                 "What the audit would do now is not what was shown (HEAD, the requirements, the judge, the producers or the profile changed): prepare it again.");
         }
 
-        using var lease = activity.TryEnter(projectId, ProjectActivityKind.Audit)
+        // Waits while a remote operation of Agent Studio holds the project (docs/21 D-25): nothing was written yet and no approval was asked.
+        using var lease = await ProjectActivityEntry.EnterAsync(activity, projectId, ProjectActivityKind.Audit, time, ct).ConfigureAwait(false)
             ?? throw new UserTextException(UserText.Of(AuditUserTexts.ProjectBusy), $"Project '{projectId}' is busy ({activity.Current(projectId)}): an audit shares the project with no other activity.");
         var decision = await approvals.RequestAsync(
             new ApprovalRequest(ApprovalAction, proposal.ApprovalText, RiskLevel.Critical, null, [], projectId, audit.Value, Binding: proposal.HeaderHash),

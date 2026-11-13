@@ -30,6 +30,8 @@ public static class DoctorToolCatalog
         // WSL: its message when it is not installed may go to the error output.
         new(DoctorTool.WslStatus, "wsl", ["--status"], true, false),
         new(DoctorTool.DockerVersionDesktopPipe, "docker", ["--host", "npipe:////./pipe/dockerDesktopLinuxEngine", "version", "--format", "json"], false, false),
+        // The CLI of GitHub (Phase 10, docs/21 D-31): only its version, with the environment of DoctorEnvironment that keeps it from reaching the network.
+        new(DoctorTool.GhVersion, "gh", Version, false, false),
     ];
 
     /// <exception cref="ArgumentOutOfRangeException">A value that is not in the list.</exception>

@@ -1,11 +1,13 @@
 using System.Windows;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Session;
@@ -293,6 +295,60 @@ public sealed class OrchestratorDocumentViewModelTests
 
         Assert.Equal("El orquestador no devolvió un plan utilizable (fallido): The answer was not valid JSON.", document.ProposalStatus);
         Assert.True(document.Canvas.IsEmpty);
+    }
+
+    [Fact]
+    public async Task A_start_refused_because_agent_studio_was_syncing_with_the_remote_keeps_the_approval_and_says_why()
+    {
+        // docs/21 D-25: the engine waited for the remote operation, wrote nothing, and gave up after the cap with project.busy-remote.
+        var engine = new FakeOrchestrator();
+        var plan = ValidPlan();
+        FakeRun? started = null;
+        var busy = true;
+        engine.Plan = (_, _, _) => Task.FromResult(ProposalOf(plan));
+        engine.Start = request => busy
+            ? throw new UserTextException(UserText.Of(ProjectActivityEntry.BusyRemoteCode), "Project is still held by a remote operation.")
+            : started = new FakeRun(new RunSnapshot(Run, RunPhase.Running, [.. request.Plan.Tasks.Select(t => FakeRun.View(t.Id.Value, t.Kind))], FakeRun.Healthy, 0));
+        var document = await OpenAsync(Backends.Complete(engine));
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        document.ApproveCommand.Execute(null);
+        var approval = document.PlanDecision;
+
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        Assert.True(approval?.Approved);
+        Assert.Same(approval, document.PlanDecision);
+        Assert.True(document.ExecuteCommand.CanExecute(null));
+        Assert.Contains(Texts.Render(UserText.Of(ProjectActivityEntry.BusyRemoteCode)), document.ErrorMessage, StringComparison.Ordinal);
+        Assert.False(document.Monitor.IsActive);
+
+        // The same approval starts the run once the project is free: nothing asked again.
+        busy = false;
+        await document.ExecuteCommand.ExecuteAsync(null);
+        Assert.NotNull(started);
+        Assert.True(document.Monitor.IsActive);
+        Assert.Equal(2, engine.RunRequests.Count);
+        Assert.True(engine.RunRequests.All(r => r.PlanApproval.Approved));
+    }
+
+    [Fact]
+    public async Task Any_other_failure_of_a_start_still_forgets_the_approval_because_the_engine_may_have_recorded_it()
+    {
+        var engine = new FakeOrchestrator();
+        var plan = ValidPlan();
+        engine.Plan = (_, _, _) => Task.FromResult(ProposalOf(plan));
+        engine.Start = _ => throw new InvalidOperationException("boom");
+        var document = await OpenAsync(Backends.Complete(engine));
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        document.ApproveCommand.Execute(null);
+
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        Assert.Null(document.PlanDecision);
+        Assert.False(document.ExecuteCommand.CanExecute(null));
+        Assert.NotNull(document.ErrorMessage);
     }
 
     [Fact]

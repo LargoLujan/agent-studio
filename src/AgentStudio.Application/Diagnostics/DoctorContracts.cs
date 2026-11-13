@@ -89,6 +89,12 @@ public enum DoctorTool
     /// when the default context (the one an empty <c>DOCKER_CONFIG</c> gives) does not answer, so an engine that listens only there is not reported as stopped. WP-A added it.
     /// </summary>
     DockerVersionDesktopPipe,
+
+    /// <summary>
+    /// <c>gh --version</c> (Phase 10, docs/21 D-31): the version of the CLI of GitHub. The door launches it with the variables that keep <c>gh</c> from reaching the network
+    /// (<c>GH_NO_UPDATE_NOTIFIER</c>, <c>GH_TELEMETRY</c>…): it asks nothing of the account and nothing of the network.
+    /// </summary>
+    GhVersion,
 }
 
 /// <summary>How a question to a tool ended. A result is always one of these: the door never throws for a tool that is not there.</summary>

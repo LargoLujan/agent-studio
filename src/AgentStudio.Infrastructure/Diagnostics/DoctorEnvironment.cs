@@ -22,6 +22,16 @@ public static class DoctorEnvironment
         "NoDefaultCurrentDirectoryInExePath",
     ];
 
+    /// <summary>The variables that keep <c>gh</c> from reaching the network when it is launched for its version (docs/21 D-31): no update notice, no telemetry, no prompt.</summary>
+    public static IReadOnlyList<KeyValuePair<string, string>> GhOffline { get; } =
+    [
+        new("GH_NO_UPDATE_NOTIFIER", "1"),
+        new("GH_NO_EXTENSION_UPDATE_NOTIFIER", "1"),
+        new("GH_TELEMETRY", "false"),
+        new("DO_NOT_TRACK", "1"),
+        new("GH_PROMPT_DISABLED", "1"),
+    ];
+
     /// <summary>The environment variables of the current process, as the door reads them by default.</summary>
     public static IReadOnlyDictionary<string, string> CurrentProcess()
     {
@@ -67,6 +77,16 @@ public static class DoctorEnvironment
         if (tool == DoctorTool.WslStatus)
         {
             environment["WSL_UTF8"] = "1";
+        }
+
+        // gh has telemetry and an update notice that go out to the network with ANY command, --version too (gh help environment): without these five
+        // variables Auto Doctor would break F10-13 (docs/21 D-31). The allow list above already removes GH_TOKEN, GH_HOST, GH_REPO, GH_CONFIG_DIR and GH_DEBUG.
+        if (tool == DoctorTool.GhVersion)
+        {
+            foreach (var (name, value) in GhOffline)
+            {
+                environment[name] = value;
+            }
         }
 
         return environment;

@@ -40,6 +40,7 @@ public sealed class DoctorToolRunnerTests : IDisposable
         Assert.Equal("docker version --format json", catalog[DoctorTool.DockerVersionJson]);
         Assert.Equal("wsl --status", catalog[DoctorTool.WslStatus]);
         Assert.Equal("docker --host npipe:////./pipe/dockerDesktopLinuxEngine version --format json", catalog[DoctorTool.DockerVersionDesktopPipe]);
+        Assert.Equal("gh --version", catalog[DoctorTool.GhVersion]);
     }
 
     [Fact]

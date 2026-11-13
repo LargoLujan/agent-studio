@@ -213,6 +213,22 @@ public enum DecisionKind
     /// the model that proposed them.
     /// </summary>
     GraphRelationsProposed,
+
+    // Phase 10 (Git remoto, docs/21 §5.1). Appended after the Phase 6 kinds, so no stored hash changes, and only these four: what is waiting to be synchronised has not
+    // happened, so it is not an entry (D-26). None of them belongs to a run: their payloads carry an empty run id and name the run in a field, so replay and the dossier of the
+    // judge never select them and a finished run gains no entries.
+
+    /// <summary>A person gave a standing authorisation for a class of remote operation in one repository (docs/21 D-16): the class, the repository, the base branch when it names one, and who gave it.</summary>
+    HostingPolicyGranted,
+
+    /// <summary>A standing authorisation was withdrawn (D-16): which one and who. It stays in the log; nothing is edited.</summary>
+    HostingPolicyRevoked,
+
+    /// <summary>The app did something on the remote with the account of the person (D-15): the operation, where, the authorisation or approval that allowed it, and its outcome. No text of the remote.</summary>
+    HostingOperationPerformed,
+
+    /// <summary>What was seen of a pull request on the remote (D-23): its snapshot with its fingerprint, and what changed since the last one recorded. The source of «integrado», «desplegado» and the chain.</summary>
+    RemoteStateObserved,
 }
 
 public sealed record DecisionEntry(

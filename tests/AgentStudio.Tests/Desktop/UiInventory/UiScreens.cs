@@ -63,7 +63,7 @@ internal static class UiScreens
 
     private static IReadOnlyList<UiScreen> Build() =>
         [.. Core(), .. UiScreensShell.All, .. UiScreensOrchestrator.All, .. UiScreensDebate.All, .. UiScreensServices.All, .. UiScreensRepository.All, .. UiScreensWork.All,
-         .. UiScreensDoctor.All, .. UiScreensGraph.All, .. UiScreensDocs.All];
+         .. UiScreensDoctor.All, .. UiScreensGraph.All, .. UiScreensDocs.All, .. UiScreensHosting.All];
 
     private static IReadOnlyList<UiScreen> Core() =>
     [

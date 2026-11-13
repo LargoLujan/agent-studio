@@ -906,4 +906,127 @@ Agent Studio starts and installs nothing: the guide tells you what to do.</value
   <data name="Doctor_Value_extends" xml:space="preserve">
     <value>extends {0}</value>
   </data>
+  <data name="Doctor_Check_gh_installed_Title" xml:space="preserve">
+    <value>GitHub program (gh)</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Ok" xml:space="preserve">
+    <value>gh {0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Warning" xml:space="preserve">
+    <value>gh is only inside the project, and it is not used.</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Error" xml:space="preserve">
+    <value>gh is not installed. Without it, pull requests (PR) cannot be opened.</value>
+  </data>
+  <data name="Doctor_Check_gh_installed_Unknown" xml:space="preserve">
+    <value>The version of gh could not be read.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Title" xml:space="preserve">
+    <value>Version of gh</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Ok" xml:space="preserve">
+    <value>Agent Studio tested version {0} of gh.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Warning" xml:space="preserve">
+    <value>Agent Studio did not test version {0} of gh. Some function might be missing.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_Unknown" xml:space="preserve">
+    <value>The version of gh could not be checked.</value>
+  </data>
+  <data name="Doctor_Check_gh_version_untested_NotApplicable" xml:space="preserve">
+    <value>Not checked: gh is not installed.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Title" xml:space="preserve">
+    <value>Remote of the project</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Ok" xml:space="preserve">
+    <value>The remote is GitHub: {0}.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Warning" xml:space="preserve">
+    <value>The remote is not on GitHub, so Agent Studio does not recognise it.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_Unknown" xml:space="preserve">
+    <value>The remote of the project could not be read.</value>
+  </data>
+  <data name="Doctor_Check_remote_host_NotApplicable" xml:space="preserve">
+    <value>The project has no remote.</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_Title" xml:space="preserve">
+    <value>Address of the remote</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_Ok" xml:space="preserve">
+    <value>Your remote uses HTTPS, as Agent Studio does.</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_Warning" xml:space="preserve">
+    <value>Your remote uses SSH. Agent Studio publishes over HTTPS with your credential manager.</value>
+  </data>
+  <data name="Doctor_Check_remote_transport_NotApplicable" xml:space="preserve">
+    <value>Not checked: the project has no GitHub remote.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Title" xml:space="preserve">
+    <value>Configuration for publishing</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Ok" xml:space="preserve">
+    <value>The configuration of the repository does not stop publishing.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Error" xml:space="preserve">
+    <value>The repository defines keys that stop publishing: {0}. Remove them or publish with your own git program.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_Unknown" xml:space="preserve">
+    <value>Not checked: the project is busy.</value>
+  </data>
+  <data name="Doctor_Check_remote_config_NotApplicable" xml:space="preserve">
+    <value>Not checked: the project has no GitHub remote.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Title" xml:space="preserve">
+    <value>Git LFS</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Ok" xml:space="preserve">
+    <value>The project does not use Git LFS.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Warning" xml:space="preserve">
+    <value>The project uses Git LFS and Agent Studio does not upload those files. Publish the branch with your own git program.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_Unknown" xml:space="preserve">
+    <value>Not checked: the project is busy.</value>
+  </data>
+  <data name="Doctor_Check_remote_lfs_NotApplicable" xml:space="preserve">
+    <value>Not checked: the project has no GitHub remote.</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Title" xml:space="preserve">
+    <value>GitHub session</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Ok" xml:space="preserve">
+    <value>The last time it was checked, on {0}, the session of gh was valid.</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Warning" xml:space="preserve">
+    <value>The last time it was checked, on {0}, there was no session of gh. Open a terminal and type: gh auth login</value>
+  </data>
+  <data name="Doctor_Check_remote_session_Unknown" xml:space="preserve">
+    <value>Not checked: Agent Studio does not ask GitHub on its own.</value>
+  </data>
+  <data name="Doctor_Check_remote_session_NotApplicable" xml:space="preserve">
+    <value>Not checked: the project has no GitHub remote.</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_Title" xml:space="preserve">
+    <value>Sync with GitHub</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_Ok" xml:space="preserve">
+    <value>Syncing is allowed. The last good one was on {0}.</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_Unknown" xml:space="preserve">
+    <value>Syncing is allowed, but there is no good one yet.</value>
+  </data>
+  <data name="Doctor_Check_remote_sync_NotApplicable" xml:space="preserve">
+    <value>It does not sync with GitHub. If you want, you turn it on in Settings.</value>
+  </data>
+  <data name="Doctor_Fix_install_gh" xml:space="preserve">
+    <value>Install the gh program of GitHub with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_login_gh" xml:space="preserve">
+    <value>Sign in to GitHub with the command below, in a terminal. Agent Studio does not run it.</value>
+  </data>
+  <data name="Doctor_Fix_open_pull_requests" xml:space="preserve">
+    <value>Open Repository and changes, and look at the Pull requests (PR) section.</value>
+  </data>
 </root>

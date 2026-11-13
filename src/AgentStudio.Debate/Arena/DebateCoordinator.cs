@@ -88,7 +88,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         }
 
         var project = proposal.Request.Project;
-        var lease = Enter(project);
+        var lease = await EnterAsync(project, ct).ConfigureAwait(false);
         try
         {
             var plan = await PlanAsync(proposal.Request, ct).ConfigureAwait(false);
@@ -177,7 +177,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             throw DebateUserTexts.Refusal(DebateUserTexts.AlreadyRunning, $"Debate {debate} is already running in this process.", debate.Value);
         }
 
-        var lease = Enter(project);
+        var lease = await EnterAsync(project, ct).ConfigureAwait(false);
         try
         {
             var log = await LoadVerifiedAsync(project, ct).ConfigureAwait(false);
@@ -779,8 +779,13 @@ public sealed class DebateCoordinator : IDebateCoordinator
 
     // ---- helpers ----
 
-    private IDisposable Enter(ProjectContext project) =>
-        _ports.Activity.TryEnter(project.ProjectId, ProjectActivityKind.Debate)
+    /// <summary>
+    /// Holds the project for the debate before anything is written. While what holds it is a remote operation of Agent Studio itself (docs/21 D-25) it waits, up to
+    /// <see cref="ProjectActivityEntry.RemoteWaitCap"/>, and past it throws the <see cref="UserTextException"/> of <see cref="ProjectActivityEntry.BusyRemoteCode"/>; with a
+    /// run, a planning, an audit or another debate it refuses at once, as ever.
+    /// </summary>
+    private async Task<IDisposable> EnterAsync(ProjectContext project, CancellationToken ct) =>
+        await ProjectActivityEntry.EnterAsync(_ports.Activity, project.ProjectId, ProjectActivityKind.Debate, _ports.Time, ct).ConfigureAwait(false)
             ?? throw DebateUserTexts.Refusal(
                 DebateUserTexts.ProjectBusy,
                 $"The project is busy ({_ports.Activity.Current(project.ProjectId)?.ToString() ?? "another activity"}): a debate does not share the project with any other activity with agents.");

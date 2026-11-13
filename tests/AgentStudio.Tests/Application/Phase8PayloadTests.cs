@@ -198,6 +198,8 @@ public sealed class Phase8PayloadTests
                 "BacklogItemRecorded", "BacklogItemRetired", "BacklogOrderChanged", "TraceLinkRecorded", "TraceLinkRetracted",
                 // Phase 6 appends after the Phase 9 kinds.
                 "DoctorFixApplied", "GraphRelationsProposed",
+                // Phase 10 appends after the Phase 6 kinds, and only these four (docs/21 §5.1).
+                "HostingPolicyGranted", "HostingPolicyRevoked", "HostingOperationPerformed", "RemoteStateObserved",
             ],
             Enum.GetNames<DecisionKind>());
     }
