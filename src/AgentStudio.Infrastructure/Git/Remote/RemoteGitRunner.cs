@@ -28,7 +28,7 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
     private readonly Func<IReadOnlyDictionary<string, string>> _ambient;
 
     /// <param name="worktreeRoot">The root of the worktrees of Agent Studio: a configuration file that lives there is not trusted.</param>
-    /// <param name="transport">The transport: <see cref="RemoteTransport.GitHubHttps"/> in production; the tests give theirs (<see cref="RemoteTransport.ForTests"/>).</param>
+    /// <param name="transport">The transport: <see cref="RemoteTransport.GitHubHttps"/> in production; the tests give a transport of their own.</param>
     /// <param name="ambient">The environment variables the process has, to remove the ones that are not allowed; the ones of the current process by default.</param>
     internal RemoteGitRunner(
         IProcessRunner runner,
