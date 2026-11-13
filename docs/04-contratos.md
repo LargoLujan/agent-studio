@@ -1273,6 +1273,8 @@ public interface IKeepAwake { IDisposable Hold(string reason); bool IsHeld { get
 | `WindowsHelloForCriticalApprovals` | verdadero | Las aprobaciones críticas piden Windows Hello además del diálogo; se puede desactivar (D-13, F8-11) |
 | `IdleLockEnabled`, `IdleLockMinutes` | falso, 15 | El bloqueo de la interfaz tras ese tiempo sin actividad, de 1 a 1 440 minutos (D-13, F8-10) |
 | `PreventSleepWhileWorking` | falso | Impedir la suspensión por inactividad mientras hay trabajo (D-40) |
+| `RemoteSyncProjects` (lista de `RemoteSyncGrant(ProjectId, Folder?)`; Fase 10, [21 §6](21-fase-10-git-remoto.md)) | vacía | Los proyectos con «Sincronizar con GitHub» dado: el único permiso de red en segundo plano. Solo lo da el interruptor de la sección de PR de cada proyecto (`IRemoteSyncPermission.SetAsync`, que solo llama un clic); «Ajustes» solo lo quita. Lo leen `IRemoteSyncPermission` e `IRemoteSyncPolicy` (`AppSettingsRemoteSyncPermission`) en cada llamada |
+| `RemoteSyncIntervalMinutes` (Fase 10) | 5 | Minutos entre dos sondeos de un proyecto con permiso: 2, 5, 15 o 60. Un valor fuera de la lista se lee como 5 y `SavePreferences` lo rechaza |
 | `MainWindowPlacement` (`WindowPlacement`: `left`, `top`, `width`, `height`, `maximized`; tanda 1, 2026-10-30) | nulo | Dónde estaba la ventana principal al salir de verdad y si estaba maximizada. Nulo hasta la primera salida: la ventana se abre centrada con su tamaño por defecto. Al arrancar solo se usa si la barra de título cae en un monitor conectado (`FitTo`); si no, se abre como sin colocación |
 
 - Los de las cuatro primeras filas son preferencias: las escribe `SavePreferences` y `Save` las conserva tal como están en el fichero
@@ -2656,3 +2658,13 @@ implementaciones son de los paquetes WP1 a WP5. Ningún tipo de este apartado ab
 **Escritorio.** `HostingStrings` (es y en) con los textos de [21 §7.7](21-fase-10-git-remoto.md#77-textos-y-sus-) que el P0 da de alta (cada texto visible y su explicación `<clave>_What`); `Text_project_busy_remote`
 (`OrchestratorStrings`) y `Panels_Tests_HeadBusyRemote`; las ocho líneas de Auto Doctor de D-31 en `DoctorStrings`; `Work_Stage_*` y `Work_Node_PullRequest`; el código de ayuda `publishing` con su artículo; y `UiScreensHosting` (vacío)
 sumado en el inventario. `ProjectActivityWork` (la bandeja) y `ProjectsWorkInProgress` (el bloqueo) ignoran la toma remota, que no es trabajo con agentes.
+
+**Composición de la integración** ([21 §10.9](21-fase-10-git-remoto.md), «Ajustes de la integración»; `Desktop/Composition/HostingServices.cs`, tras `AddDoctorServices`).
+
+- Registra `AddAgentStudioRemoteGit()`, `AddAgentStudioGitHubHosting(<local>)`, `AddAgentStudioHostingProjections()`, `AddAgentStudioRemoteSyncStore()` (sus opciones, bajo `<local>\hosting` de las carpetas de la app) y `AddAgentStudioPublication()`. Producción solo
+  conoce el transporte `GitHubHttps` (el ejecutor no tiene parámetros). Lo que una prueba registre antes se conserva (`TryAdd`).
+- `AppSettingsRemoteSyncPermission` (`Desktop/Services/RemoteSyncPermission.cs`) es **a la vez** `IRemoteSyncPermission` (`IsAllowed`, `SetAsync` —que solo llama un clic—, `Changed`) e `IRemoteSyncPolicy` (`PeriodicSyncAllowed`, `Interval`), sobre `AppSettings.RemoteSyncProjects`
+  y `RemoteSyncIntervalMinutes`: un solo valor, leído en cada llamada, apagado por defecto.
+- `RemoteSyncAttachment` (`Desktop/Services`) abre el buzón al abrir un proyecto con almacén (`RemoteSyncService.AttachAsync`) y lo cierra en orden al salir (`ShutdownAsync`, tope de 170 s, antes de parar el host). `RemoteSyncService` pasa a ser también `IDisposable`.
+- `PullRequestsViewModel` (con `ShellAddressOpener`) es el último parámetro de `RepositoryViewModel`; `WorkBackend.PullRequests` es `IPullRequestProjector`. `RunMonitorViewModel` gana `IsPublishAvailable`, `PublishCommand` y `PublishRequested(RunId)`;
+  `DoctorFixCatalog.OpenPullRequests` (`doctor.fix.open-pull-requests`) navega a `pull-requests`.
