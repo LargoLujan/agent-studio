@@ -1119,7 +1119,7 @@ para trabajar en el proyecto. **Contiene** el panel de proveedores de antes: sus
 │ ! Contenedores ⓘ                                                                     ⌄     │
 │   ! Docker — está instalado, pero su motor está parado          [Cómo arreglarlo]          │
 │     Abre Docker Desktop y espera a que su motor arranque.                                  │
-│ ✓ Entorno que pide el proyecto ⓘ (WP-E)                                              ›     │
+│ ✓ Entorno que pide el proyecto ⓘ                                                      ›     │
 └────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1128,12 +1128,12 @@ para trabajar en el proyecto. **Contiene** el panel de proveedores de antes: sus
   sin ninguna comprobación no sale (sin proyecto abierto no salen «Proyecto» ni «Entorno»). Cada apartado tiene su ⓘ, que enlaza con el artículo de ayuda `doctor`.
 - **Cada comprobación:** su estado, su título, una frase, un botón de arreglo si lo tiene y «Detalles» plegados con sus datos (versión, ruta…). «Sin comprobar» no es «correcto»: es que
   la herramienta no contestó, tardó más de 10 s o dijo algo que no se entiende.
-- **Los arreglos son de tres clases y ninguno toca el sistema.** «Ir a…» abre una pantalla de la app (el configurador); solo se ofrece si la app puede abrirla.
+- **Los arreglos son de tres clases y ninguno toca el sistema.** «Ir a…» abre una pantalla de la app (el configurador, Auto Graph o Skills); solo se ofrece si la app puede abrirla. La línea «Discrepancias del proyecto» de «Proyecto» lleva a Auto Graph (es el único arreglo que cruza paquetes: «Regenerar» está en «Diagramas», que ya es esa pantalla).
   «Cómo arreglarlo» abre una tarjeta con una frase, una **orden para copiar** (Agent Studio no la ejecuta) y un botón a la página oficial. «Aplicar» y «Deshacer» existen para un cambio de
   Agent Studio que se pueda deshacer, y no hay ninguno registrado en la Fase 6.
 - **Cuándo comprueba:** al abrir el panel (y otra vez solo si pasó más de un minuto) y al pulsar «Volver a comprobar». Las sondas de los proveedores se lanzan **una vez** por comprobación y sus
   resultados alimentan las filas de siempre. No hay sondeo periódico y el resultado no se guarda.
-- **La tabla del entorno que pide el proyecto** (cuatro columnas: qué pide, dónde lo dice, qué hay y el resultado) está en el panel; la rellena WP-E.
+- **La tabla del entorno que pide el proyecto** (cuatro columnas: qué pide, dónde lo dice, qué hay y el resultado) está en el apartado «Entorno que pide el proyecto» (lo lee de `global.json`, `.nvmrc`, `package.json`, `pyproject.toml` y ficheros parecidos, sin ejecutar nada del repositorio).
 - Las filas de los proveedores se conservan: una fila por proveedor con su punto, su nombre y una línea con la versión y la sesión; lo demás va en «Detalles». Gemini sale **«Aparcado»**, con
   un punto neutro, salvo que la comprobación vea una clave de API o una sesión ([ADR-0009](adr/0009-google-aparcado.md)), y no cuenta en el resumen de la barra superior ni en el apartado.
 - El panel está plegado a la derecha por defecto. Se abre desde su pestaña, desde «Auto Doctor» en la barra lateral o desde el resumen de proveedores de la barra superior
@@ -1426,6 +1426,19 @@ Los dos apartados que faltaban del documento: [20 D-23 a D-30](20-fase-6-auto-do
 - **Teclado y lector de pantalla.** Cada fila de la lista de diagramas lleva su nombre (diagrama, estado y copia), cada botón de una discrepancia nombra el fichero o la
   discrepancia sobre la que actúa, y el estado nunca se dice solo con el color.
 
+#### 8.3.2 Doctor de skills (Fase 6, WP-S): dentro de la pantalla de Skills
+
+El doctor de skills ([20 §6.2 y §6.3](20-fase-6-auto-doctor-y-auto-graph.md#62-skills-pantalla-ampliada), [10 §6](10-catalogo-de-skills.md#6-salud-doctor), [ADR-0063](adr/0063-doctor-de-skills-con-red.md))
+**no es un apartado de Auto Doctor** (D-01 fija cinco apartados, sin skills) ni está repetido en Ajustes: vive en la pantalla de Skills, que es donde se ve su resultado.
+
+- **«Comprobar en GitHub»:** un botón con su permiso, apagado de partida («Permitir que Agent Studio pregunte a GitHub por las skills»). Apagado, el botón está desactivado y la pantalla dice por qué.
+  Un texto explica qué se envía (el propietario, el repositorio, la rama, la carpeta y la versión fijada de cada skill, solo a `api.github.com`) y el estado de la última comprobación
+  (cuántas sin novedades, por revisar y sin comprobar) y el límite de consultas de GitHub. Nunca se comprueba al abrir la pantalla ni en segundo plano.
+- **«Clave de acceso de GitHub (opcional)»:** guardar o cambiar y borrar, cada una con Windows Hello; con clave, cada comprobación pide Hello. La clave no se vuelve a mostrar:
+  solo «hay una clave de acceso guardada».
+- **«Marcar los scripts como revisados»,** en la skill, con la lista de scripts y un enlace para abrir cada uno. Ningún script se ejecuta.
+- **Sin arreglos desde Auto Doctor:** «Ver la skill» y «Desactivar la skill archivada» no se ofrecen en el panel de Auto Doctor porque ninguna comprobación suya habla de skills; la persona hace
+  lo mismo desde esta pantalla (ver la skill y desactivarla).
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 
 Para tu demostración, con la composición real (cada paso que gasta cuota pide tu aprobación antes):

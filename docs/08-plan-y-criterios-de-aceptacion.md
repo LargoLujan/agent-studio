@@ -459,8 +459,8 @@ Pendiente, sin bloquear el uso:
 | F6-4 | Relaciones inferidas por IA visualmente distintas de las estáticas | Test de ViewModel |
 | F6-5 | Navegar de un nodo al fichero o tarea | Demostración |
 | F6-6 | Doctor de skills: upstream desde el commit fijado, repositorio archivado, scripts sin revisar y tamaño, con token opcional de GitHub | Tests con respuestas grabadas de la API |
-| F6-7 | Auto Doctor lee el entorno que declara el proyecto (`global.json`, herramientas locales de .NET, `.nvmrc` o `engines`, `.python-version` o `requires-python`, `.venv`, `devcontainer.json`, `compose.yaml`, `Dockerfile`) y lo compara con lo instalado, sin ejecutar nada del repositorio | Tests con repositorios de ejemplo, y uno que comprueba que ningún proceso arranca dentro del repositorio ni con un ejecutable suyo |
-| F6-8 | Cada evidencia de verificación lleva las versiones de las herramientas de su paso | Test del verificador con un perfil de dos pasos |
+| F6-7 | Auto Doctor lee el entorno que declara el proyecto (`global.json`, herramientas locales de .NET, `.nvmrc` o `engines`, `.python-version` o `requires-python`, `.venv`, `devcontainer.json`, `compose.yaml`, `Dockerfile`) y lo compara con lo instalado (que da la puerta de herramientas), sin ejecutar nada del repositorio ni lanzar ningún proceso para leerlo | Tests con repositorios de ejemplo, y uno que comprueba que ningún proceso arranca dentro del repositorio ni con un ejecutable suyo |
+| F6-8 | Cada evidencia de verificación lleva, en el bloque `tools:` de su cabecera, las versiones de las herramientas de su paso, leídas del recurso de versión del ejecutable que arranca el paso **sin ejecutar nada** ([docs/20](20-fase-6-auto-doctor-y-auto-graph.md) D-12) | Test del verificador con un perfil de dos pasos |
 | F6-9 | Auto Doctor distingue Docker no instalado, instalado con el motor parado y WSL2 sin su distribución, con su versión y su arreglo | Tests con salidas grabadas de `docker version --format json` y `wsl --status` |
 | F6-10 | Diagramas generados en Mermaid (la solución con Roslyn o MSBuild, el plan de una ejecución y la secuencia de agentes, orquestador y juez desde el registro), con la cabecera de su versión; «desactualizado» cuando el modelo de HEAD cambia; nunca se leen de vuelta | Tests contra ficheros dorados, sobre la propia solución y un registro preparado |
 | F6-11 | Discrepancias deterministas: enlaces a rutas que no existen, ADR que citan ficheros borrados, diagramas desactualizados y, cuando exista la Fase 9, requisitos de un hito sin cubrir | Tests con un repositorio preparado |
@@ -470,6 +470,30 @@ Pendiente, sin bloquear el uso:
 F6-12 y F6-13 los añade [docs/20 §8](20-fase-6-auto-doctor-y-auto-graph.md) (decisión 12 (a)): F6-3 y F6-6 no dicen nada de seguridad y esta fase gira en torno a ella. Los fija el P0
 con la prueba de arquitectura (`tests/AgentStudio.Tests/GraphWorker/GraphArchitectureTests.cs`) y los validadores de origen (`GitHubSkillOrigin`); el resto lo cierran WP-G y WP-S.
 
+**Estado a 2026-11-13 (integrada en la rama de integración de la Fase 6, sin publicar; pendiente de dos demostraciones con tu OK).** Diseño en [20](20-fase-6-auto-doctor-y-auto-graph.md); ADR-0045 y ADR-0061 a ADR-0063.
+Pruebas de integración de punta a punta en `tests/AgentStudio.Tests/Integration/Phase6/` (la app compuesta con `AddAgentStudioApp`, carpetas temporales, sin lanzar ningún programa de un proveedor ni salir a la red): `Phase6AutoDoctorTests`
+(Auto Doctor por `IDoctorService` sobre un repositorio con `global.json`, con las fuentes reales, la del entorno declarado y la línea de discrepancias, y el acceso a Auto Graph y Auto Doctor desde la barra de actividad),
+`Phase6GraphDiagramsDiscrepanciesTests` (grafo, diagrama, discrepancia «desactualizado», línea de Auto Doctor y «Regenerar», con las costuras de la composición) y su variante `Phase6GraphDiagramsDiscrepanciesLocalToolsTests`
+(`LocalTools`: git real y `AgentStudio.GraphWorker` real), y `Phase6VerificationToolsTests` (verificación de dos pasos con su bloque `tools:`, leído por `EvidenceToolVersions.Parse`).
+
+| ID | Estado | Evidencia |
+|---|---|---|
+| F6-1 | Cumplido | `tests/.../{Application,Infrastructure}/Diagnostics/**` (una por comprobación, el agregador y el adaptador de proveedores) y `Integration/Phase6/Phase6AutoDoctorTests` |
+| F6-2 | Cumplido | `tests/.../Application/Diagnostics/DoctorFixTests.cs`: ningún arreglo de la Fase 6 toca el sistema (navegar y guías); el catálogo es cerrado |
+| F6-3 | Cumplido | `tests/.../GraphWorker/**` (dorado sobre `SampleSolution`, humo sobre `AgentStudio.slnx`), `Infrastructure/Graph/**` y `Phase6GraphDiagramsDiscrepanciesLocalToolsTests` (`LocalTools`) |
+| F6-4 | Cumplido | `tests/.../Desktop/Graph/**` (`GraphMapSectionTests`) |
+| F6-5 | Pruebas cumplidas; **demostración pendiente con tu OK** | Una prueba de ViewModel por orden (`Desktop/Graph/**`); falta la demostración: de un proyecto a su `.csproj`, de un espacio de nombres a un fichero y de un proyecto a una tarea |
+| F6-6 | Pruebas cumplidas; **prueba en vivo pendiente con tu OK** | `tests/.../Infrastructure/Skills/GitHub/**` y `Desktop/Skills/SkillsDoctor*` con respuestas escritas a mano a partir de la documentación de la API (nada se probó contra GitHub); falta la prueba en vivo contra `api.github.com`, con una clave de solo lectura y Windows Hello real (docs/20 §12) |
+| F6-7 | Cumplido | `tests/.../Infrastructure/Environments/**` y `Infrastructure/Diagnostics/NoProcessInsideTheRepository*` (la `LocalTools` incluida); el límite de git, sin rodeos, en docs/20 §8 |
+| F6-8 | Cumplido | `tests/.../Orchestration/Verification/VerificationToolVersionsTests.cs`, `Infrastructure/Environments/StepToolVersionReaderTests.cs` y `Integration/Phase6/Phase6VerificationToolsTests` (el lector de la composición, sobre un ejecutable real y uno inexistente). `dotnet` da la versión del host, no la del SDK (P67) |
+| F6-9 | Cumplido | `tests/.../Infrastructure/Diagnostics/**` con las salidas grabadas de `docker` y `wsl` (`Fixtures/`) |
+| F6-10 | Cumplido | `tests/.../Memory/Diagrams/**` (dorados y prueba adversaria) y `Integration/Phase6/Phase6GraphDiagramsDiscrepancies*`; el dibujo y `mermaid.parse` son de la Fase 16 (P68) |
+| F6-11 | Cumplido | `tests/.../Memory/Consistency/**` y `Integration/Phase6/Phase6GraphDiagramsDiscrepancies*` (la línea de Auto Doctor y la pantalla cuentan lo mismo) |
+| F6-12 | Cumplido | `tests/.../GraphWorker/GraphArchitectureTests.cs`, `Infrastructure/Graph/GraphWorkerLocalToolsTests.cs` (repositorio hostil, `LocalTools`) |
+| F6-13 | Cumplido en pruebas | `tests/.../Infrastructure/Skills/GitHub/**`, `Domain/Skills/GitHubSkillOriginTests.cs`, `Infrastructure/Security/DpapiAndSecretsTests.cs` y `Desktop/Skills/SkillsDoctor*`; Windows Hello y el bloqueo de Windows de la bóveda no se ejercen en una prueba (misma prueba en vivo que F6-6) |
+
+**Pendiente de demostración, con tu OK:** (1) F6-5, la navegación desde un nodo; (2) F6-6 y F6-13, el doctor de skills contra GitHub con una clave de solo lectura y Windows Hello real
+(abrir Skills, encender el permiso, guardar la clave con Hello, pulsar «Comprobar en GitHub» y mirar el estado, el límite y que «Borrar» pide Hello). El permiso y la clave están en la pantalla de Skills, no en Ajustes.
 ## Fase 7 — Seguridad, pruebas y empaquetado
 
 | ID | Criterio de aceptación | Cómo se verifica |
