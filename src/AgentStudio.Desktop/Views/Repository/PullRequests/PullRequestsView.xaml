@@ -207,7 +207,7 @@
                 <ItemsControl ItemsSource="{Binding Detail.Rules}" ItemTemplate="{StaticResource Pr.CardLine}" Focusable="False" Margin="0,4,0,0"/>
                 <ItemsControl ItemsSource="{Binding Detail.Notes}" ItemTemplate="{StaticResource Pr.CardLine}" Focusable="False"/>
                 <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,6,0,0" Text="{l:T Hosting_Detail_FailingChecks}"
-                           Visibility="{Binding Detail.HasFailingChecks, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                           Visibility="{Binding Detail.HasFailingChecks, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                 <ItemsControl ItemsSource="{Binding Detail.FailingChecks}" Focusable="False" AutomationProperties.Name="{l:T Hosting_Detail_FailingChecks}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -222,19 +222,19 @@
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Chain}" Command="{Binding ShowChainCommand}"
                             Visibility="{Binding CanOpenChain, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Verdict}" Command="{Binding OpenVerdictCardCommand}"
-                            Visibility="{Binding Detail.CanPublishVerdict, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanPublishVerdict, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Reviewers}" Command="{Binding OpenReviewersCardCommand}"
-                            Visibility="{Binding Detail.CanRequestReviewers, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanRequestReviewers, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Merge}" Command="{Binding OpenMergeCardCommand}"
-                            Visibility="{Binding Detail.CanMerge, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanMerge, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Close}" Command="{Binding OpenCloseCardCommand}"
-                            Visibility="{Binding Detail.CanClose, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanClose, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_DeleteBranch}" Command="{Binding OpenDeleteBranchCardCommand}"
-                            Visibility="{Binding Detail.CanDeleteBranch, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanDeleteBranch, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Browser}" Command="{Binding OpenInBrowserCommand}"
-                            Visibility="{Binding Detail.CanOpenInBrowser, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanOpenInBrowser, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Unfollow}" Command="{Binding UnfollowCommand}"
-                            Visibility="{Binding Detail.CanUnfollow, FallbackValue=Collapsed, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                            Visibility="{Binding Detail.CanUnfollow, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                 </WrapPanel>
             </StackPanel>
         </Border>
