@@ -35,6 +35,11 @@ Kit del proyecto (skills, agentes y herramientas): `.claude/PROJECT_KIT.md`.
   Nunca se llaman `account/rateLimitResetCredit/consume` ni `account/sendAddCreditsNudgeEmail`.
 - El texto libre va por stdin, nunca como argumento (los CLIs de npm son shims `.cmd`).
 - Pasar siempre el modo de permisos de forma explícita al lanzar un CLI.
+- GitHub en la app (Fase 10, OK del usuario, 2026-11-13; docs/21 decisión 6): Agent Studio y sus pruebas lanzan de `gh`
+solo `gh --version` y `gh api` con las rutas de la lista cerrada del adaptador (`GitHubEndpoint`), con el permiso de sincronización del proyecto o con un clic de la persona. Nunca `gh auth …` ni nada que lea, enseñe o cambie el token.
+`git push` y `git ls-remote`, solo por el ejecutor remoto (ADR-0064) y a la dirección que escribe el código: nunca
+`fetch`, ni forzar, ni borrar. La prueba en vivo va aparte: solo contra el repositorio privado de prueba
+`agent-studio-privado` y con OK expreso para cada tanda (dado para la de la Fase 10 el 2026-11-13).
 
 ## Trabajo con agentes
 
