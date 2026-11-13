@@ -4,6 +4,8 @@ using AgentStudio.Application.Diagrams;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Graph;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Docs;
+using AgentStudio.Desktop.Graph;
 using AgentStudio.Domain.Diagnostics;
 using AgentStudio.Memory.Consistency;
 using AgentStudio.Tests.Memory.Diagrams;
@@ -76,6 +78,53 @@ public sealed class Phase6GraphDiagramsDiscrepanciesTests
         var settled = await LineAsync();
         Assert.Equal("1", settled.Fact("count"));
         Assert.Null(settled.Fact(ConsistencyCodes.DiagramStale));
+    }
+
+    [Fact]
+    public async Task The_discrepancies_section_of_the_screen_and_the_line_of_auto_doctor_count_the_same_by_code_at_every_step()
+    {
+        var head = new FixedHead("fixed", Phase6Host.Commit);
+        var builder = new MovingGraphBuilder(DiagramFixtures.Graph(withInference: false));
+        using var host = Phase6Host.Create(services =>
+        {
+            services.AddSingleton<IRepositoryHistoryReader>(head);
+            services.AddSingleton<IRepositorySnapshots>(new FilesSnapshots(("README.md", "[roto](no.md)")));
+            services.AddSingleton<ICodeGraphBuilder>(builder);
+        });
+        var root = host.Temp.CreateDirectory("repositorio");
+        var project = await host.Provider.GetRequiredService<IProjectWorkspace>().OpenAsync(root, Ct);
+        var analyses = host.Provider.GetRequiredService<ICommitAnalysisService>();
+        var catalog = host.Provider.GetRequiredService<IDiagramCatalog>();
+        var line = host.Provider.GetServices<IDoctorCheckSource>().OfType<DiscrepanciesCheckSource>().Single();
+        var section = host.Provider.GetServices<GraphSection>().OfType<DocsDiscrepanciesSection>().Single();
+        await new GraphDocumentViewModel([section]).SetProjectAsync(project, Ct);
+
+        async Task AssertSameCountAsync(int expectedTotal)
+        {
+            await section.RefreshCommand.ExecuteAsync(null);
+            var check = Assert.Single(await line.CheckAsync(project, Ct));
+            Assert.Equal(expectedTotal, section.Rows.Count);
+            Assert.Equal(expectedTotal, int.Parse(check.Fact("count")!, System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var code in ConsistencyCodes.All)
+            {
+                var onScreen = section.Rows.Count(r => r.Finding.Code == code);
+                var inLine = check.Fact(code) is { } text ? int.Parse(text, System.Globalization.CultureInfo.InvariantCulture) : 0;
+                Assert.Equal(onScreen, inLine);
+            }
+        }
+
+        await analyses.AnalyzeAsync(project, head.Commit, Ct);
+        await AssertSameCountAsync(1);
+
+        await catalog.GenerateAsync(project, DiagramKind.Solution, string.Empty, Ct);
+        await AssertSameCountAsync(1);
+
+        builder.Graph = DiagramFixtures.Graph(appName: "Renamed", withInference: false);
+        await analyses.AnalyzeAsync(project, head.Commit, Ct);
+        await AssertSameCountAsync(2);
+
+        await catalog.GenerateAsync(project, DiagramKind.Solution, string.Empty, Ct);
+        await AssertSameCountAsync(1);
     }
 
     [Fact]
