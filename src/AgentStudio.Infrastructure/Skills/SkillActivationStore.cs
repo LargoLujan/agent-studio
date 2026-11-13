@@ -105,7 +105,7 @@ public sealed class SkillActivationStore(ProjectDatabases databases, TimeProvide
     private async Task<IReadOnlyList<SkillActivation>> ReadProjectAsync(string projectId, CancellationToken ct)
     {
         await using var connection = databases.Connect(projectId);
-        await using var select = Command(connection, "SELECT id, skill_id, scope, scope_id, enabled FROM skill_activations WHERE project_id = $project ORDER BY id;");
+        await using var select = Command(connection, "SELECT id, skill_id, scope, scope_id, enabled, decided_by FROM skill_activations WHERE project_id = $project ORDER BY id;");
         select.Parameters.AddWithValue("$project", projectId);
 
         var activations = new List<SkillActivation>();
@@ -126,7 +126,9 @@ public sealed class SkillActivationStore(ProjectDatabases databases, TimeProvide
             throw new InvalidDataException($"Skill activation {reader.GetInt64(0)} has an unknown scope '{scopeText}'.");
         }
 
-        return new SkillActivation(new SkillId(reader.GetString(1)), scope, reader.GetString(3), reader.GetInt64(4) == 1);
+        // decided_by tells a decision the removal of the agent wrote (SqliteAgentRoster.DeleteAsync) from one of the person (P57).
+        var closedByRemoval = !reader.IsDBNull(5) && string.Equals(reader.GetString(5), SqliteAgentRoster.ActivationsClosedBy, StringComparison.Ordinal);
+        return new SkillActivation(new SkillId(reader.GetString(1)), scope, reader.GetString(3), reader.GetInt64(4) == 1, closedByRemoval);
     }
 
     private async Task AppendGlobalAsync(SkillActivation activation, string decidedBy, CancellationToken ct)

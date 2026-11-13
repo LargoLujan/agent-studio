@@ -7,8 +7,12 @@ public enum SkillScopeKind
     Agent,
 }
 
-/// <summary>An explicit enable/disable decision for a skill at one scope. <c>ScopeId</c> is null for Global.</summary>
-public sealed record SkillActivation(SkillId Skill, SkillScopeKind Scope, string? ScopeId, bool Enabled);
+/// <summary>
+/// An explicit enable/disable decision for a skill at one scope. <c>ScopeId</c> is null for Global. <c>ClosedByRemoval</c> is true only for a decision
+/// the store wrote when the agent was taken out of the template (ADR-0048, addendum of 2026-11-11, point 8: nobody chose it one by one), so the screen can say
+/// why an agent that came back with the same id starts with a skill off at its own level (P57). Rows written before this existed read as false.
+/// </summary>
+public sealed record SkillActivation(SkillId Skill, SkillScopeKind Scope, string? ScopeId, bool Enabled, bool ClosedByRemoval = false);
 
 /// <summary>
 /// Resolves whether a skill is enabled for a given project and agent. Precedence: Agent over Project over Global.

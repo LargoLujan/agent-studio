@@ -897,4 +897,65 @@ Marca los scripts como revisados cuando los hayas leído.</value>
   <data name="Skills_Scripts_OpenFailed" xml:space="preserve">
     <value>No se pudo abrir ese script: ya no existe o es un enlace.</value>
   </data>
+  <data name="Text_skills_frontmatter_no_header" xml:space="preserve">
+    <value>Su SKILL.md no tiene una cabecera válida entre líneas «---».</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_missing" xml:space="preserve">
+    <value>Falta el campo «name» en la cabecera.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_too_long" xml:space="preserve">
+    <value>El campo «name» pasa de {0} caracteres.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_invalid" xml:space="preserve">
+    <value>El campo «name» solo admite a-z, 0-9 y guiones, sin guiones al inicio, al final ni dobles.</value>
+  </data>
+  <data name="Text_skills_frontmatter_name_folder_mismatch" xml:space="preserve">
+    <value>El nombre ({0}) no coincide con la carpeta ({1}).</value>
+  </data>
+  <data name="Text_skills_frontmatter_description_missing" xml:space="preserve">
+    <value>Falta el campo «description» en la cabecera.</value>
+  </data>
+  <data name="Text_skills_frontmatter_description_too_long" xml:space="preserve">
+    <value>El campo «description» pasa de {0} caracteres.</value>
+  </data>
+  <data name="Text_skills_frontmatter_duplicate_key" xml:space="preserve">
+    <value>La clave «{0}» está duplicada en la cabecera. Gana la última.</value>
+  </data>
+  <data name="Text_skills_frontmatter_ok" xml:space="preserve">
+    <value>Cabecera conforme a la especificación Agent Skills.</value>
+  </data>
+  <data name="Text_skills_size_long" xml:space="preserve">
+    <value>El cuerpo tiene {0} líneas. Se recomiendan menos de {1}.</value>
+  </data>
+  <data name="Text_skills_size_long_cost" xml:space="preserve">
+    <value>El cuerpo tiene {0} líneas. Se recomiendan menos de {1}. Al usarla ocupa en contexto unos {2:N0} tokens (estimado por Agent Studio).</value>
+  </data>
+  <data name="Text_skills_size_ok" xml:space="preserve">
+    <value>Cuerpo de {0} líneas.</value>
+  </data>
+  <data name="Text_skills_size_ok_cost" xml:space="preserve">
+    <value>Cuerpo de {0} líneas. Al usarla ocupa en contexto unos {1:N0} tokens (estimado por Agent Studio).</value>
+  </data>
+  <data name="Text_skills_license_missing" xml:space="preserve">
+    <value>Sin licencia declarada. Revisa los términos de uso.</value>
+  </data>
+  <data name="Text_skills_license_permissive" xml:space="preserve">
+    <value>Licencia permisiva: {0}.</value>
+  </data>
+  <data name="Text_skills_license_copyleft" xml:space="preserve">
+    <value>Licencia copyleft, válida para uso personal ({0}).</value>
+  </data>
+  <data name="Text_skills_license_restricted" xml:space="preserve">
+    <value>Licencia no OSI o con restricciones ({0}). Revisa los términos antes de usarla.</value>
+  </data>
+  <data name="Text_skills_pinned_ok" xml:space="preserve">
+    <value>Fijada a una versión guardada (commit) concreta.</value>
+  </data>
+  <data name="Text_skills_pinned_missing" xml:space="preserve">
+    <value>Sin versión guardada (commit) fijada. El contenido de origen puede cambiar sin revisión.</value>
+  </data>
+  <data name="Skills_Effective_OffRemoved" xml:space="preserve">
+    <value>Desactivada ({0}): el agente se quitó y volvió con el mismo nombre. Actívala aquí si la quieres.</value>
+    <comment>What an agent gets when the skill was closed by the removal of an agent with the same id (P57). {0}: which scope decided.</comment>
+  </data>
 </root>
