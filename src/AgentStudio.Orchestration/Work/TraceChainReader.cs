@@ -5,6 +5,7 @@ using AgentStudio.Application.Work;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Domain.Work.Milestones;
 using AgentStudio.Orchestration.Engine;
@@ -56,6 +57,13 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
     private const int VerdictAt = 12;
     private const int DeliveryAt = 14;
 
+    // Phase 10 (docs/21 D-28), after the delivery: the pull request, the commits the merge left (and, one place later, those that revert it) and, as a step of the
+    // result commits and not a node of its own, the deployment.
+    private const int PublicationAt = 16;
+    private const int RemoteMergeAt = 18;
+    private const int RevertAt = 19;
+    private const int DeploymentAt = 20;
+
     public async Task<TraceChain> ChainAsync(ProjectContext project, TraceRef start, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
@@ -83,19 +91,30 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             var task = pending.Dequeue();
             if (startAt >= VerdictAt && core.Contains(task))
             {
-                extra.AddRange(Walk(graph, task, upstream: false).Where(n => graph.At(n) is { } at && at < VerdictAt));
+                // The work of the task, and what the remote did with it (the pull request and what its merge left): the chain from a verdict is the one from the pull request.
+                extra.AddRange(Walk(graph, task, upstream: false).Where(n => graph.At(n) is { } at && (at < VerdictAt || at >= PublicationAt)));
             }
 
             foreach (var hanging in graph.Neighbours(task).Where(n => graph.At(n) is { } at && at >= VerdictAt))
             {
                 extra.Add(hanging);
+
+                // What the remote did after the pull request (the commits its merge left, those that revert it) hangs from it, as the delivery's commit hangs from its tasks.
+                if (graph.At(hanging) == PublicationAt)
+                {
+                    extra.AddRange(Walk(graph, hanging, upstream: false));
+
+                    // And the commits it was made of, also those no task of the plan made (a commit of the person): the pull request is one thing whoever made them.
+                    extra.AddRange(graph.Neighbours(hanging).Where(n => graph.At(n) == ChangeAt));
+                }
+
                 foreach (var other in graph.Neighbours(hanging).Where(n => graph.At(n) == TaskAt))
                 {
                     if (inChain.Add(other))
                     {
                         extra.Add(other);
                         extra.AddRange(Walk(graph, other, upstream: true));
-                        extra.AddRange(Walk(graph, other, upstream: false).Where(n => graph.At(n) is { } at && at < VerdictAt));
+                        extra.AddRange(Walk(graph, other, upstream: false).Where(n => graph.At(n) is { } at && (at < VerdictAt || at >= PublicationAt)));
                         pending.Enqueue(other);
                     }
                 }
@@ -118,9 +137,23 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             }
         }
 
+        // The deployment is a step of the commit a merge left, not a node of its own (it is the same commit): one more step, after the merge, for each result commit the
+        // platform says it deployed successfully.
+        foreach (var result in steps.Where(s => s.At == RemoteMergeAt && graph.Deployed.Contains(s.Node)).ToList())
+        {
+            steps.Add((DeploymentAt, order++, result.Node));
+        }
+
         return new TraceChain(
             start,
-            [.. steps.OrderBy(s => s.At).ThenBy(s => graph.Sequence.GetValueOrDefault(s.Node)).ThenBy(s => s.Node.Kind).ThenBy(s => s.Node.Id, StringComparer.Ordinal).Select(s => new TraceChainStep(StageOf(s.At), s.Node, graph.Titles.GetValueOrDefault(s.Node), false, graph.Standings.TryGetValue(s.Node, out var standing) ? standing : null))]);
+            [.. steps.OrderBy(s => s.At).ThenBy(s => graph.Sequence.GetValueOrDefault(s.Node)).ThenBy(s => s.Node.Kind).ThenBy(s => s.Node.Id, StringComparer.Ordinal).Select(s => new TraceChainStep(
+                StageOf(s.At),
+                s.Node,
+                s.At == DeploymentAt ? RemoteTraceTitles.Deployed : graph.Titles.GetValueOrDefault(s.Node),
+
+                // What the remote only suggests (a merge mode nobody confirmed, a revert read from a message) is shown as a suggestion, never as a fact.
+                s.At is RemoteMergeAt or RevertAt && graph.Deduced.Contains(s.Node),
+                graph.Standings.TryGetValue(s.Node, out var standing) ? standing : null))]);
     }
 
     /// <summary>The nodes reached from <paramref name="start"/> through nodes of an earlier (or later) stage, breadth first, without the start.</summary>
@@ -164,6 +197,9 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         ChangeAt => TraceChainStage.Change,
         VerificationAt => TraceChainStage.Verification,
         VerdictAt => TraceChainStage.Verdict,
+        PublicationAt => TraceChainStage.Publication,
+        RemoteMergeAt or RevertAt => TraceChainStage.RemoteMerge,
+        DeploymentAt => TraceChainStage.Deployment,
         _ => TraceChainStage.Delivery,
     };
 
@@ -416,6 +452,9 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                 : standing.Challenged ? TraceVerdictStanding.Challenged : standing.Revised ? TraceVerdictStanding.Revised : TraceVerdictStanding.InForce;
         }
 
+        // What the remote did (docs/21 D-28): the pull requests the log observed, from their final observation, with what their merge left. It reads the log already parsed.
+        AddRemote(graph, RemoteLog.Read(parsed));
+
         // The explicit links in force, between nodes that have a place on the chain.
         foreach (var link in state.Links.Active)
         {
@@ -428,6 +467,76 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         }
 
         return graph;
+    }
+
+    /// <summary>
+    /// The pull requests of the log as nodes of the chain (docs/21 D-28). A pull request joins its original commits (each one a change; the tasks whose attempts made them
+    /// hang from the pull request, as they do from a verdict or a delivery) with the commits its merge left, which come in the order the platform listed them and say how
+    /// the merge was made; the commits that revert the merge hang from the last of those. What is only deduced (a merge made outside, a revert read from a message) is marked
+    /// so. Nothing is removed: the original commits stay whether git pruned them or not. A repeated or out-of-order observation changes nothing: only the final one of each
+    /// pull request is drawn, and every node and edge is added once.
+    /// </summary>
+    private static void AddRemote(ChainGraph graph, RemoteLog remote)
+    {
+        var succession = remote.Succession(_ => null);
+        var order = 0;
+        foreach (var observed in remote.PullRequests)
+        {
+            var snapshot = observed.Latest;
+            var pullRequest = TraceRef.PullRequest(observed.PullRequest);
+            graph.Add(pullRequest, PublicationAt, null);
+            foreach (var original in snapshot.OriginalCommits)
+            {
+                var commit = TraceRef.Commit(original);
+                graph.Add(commit, ChangeAt, null);
+                graph.Edge(commit, pullRequest, null);
+                foreach (var attempt in graph.Neighbours(commit).Where(n => n.Kind == TraceNodeKind.Attempt).ToList())
+                {
+                    foreach (var task in graph.Neighbours(attempt).Where(n => n.Kind == TraceNodeKind.Task).ToList())
+                    {
+                        graph.Edge(task, pullRequest, null);
+                    }
+                }
+            }
+
+            if (succession.OfPullRequest(observed.PullRequest) is not { } successor)
+            {
+                continue;
+            }
+
+            var originals = snapshot.OriginalCommits.ToHashSet(StringComparer.Ordinal);
+            var anchor = pullRequest;
+            foreach (var result in successor.ResultCommits)
+            {
+                // A rebase that changed nothing leaves the very same commit: it stays the change it was.
+                if (originals.Contains(result))
+                {
+                    continue;
+                }
+
+                var node = TraceRef.Commit(result);
+                graph.Edge(pullRequest, node, RemoteMergeAt, RemoteTraceTitles.MergeMode(successor.Mode));
+                graph.Sequence[node] = ++order;
+                anchor = node;
+                if (successor.ModeIsDeduced)
+                {
+                    graph.Deduced.Add(node);
+                }
+
+                if (IntegrationByPullRequest.IsDeployed(snapshot) && string.Equals(snapshot.Deployment!.Commit, result, StringComparison.Ordinal))
+                {
+                    graph.Deployed.Add(node);
+                }
+            }
+
+            foreach (var revert in successor.RevertedBy.Order(StringComparer.Ordinal))
+            {
+                var node = TraceRef.Commit(revert);
+                graph.Edge(anchor, node, RevertAt, RemoteTraceTitles.RevertedBy);
+                graph.Sequence[node] = ++order;
+                graph.Deduced.Add(node);
+            }
+        }
     }
 
     private async Task AddRequirementsAsync(ChainGraph graph, string projectId, string setHash, TraceRef milestone, CancellationToken cancellationToken)
@@ -457,6 +566,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         {
             TraceNodeKind.Requirement or TraceNodeKind.BacklogItem => RequirementAt,
             TraceNodeKind.Commit => ChangeAt,
+            TraceNodeKind.PullRequest => PublicationAt,
             _ => null,
         };
         if (at is { } place)
@@ -485,6 +595,12 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         /// <summary>The place of each verdict in the log, so that verdicts come in the order they were issued and not by id.</summary>
         public Dictionary<TraceRef, int> Sequence { get; } = [];
+
+        /// <summary>The commits of the remote that are a deduction and not a fact: a merge mode nobody confirmed, a revert read from a message.</summary>
+        public HashSet<TraceRef> Deduced { get; } = [];
+
+        /// <summary>The commits a merge left that the platform says were deployed successfully.</summary>
+        public HashSet<TraceRef> Deployed { get; } = [];
 
         public int? At(TraceRef node) => _at.TryGetValue(node, out var at) ? at : null;
 
@@ -525,6 +641,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             TraceNodeKind.Task => TaskAt,
             TraceNodeKind.Attempt => AttemptAt,
             TraceNodeKind.Commit => ChangeAt,
+            TraceNodeKind.PullRequest => PublicationAt,
             _ => throw new InvalidOperationException($"{node} has no place on the chain."),
         };
 

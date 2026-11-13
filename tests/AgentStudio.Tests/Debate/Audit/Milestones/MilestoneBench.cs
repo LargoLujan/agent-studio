@@ -145,10 +145,16 @@ internal sealed class FakeBoard(ProjectAuditBench audit) : IBoardProjector
         ["RQ-02"] = BoardColumn.Backlog,
     };
 
+    /// <summary>The run that decided a card (Phase 10: the report looks for the pull requests of that run).</summary>
+    public Dictionary<string, string> Runs { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>The reason a card says (Phase 10: a pull request merged with something the judge did not see).</summary>
+    public Dictionary<string, string> Reasons { get; } = new(StringComparer.Ordinal);
+
     public Task<MilestoneBoard> ProjectAsync(ProjectContext project, MilestoneId milestone, CancellationToken cancellationToken)
     {
         var entries = audit.Entries;
-        var cards = Columns.Select(c => new BoardCard(BoardCardKind.Requirement, c.Key, c.Key, c.Value, null, null)).ToList();
+        var cards = Columns.Select(c => new BoardCard(BoardCardKind.Requirement, c.Key, c.Key, c.Value, Runs.GetValueOrDefault(c.Key), Reasons.GetValueOrDefault(c.Key))).ToList();
         return Task.FromResult(new MilestoneBoard(milestone, entries.Count, entries[^1].Hash, cards, []));
     }
 

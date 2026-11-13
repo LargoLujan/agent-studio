@@ -1,10 +1,12 @@
 using System.Text.Json;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Work;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Tracing;
@@ -22,11 +24,14 @@ namespace AgentStudio.Orchestration.Work;
 /// <item><b>Producing agent:</b> each agent that launched as an executor, from the attempts of the log (provider, model and attempts in the detail).</item>
 /// <item><b>Git author and committer:</b> «Agent Studio», only when the log has a diff the system committed for an attempt. The identity of the person in a delivery is not in the
 /// log, so it is not said.</item>
-/// <item><b>Publishing account:</b> Phase 10; always «no consta» until a remote operation is recorded.</item>
-/// <item><b>Reviewer:</b> the judge of each valid verdict (its identity is the one the store holds for the verdict the log announced). A review the log records as skipped is an
+/// <item><b>Publishing account:</b> Phase 10 (docs/21 D-30): the <c>login</c> that stayed in the <c>HostingOperationPerformed</c> that pushed the branch or opened the pull request of
+/// the run, if the platform answered; «no consta» otherwise.</item>
+/// <item><b>Reviewer:</b> besides the judge, the people who approved the pull request of the run, from its final observation (the snapshot names only the approvers; the
+/// others are counted, not named). The judge of each valid verdict (its identity is the one the store holds for the verdict the log announced). A review the log records as skipped is an
 /// entry with no one (<see cref="ParticipationSources.SkippedReview"/>) and its reason, so a review that was not made is never attributed.</item>
 /// <item><b>Approver:</b> each person whose approval the log records as granted (<c>DecidedBy</c>), with what they approved.</item>
-/// <item><b>Integrator:</b> the local delivery that left a commit. The remote's <c>merged_by</c> is Phase 10.</item>
+/// <item><b>Integrator:</b> the local delivery that left a commit and, in Phase 10, <c>merged_by</c> of the final observation of the pull request of the run when it was merged.
+/// The remote entries are read as data (one that does not validate counts for nothing), and a pull request with no run is attributed to no one.</item>
 /// </list>
 /// A task is a scope of its run: what has no task (the delivery) counts for every task of it. A verdict counts for a task by the rule the board and the chain share
 /// (<see cref="VerdictReach"/>): the verdicts that judged it, among them the one issued on the review task of the run if it assessed a requirement the task covers.
@@ -132,6 +137,34 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
         foreach (var delivery in payloads.OfType<IntegrationPerformedPayload>().Where(p => p.IsDelivery && p.ResultCommit is not null && p.ConflictPaths.Count == 0 && Mine(p.RunId, p.Task?.Value)))
         {
             all.Add(new ParticipationEntry(ParticipationRole.Integrator, SystemGit, $"entrega a {delivery.TargetRef} en {delivery.ResultCommit}", ParticipationSources.LocalDelivery));
+        }
+
+        // The remote roles (docs/21 D-30), from the entries of the remote the log holds (read as data: one that does not validate counts for nothing). What has no task
+        // (a pull request is the run's) counts for every task of the run, as the delivery does. A role without a source stays «no consta».
+        var remote = RemoteLog.Read(parsed);
+
+        // Publishing account: the login that stayed in the operation that pushed the branch or opened the pull request, if the platform answered.
+        foreach (var operation in remote.Operations.Where(o => o.Payload.Operation is HostingOperationKind.PushRunBranch or HostingOperationKind.OpenPullRequest
+            && o.Payload.Outcome == HostingOutcome.Ok && o.Payload.Account is not null && Mine(o.Payload.Run, null)))
+        {
+            var payload = operation.Payload;
+            var pullRequest = payload.PullRequest is { } number ? $"#{number}" : null;
+            all.Add(new ParticipationEntry(ParticipationRole.PublishingAccount, payload.Account, $"{payload.Host}/{payload.Owner}/{payload.Repository}{pullRequest}", ParticipationSources.RemotePublication));
+        }
+
+        foreach (var observed in remote.PullRequests.Where(p => p.Run is not null && Mine(p.Run, null)))
+        {
+            // Reviewer: the people who approved (the snapshot names no one else: the others are only counted).
+            foreach (var approver in observed.Latest.Reviews.Approvers)
+            {
+                all.Add(new ParticipationEntry(ParticipationRole.Reviewer, approver.Value, $"{observed.PullRequest.TraceId}: {ReviewVerdict.Approved}", ParticipationSources.RemoteReview));
+            }
+
+            // Integrator: who merged, from the observation of the merge.
+            if (observed.Latest is { State: PullRequestState.Merged, MergedBy: { } mergedBy } merged)
+            {
+                all.Add(new ParticipationEntry(ParticipationRole.Integrator, mergedBy.Value, $"fusión de {observed.PullRequest.TraceId} en {merged.MergeCommit ?? merged.HeadCommit}", ParticipationSources.RemoteMerge));
+            }
         }
 
         var present = all.Select(e => e.Role).ToHashSet();

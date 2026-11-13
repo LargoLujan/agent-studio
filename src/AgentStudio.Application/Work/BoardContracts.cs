@@ -42,6 +42,12 @@ public static class BoardCardReasons
 
     /// <summary>The run failed or was cancelled (returned).</summary>
     public const string RunFailed = "board.run-failed";
+
+    /// <summary>
+    /// The pull request of the run was merged, but not with the commit the judge saw (or the log does not say which it was): it does not count as integrated (docs/21 D-29)
+    /// and the card stays in «hecho». The text: «fusionado con cambios que el juez no vio».
+    /// </summary>
+    public const string MergedWithUnjudgedChanges = "board.merged-unjudged-changes";
 }
 
 /// <summary>
