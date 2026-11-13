@@ -1,0 +1,5 @@
+HTTP/2.0 405 Method Not Allowed
+Content-Type: application/json; charset=utf-8
+X-Ratelimit-Remaining: 4980
+
+{"message":"Pull Request is not mergeable","documentation_url":"https://docs.github.com/rest/pulls/pulls#merge-a-pull-request"}

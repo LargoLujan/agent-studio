@@ -91,3 +91,44 @@
   (`GhOffline`); la lista blanca ya quita `GH_TOKEN`, `GH_HOST`, `GH_REPO`, `GH_CONFIG_DIR` y `GH_DEBUG`. `ToolOutputParsers.Version` lee `gh version 2.96.0 (2026-07-02)`.
 - **Primer paso de §10.2, comprobado en el equipo del P0** (sin red ni cuenta, con esas cinco variables): `gh --version` da `gh version 2.96.0 (2026-07-02)`; `gh api --help` trae `--input`, `--method`, `--include`, `--header`,
   `--hostname`, `--paginate`, `--cache` y `-F/--field` con `@` para leer de un fichero; `git push -h` trae `--porcelain`, `--no-verify`, `--no-follow-tags`, `--recurse-submodules` y `--signed`. Coincide con §13.
+
+## Lo que fija WP2 (2026-11-13)
+
+Implementado en `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub,Diagnostics}`; probado sin lanzar `gh` con un ejecutor de guion y respuestas **escritas a mano** (`tests/AgentStudio.Tests/Infrastructure/Hosting/GitHub/Fixtures/README.md`). En esta máquina solo se ejecutó
+`gh --version` y la ayuda (`gh api --help`, `gh help exit-codes`).
+
+- **Una sola orden:** `gh api --hostname github.com -X <MÉTODO> -i -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" [-H "If-None-Match: <etag>"] [--input -] <ruta>`. La ruta empieza por `/repos/<o>/<r>/…` o es `/user`
+  (con la barra inicial, como dice D-10) y la comprueba `GhArguments.IsAllowedPath` en el lanzador además del constructor (`GitHubApiPath`): ni `.` ni `..` (tampoco codificados), ni llaves, ni espacios; la consulta, solo de caracteres no reservados y `%XX`.
+  El `ETag` solo pasa con su forma exacta (`W/` opcional y entre comillas de 1 a 128 caracteres ASCII visibles); si no, la petición va sin condición.
+- **El catálogo** (`GitHubEndpoint`, 26 entradas) es el de D-10 más tres que el diseño citaba sin nombre propio (y `Comment`, que se añadió al leer un comentario antes de editarlo): `Branch` (`GET …/branches/{rama}`: el flag de protección, la cabeza de una rama y si existe) y `Commit`/`CommitList` (los padres de la fusión, los
+  commits que deja un rebase y la búsqueda de un revert). **Sin `WorkflowRuns`:** ningún miembro del contrato ni campo de `RemoteSnapshot` lo entrega, y `ReadWorkflowRuns` no se declara. Una prueba exige que cada entrada aparezca en la batería y que cada orden
+  lanzada sea exactamente una de la lista.
+- **Quién lanza:** solo `GhRunner` (`gh.exe` por `ExecutableSearch` fuera de las raíces no fiables; nunca un `.cmd`; carpeta neutra; entorno de `GhEnvironment`; 20 s y 1 MB por salida; el cuerpo por la entrada estándar). **Siempre por `GhQueue`**
+  (`SerialQueue`, un consumidor), que además guarda el estado del límite. La versión de `gh` no la lanza el adaptador: `GitHubCli.ReadAsync` pregunta a `IDoctorToolRunner` (la puerta de Auto Doctor, con `GhOffline`), y la usan por igual
+  `ProbeAsync` y las comprobaciones de Auto Doctor, para que digan lo mismo.
+- **Cómo se lee la respuesta:** la primera línea de la salida estándar (`HTTP/…`) manda; el código de salida solo cuenta si no hay línea de estado (4 → sesión; cualquier otro silencio → no se llegó al servidor; texto sin forma de respuesta → respuesta inválida).
+  LF y CRLF valen. De las cabeceras, cinco. El error estándar no se lee en nada.
+- **Límites:** 429, o 403 con `x-ratelimit-remaining: 0` o `retry-after`, paran **todo** lo que llegaría a GitHub (escrituras incluidas) hasta la hora de las cabeceras (mínimo un segundo después), recortada a dos horas; sin cabeceras, 1, 2, 5, 15 y 60 minutos;
+  una respuesta buena reinicia la escalera. `GhQueue.RestoreRateLimit` carga la espera guardada (también recortada) y `RateLimitedUntil` la devuelve, para que el almacén de WP3 la guarde.
+- **Las capacidades** salen de la versión: 2.96.0 (la probada y la mínima) declara todo salvo `ReadWorkflowRuns`; una posterior, lo mismo con «versión no probada»; una anterior, nada. Lo no declarado devuelve `Unsupported` sin lanzar nada.
+- **Códigos de rechazo** (`GitHubRefusal`, nunca un texto del remoto): `gh.not-installed`, `capability.not-declared`, `answer.invalid`, `account.login-invalid`, `remote.moved`, `server.error`, `http.<estado>`, `text.title-invalid`, `text.body-invalid`, `commit.invalid`,
+  `merge.method-not-declared`, `merge.blocked`, `merge.head-moved`, `branch.not-run-branch`, `branch.head-differs`, `reviewers.invalid`, `verdict.run-invalid`. Los textos para la pantalla son de WP5.
+- **Sin verificar** (la prueba en vivo, `Live/README.md`): todo lo que dice §13 de docs/21 para `gh api`; en particular, que `-i` deje leer la línea de estado de un 304 (y con qué código de salida). **Si no la dejara,** el lector da `NoResponse` o `InvalidAnswer` y el sondeo no
+  puede ser condicional: cada vuelta sería una lectura completa.
+
+### Ronda de arreglos (revisión de seguridad y contraste con la documentación, 2026-11-13)
+
+- **Tamaños:** `gh` responde 1 MB como mucho, así que las listas se piden en páginas pequeñas (commits 50, línea de tiempo 30, revisiones 50, comentarios 30, commits de la rama base 50) con un tope de páginas; lo que no cabe en la línea de tiempo o en los commits no hace fallar la observación (sale «truncado» con lo último conocido);
+  las revisiones se leen enteras o dan `reviews.too-many`.
+- **Límites:** se reconoce el límite secundario (403 sin cabeceras, por las palabras «rate limit» del cuerpo, que solo se mira para clasificar), `x-ratelimit-reset` solo vale con el límite a cero, y desde el segundo golpe seguido la espera es al menos el escalón de la escalera.
+  `RestoreRateLimit` (ya del puerto) recorta a dos horas lo que lee de un fichero local.
+- **Entorno:** `SSL_CERT_FILE` pasa con la regla de `GH_CONFIG_DIR`; `IUntrustedRoots` es obligatorio en la composición; el `ETag` no admite llaves.
+- **Escrituras sin confirmar:** un tiempo agotado a mitad de una escritura se devuelve como «sin conexión» aunque el servidor pudo aplicarla; quien reintenta observa antes (nota para WP3).
+- **Códigos nuevos:** `reviews.too-many`, `merge.rejected` (422), `text.description-invalid`, `repository.merge-settings-missing`.
+### Tercera ronda de arreglos (2026-11-13)
+
+- **Condiciones por el orden de la lista:** la página 1 de los commits de la rama base va del más nuevo al más viejo, así que un commit nuevo siempre la cambia: su `ETag` se conserva siempre y un 304 dice que toda la lista es la misma (una petición por vuelta aunque haya más de 50 commits). Las revisiones van de viejo a nuevo: su `ETag` solo se guarda si la primera página no iba llena.
+- **Límite conocido:** los commits de la rama base se leen hasta 300 por vuelta sin marca de truncado. Los reverts ya vistos se conservan por la unión con la instantánea anterior; uno nuevo solo se perdería con más de 300 commits nuevos entre dos vueltas.
+- **Textos raros:** un sustituto suelto de UTF-16 no es texto: se rechaza (título, cuerpo, comentario) o se limpia (descripción del estado, que además se recorta sin partir un par). Ningún método del proveedor lanza por un texto.
+- **`RestoreRateLimit` nunca acorta ni borra una espera en curso:** se queda con la mayor. Un `issue_url` se compara por igualdad exacta con `https://api.github.com/repos/{o}/{r}/issues/{n}`. Un 422 al borrar una referencia es `NotFound` solo si la relectura de la rama da 404; si no, es un rechazo.
+- **Una página de comentarios que no cabe en 1 MB** no impide publicar el estado: el resultado dice que se publicó y que el comentario no (`comment.lookup-unknown`), y no se escribe otro que podría duplicarse.

@@ -63,3 +63,18 @@
 - **`HostingPolicy.RequiresApprovedVerdict`** decide por operación, no por clase: publicar el estado y el comentario del veredicto no lo exigen (tienen que poder decir «no aprobado» y «en revisión»), y tampoco cerrar un PR ni
   borrar su rama; todo lo demás sí.
 - **`IHostingProvider.PublishVerdictAsync`** es el único miembro que escribe un veredicto, y no hay ninguno que envíe una revisión.
+
+## Lo que fija WP2 (2026-11-13)
+
+- **Cómo publica el adaptador** (`GitHubHostingProvider.PublishVerdictAsync`): `POST /repos/{o}/{r}/statuses/{commit juzgado}` con `{"state","context":"agent-studio/verdict","description"}` y un comentario (`POST …/issues/{n}/comments`, o `PATCH …/issues/comments/{id}` si hay
+  identificador; si no, lo busca en las diez primeras páginas (de 30) por su marca en la primera línea **y** por que su autor sea la cuenta que publica, con `GET /user`). Un comentario borrado por otra persona se vuelve a escribir una vez. Sin permiso para el estado
+  (403, 404 o rechazo), queda el comentario; una sesión caída, un límite o la falta de conexión paran todo y dicen qué se había publicado ya.
+- **El vocabulario del estado:** `success` / `failure` / `pending` para aprobado / rechazado / en revisión. **La descripción la compone quien llama** (WP3, con sus plantillas, D-19; `PublishVerdictAsync` la recibe): el adaptador solo quita los caracteres de control y de formato, la corta a 120 y rechaza una vacía. No hay textos en castellano en el adaptador.
+- **La marca** `<!-- agent-studio:verdict run=<id> -->` (el id, `[A-Za-z0-9_-]{1,64}`) la antepone el adaptador si el cuerpo que da quien llama no empieza por ella; el cuerpo lo compone el sistema (WP3) y el adaptador no le añade nada: ni el razonamiento del juez, ni su proveedor, ni
+  los requisitos. Se rechaza antes de lanzar nada un cuerpo de más de 20 000 caracteres o con caracteres de control o de formato (salvo salto de línea y tabulador).
+- **Cómo se prueba que nunca es una revisión** (`HostingBatteryTests`, `VerdictPublicationTests`, `HostingArchitectureTests`, `HostingCapabilityTests`): la batería ejecuta todos los miembros del contrato, con texto hostil y variables hostiles, y recorre cada `ProcessSpec`:
+  ninguno lleva `pr`, `review`, `--approve`; ninguna escritura va a una ruta con `/reviews`; ningún cuerpo lleva `"event"` ni `APPROVE`; la lista de órdenes es cerrada y cada entrada del catálogo aparece; el contrato no tiene ningún miembro de revisión (lista exacta);
+  y `APPROVE` solo aparece en `GitHubReviewReader.cs`, que lee `APPROVED` como estado ajeno (cuenta una vez a cada persona por su última revisión que decide; un comentario no la deshace).
+- **El estado del veredicto no cuenta como un check del proyecto:** al resumir los estados de un commit, el contexto `agent-studio/verdict` se deja fuera, para que un «en revisión» propio no se lea como un check pendiente.
+- **Fusionar** va con `{"merge_method","sha"}` y nada más; una fusión rechazada (405 y 422 → `merge.blocked`; 409 → `merge.head-moved`) devuelve además el `mergeable_state` que da una lectura del PR, de un vocabulario cerrado (`unknown` si es otro), nunca el mensaje del remoto.
+- **Sin verificar:** los mismos puntos que el ADR dice: el permiso del estado, el tope de su descripción, y los códigos de una fusión con la cabeza cambiada (el adaptador supone 409).

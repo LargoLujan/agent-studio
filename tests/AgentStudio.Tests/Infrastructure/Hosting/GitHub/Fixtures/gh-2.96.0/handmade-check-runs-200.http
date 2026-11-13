@@ -1,0 +1,9 @@
+HTTP/2.0 200 OK
+Content-Type: application/json; charset=utf-8
+X-Github-Api-Version-Selected: 2022-11-28
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4990
+X-Ratelimit-Reset: 1794571200
+Etag: W/"c1"
+
+{"total_count":3,"check_runs":[{"id":1,"name":"build","status":"completed","conclusion":"success"},{"id":2,"name":"test","status":"completed","conclusion":"failure"},{"id":3,"name":"lint","status":"in_progress","conclusion":null}]}

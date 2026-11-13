@@ -1,0 +1,5 @@
+HTTP/2.0 429 Too Many Requests
+Content-Type: application/json; charset=utf-8
+Retry-After: 60
+
+{"message":"You have exceeded a secondary rate limit."}

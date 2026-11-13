@@ -1,0 +1,9 @@
+HTTP/2.0 200 OK
+Content-Type: application/json; charset=utf-8
+X-Github-Api-Version-Selected: 2022-11-28
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4990
+X-Ratelimit-Reset: 1794571200
+Etag: W/"r1"
+
+{"id":1296269,"name":"hello","full_name":"octo/hello","private":true,"default_branch":"main","archived":false,"allow_merge_commit":true,"allow_squash_merge":true,"allow_rebase_merge":false,"permissions":{"admin":false,"maintain":false,"push":true,"triage":true,"pull":true}}
