@@ -29,8 +29,9 @@
   3. **Lo que dice lo compone el sistema:** la decisión, el commit juzgado, el recuento por requisito con sus ids, qué
      proveedor y modelo juzgó, que el juez no produjo el trabajo, y la frase fija «Esto no es una revisión de GitHub ni una
      aprobación de la cuenta que lo publica». **No lleva el razonamiento del juez:** es texto de un agente.
-  4. **Sigue al veredicto en vigor** (la regla de `VerdictReach`, la del tablero): un veredicto nuevo o una impugnación
-     cambian el estado y el comentario. Con el registro sin verificar, no se publica nada.
+  4. **Sigue al veredicto en vigor** (la regla de `VerdictReach`, la del tablero): tras un veredicto nuevo o una
+     impugnación, la pantalla dice que lo publicado ya no coincide y ofrece publicarlo. **No se actualiza solo:** empieza
+     con un clic de la persona (el sondeo solo lee). Con el registro sin verificar, no se publica nada.
   5. **El veredicto es de un commit.** Si la cabeza del PR cambia después, el estado se queda en el commit juzgado, el
      comentario lo dice («la cabeza del PR ya no es el commit que juzgó el juez») y la pantalla lo marca.
   6. **Fusionar desde Agent Studio va atado al commit juzgado:** la petición lleva ese commit como cabeza esperada y la

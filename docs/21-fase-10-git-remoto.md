@@ -734,13 +734,13 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 
 **D-22 · Cuándo cambia lo publicado.**
 
-- **Un veredicto nuevo** (un reintento, una revisión que cierra) o **una impugnación** cambian el veredicto en vigor: la
-  próxima vez que el buzón pase, actualiza el estado y el comentario. La regla del veredicto en vigor es la de
-  `VerdictReach`, la misma del tablero.
+- **Un veredicto nuevo** (un reintento, una revisión que cierra) o **una impugnación** cambian el veredicto en vigor, y lo
+  publicado deja de coincidir con él. La pantalla lo marca («El resultado de la revisión cambió y el PR aún dice lo
+  anterior») y ofrece «Publicar el veredicto». La regla del veredicto en vigor es la de `VerdictReach`, la del tablero.
 - **La cabeza del PR cambió** (alguien empujó): el estado se queda en el commit juzgado, que ya no es la cabeza. El
   comentario se actualiza con «La cabeza del PR ya no es el commit que juzgó el juez», y la pantalla lo marca.
-- **Es una escritura de la clase «escribir en el PR»:** sin autorización persistente, no se hace sola; queda como acción
-  pendiente («El veredicto cambió: actualizar el PR»).
+- **No se actualiza solo** (D-02): es una escritura de la clase «escribir en el PR» y empieza con tu clic. Con una
+  autorización persistente, ese clic no pide Hello; sin ella, sí. El sondeo solo lee.
 - **Cada publicación deja su entrada,** con el veredicto que refleja.
 
 ### 4.7 Sondeo y reconciliación (F10-6)
