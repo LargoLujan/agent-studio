@@ -9,7 +9,6 @@ namespace AgentStudio.Infrastructure.Hosting.GitHub;
 internal sealed record PullRequestFacts(
     PullRequestState State,
     string Head,
-    string HeadBranch,
     RemoteBranch Base,
     string? MergeCommit,
     RemoteLogin? MergedBy,
@@ -229,7 +228,6 @@ internal static partial class GitHubReaders
         }
 
         if (GitHubJson.Obj(root, "head") is not { } head || GitHubJson.CommitId(GitHubJson.Str(head, "sha", 64)) is not { } sha
-            || GitHubJson.Str(head, "ref", RemoteBranch.MaxLength) is not { } headBranch
             || GitHubJson.Obj(root, "base") is not { } baseBranch || RemoteBranch.TryParse(GitHubJson.Str(baseBranch, "ref", RemoteBranch.MaxLength)) is not { } baseRef
             || GitHubJson.Date(root, "updated_at") is not { } updated)
         {
@@ -250,7 +248,7 @@ internal static partial class GitHubReaders
             mergedBy = GitHubJson.Obj(root, "merged_by") is { } by ? RemoteLogin.TryParse(GitHubJson.Str(by, "login", 64)) : null;
         }
 
-        return new PullRequestFacts(kind, sha, headBranch, baseRef, mergeCommit, mergedBy, updated, GitHubJson.Display(GitHubJson.Str(root, "title", 1024)), MergeableState(GitHubJson.Str(root, "mergeable_state", 32)));
+        return new PullRequestFacts(kind, sha, baseRef, mergeCommit, mergedBy, updated, GitHubJson.Display(GitHubJson.Str(root, "title", 1024)), MergeableState(GitHubJson.Str(root, "mergeable_state", 32)));
     }
 
     /// <summary>The state a merge was blocked in, as a word of the closed vocabulary of GitHub; anything else is <c>unknown</c>.</summary>
@@ -536,6 +534,13 @@ internal static partial class GitHubReaders
         }
 
         return (true, found, items);
+    }
+
+    /// <summary>The commit a branch points to (<c>branches/{branch}</c>), or null when the body is not a branch.</summary>
+    internal static string? BranchHead(string? body)
+    {
+        using var document = GitHubJson.Parse(body);
+        return document is not null && GitHubJson.Obj(document.RootElement, "commit") is { } commit ? GitHubJson.CommitId(GitHubJson.Str(commit, "sha", 64)) : null;
     }
 
     /// <summary>The id of a comment that was just written.</summary>
