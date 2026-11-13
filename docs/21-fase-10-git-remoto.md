@@ -2254,11 +2254,12 @@ Dónde el diseño y el código real chocaron al escribir las proyecciones, y có
   lecturas de `gh api` con tu permiso. **La línea la escribes tú** (es una regla del orquestador, y no la cambia él). Texto
   propuesto, para «Proveedores y seguridad»:
 
-  > GitHub (Fase 10, OK del usuario, 2026-11-13; docs/21 decisión 6): de `gh` se lanza `gh --version` siempre, y `gh api`
-  > solo con las rutas de la lista cerrada del adaptador (`GitHubEndpoint`), con el permiso de sincronización del proyecto
-  > o con un clic de la persona. Nunca `gh auth …` ni nada que lea, enseñe o cambie el token. `git push` y
-  > `git ls-remote`, solo por el ejecutor remoto (ADR-0064) y a la dirección que escribe el código: nunca `fetch`, ni
-  > forzar, ni borrar. La prueba en vivo va aparte, con OK expreso y sobre un repositorio privado de prueba (decisión 14).
+  > GitHub en la app (Fase 10, OK del usuario, 2026-11-13; docs/21 decisión 6): Agent Studio y sus pruebas lanzan de `gh`
+  > solo `gh --version` y `gh api` con las rutas de la lista cerrada del adaptador (`GitHubEndpoint`), con el permiso de
+  > sincronización del proyecto o con un clic de la persona. Nunca `gh auth …` ni nada que lea, enseñe o cambie el token.
+  > `git push` y `git ls-remote`, solo por el ejecutor remoto (ADR-0064) y a la dirección que escribe el código: nunca
+  > `fetch`, ni forzar, ni borrar. La prueba en vivo va aparte: solo contra el repositorio privado de prueba
+  > `agent-studio-privado` y con OK expreso para cada tanda (dado para la de la Fase 10 el 2026-11-13).
 - **Falta siempre, con tu OK:** la prueba en vivo (decisión 14).
 
 ### 10.10 Orden y dependencias
