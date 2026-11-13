@@ -70,9 +70,9 @@ public sealed class SkillsStringsTests
     [Fact]
     public void The_information_button_has_its_three_texts_in_short_sentences_and_the_screen_uses_it()
     {
-        var problems = InfoProblems(["Info_Skills"]);
+        var problems = InfoProblems(["Info_Skills", "Info_SkillsDoctor"]);
         Assert.True(problems.Count == 0, string.Join('\n', problems));
-        Assert.Equal(["Info_Skills"], InfoKeysOf("Skills/SkillsView.xaml"));
+        Assert.Equal(["Info_Skills", "Info_SkillsDoctor"], InfoKeysOf("Skills/SkillsView.xaml"));
     }
 
     /// <summary>The guide asks for 20 words a sentence at most (D-52): none of the texts of this area has a longer one.</summary>

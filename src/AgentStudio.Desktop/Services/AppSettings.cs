@@ -84,6 +84,12 @@ public sealed record AppSettings
     /// </summary>
     public bool PlannerHistoryToolEnabled { get; init; } = true;
 
+    /// <summary>
+    /// «Permitir comprobar las skills en GitHub» (docs/20 D-13, F6-13, ADR-0063): the only permission to use the network that the doctor of skills has.
+    /// Off by default; while it is off no request is built. Even with it on, GitHub is asked only when the person presses «Comprobar en GitHub».
+    /// </summary>
+    public bool SkillsDoctorNetworkEnabled { get; init; }
+
     // ---- Phase 8 (docs/16 D-13, D-14 and D-40): the packages of the phase read them; until they do, nothing changes ----
 
     /// <summary>What closing the main window does (D-14): by default it asks when there is work going on, and exits when there is none.</summary>
@@ -201,6 +207,7 @@ public sealed record AppSettings
             ContextCriticalPercent = other.ContextCriticalPercent,
             CodexQuotaReadEnabled = other.CodexQuotaReadEnabled,
             PlannerHistoryToolEnabled = other.PlannerHistoryToolEnabled,
+            SkillsDoctorNetworkEnabled = other.SkillsDoctorNetworkEnabled,
             CloseWindow = other.CloseWindow,
             WindowsHelloForImportantApprovals = other.WindowsHelloForImportantApprovals,
             IdleLockEnabled = other.IdleLockEnabled,

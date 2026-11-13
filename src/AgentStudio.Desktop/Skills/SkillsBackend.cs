@@ -21,6 +21,12 @@ namespace AgentStudio.Desktop.Skills;
 /// (<c>ApprovalRequested</c>, then <c>ApprovalGranted</c> or <c>ApprovalDenied</c>; docs/17 §0.2 and F13-20), as every other
 /// approval.
 /// </param>
+/// <param name="Doctor">The checker against GitHub (docs/20 D-13 to D-15). Without it the button says why it cannot be pressed.</param>
+/// <param name="Tokens">Stores and deletes the token of GitHub (always after Windows Hello); the screen only learns whether there is one.</param>
+/// <param name="NetworkSetting">The permission «Permitir comprobar las skills en GitHub», off by default.</param>
+/// <param name="ScriptReviews">The fingerprint of the scripts the person reviewed.</param>
+/// <param name="ScriptsInspector">Reads the scripts folder of a skill without running anything.</param>
+
 public sealed record SkillsBackend(
     Func<CancellationToken, Task<SkillCatalogReport>>? Catalog = null,
     ISkillActivationStore? Activations = null,
@@ -28,7 +34,12 @@ public sealed record SkillsBackend(
     ISkillHealthReader? Health = null,
     ISkillRecommendationService? Recommendations = null,
     IProjectWorkspace? Workspace = null,
-    IApprovalGate? Approvals = null)
+    IApprovalGate? Approvals = null,
+    ISkillHealthBatchChecker? Doctor = null,
+    ISkillsDoctorTokenManager? Tokens = null,
+    ISkillsDoctorNetworkSetting? NetworkSetting = null,
+    ISkillScriptReviews? ScriptReviews = null,
+    ISkillScriptsInspector? ScriptsInspector = null)
 {
     public static SkillsBackend None { get; } = new();
 }

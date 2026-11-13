@@ -82,6 +82,7 @@ internal static class PlatformServices
             .AddAgentStudioObservability(new QuotaLogOptions { FilePath = Path.Combine(folders.Local.BaseDirectory, "usage", "quota.jsonl") })
             .AddModelServices()
             .AddAgentStudioSkills(SkillCatalogFor(skillsIndexPath), new SkillActivationStoreOptions(Path.Combine(folders.Roaming.BaseDirectory, "skill-activations.jsonl")))
+            .AddAgentStudioSkillsDoctor(Path.Combine(folders.Local.BaseDirectory, "skills-doctor"), Path.Combine(folders.Local.BaseDirectory, "vault"))
             .AddSkillProvisioner(paths)
             .AddAgentStudioSkillRecommendation(Path.Combine(folders.Local.BaseDirectory, "skill-recommendations"), SkillsScreenServices.DefaultServerExecutable)
             .AddSemanticIndexServices(folders, SkillsScreenServices.DefaultServerExecutable)

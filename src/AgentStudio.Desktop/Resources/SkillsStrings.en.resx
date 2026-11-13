@@ -472,4 +472,160 @@ Look at the cost: each skill that is on adds tokens to every run.</value>
   <data name="Skills_Sector_documentacion" xml:space="preserve">
     <value>Documentation</value>
   </data>
+  <data name="Skills_Doctor_Title" xml:space="preserve">
+    <value>Check on GitHub</value>
+  </data>
+  <data name="Skills_Doctor_Allow" xml:space="preserve">
+    <value>Let Agent Studio ask GitHub about the skills</value>
+  </data>
+  <data name="Skills_Doctor_AllowName" xml:space="preserve">
+    <value>Allow checking the skills on GitHub</value>
+  </data>
+  <data name="Skills_Doctor_Sends" xml:space="preserve">
+    <value>It connects only to api.github.com. For each pinned skill it sends the owner, the repository, the branch, the folder and the pinned version (commit). It sends nothing of your project, no paths and not your name.</value>
+  </data>
+  <data name="Skills_Doctor_Button" xml:space="preserve">
+    <value>Check on GitHub</value>
+  </data>
+  <data name="Skills_Doctor_ButtonName" xml:space="preserve">
+    <value>Check the skills on GitHub</value>
+  </data>
+  <data name="Skills_Doctor_ButtonTip" xml:space="preserve">
+    <value>Asks GitHub now, this once, whether the source of each skill changed or was archived.</value>
+  </data>
+  <data name="Skills_Doctor_StatusName" xml:space="preserve">
+    <value>State of the check on GitHub</value>
+  </data>
+  <data name="Skills_Doctor_NotChecked" xml:space="preserve">
+    <value>Nothing has been checked yet in this session.</value>
+  </data>
+  <data name="Skills_Doctor_NoChecker" xml:space="preserve">
+    <value>This version of the app does not include the GitHub checker.</value>
+  </data>
+  <data name="Skills_Doctor_Off" xml:space="preserve">
+    <value>Turn on the box above to be able to check.</value>
+  </data>
+  <data name="Skills_Doctor_Checking" xml:space="preserve">
+    <value>Asking api.github.com. It can take a few seconds.</value>
+  </data>
+  <data name="Skills_Doctor_Summary" xml:space="preserve">
+    <value>Checked at {0}. No news: {1}. To review: {2}. Not checked: {3}.</value>
+  </data>
+  <data name="Skills_Doctor_TokenUsed" xml:space="preserve">
+    <value>Your access key was used.</value>
+  </data>
+  <data name="Skills_Doctor_TokenDenied" xml:space="preserve">
+    <value>Your presence was not confirmed, so the check went without an access key.</value>
+  </data>
+  <data name="Skills_Doctor_Limit" xml:space="preserve">
+    <value>GitHub reached its limit of requests. It resets at {0}.</value>
+  </data>
+  <data name="Skills_Doctor_LimitSoon" xml:space="preserve">
+    <value>GitHub reached its limit of requests. It resets soon.</value>
+  </data>
+  <data name="Skills_Doctor_Failed" xml:space="preserve">
+    <value>The check could not be made. Try again later.</value>
+  </data>
+  <data name="Skills_Token_Title" xml:space="preserve">
+    <value>GitHub access key (optional)</value>
+  </data>
+  <data name="Skills_Token_Explain" xml:space="preserve">
+    <value>Without a key you can make 60 requests an hour. With a personal GitHub key, 5,000. Make it read-only for public repositories.</value>
+  </data>
+  <data name="Skills_Token_Hello" xml:space="preserve">
+    <value>Saving it, deleting it and using it in each check asks you to confirm with Windows Hello.</value>
+  </data>
+  <data name="Skills_Token_Protects" xml:space="preserve">
+    <value>It is stored encrypted for your Windows user. It protects the file from other users and other computers, not from a program running as your user.</value>
+  </data>
+  <data name="Skills_Token_FieldName" xml:space="preserve">
+    <value>GitHub access key</value>
+  </data>
+  <data name="Skills_Token_FieldTip" xml:space="preserve">
+    <value>Paste the key here. When saved, the field is emptied and never shown again.</value>
+  </data>
+  <data name="Skills_Token_Save" xml:space="preserve">
+    <value>Save or replace</value>
+  </data>
+  <data name="Skills_Token_SaveName" xml:space="preserve">
+    <value>Save or replace the access key</value>
+  </data>
+  <data name="Skills_Token_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Skills_Token_DeleteName" xml:space="preserve">
+    <value>Delete the stored access key</value>
+  </data>
+  <data name="Skills_Token_Stored" xml:space="preserve">
+    <value>An access key is stored. It is never shown again.</value>
+  </data>
+  <data name="Skills_Token_None" xml:space="preserve">
+    <value>No access key is stored.</value>
+  </data>
+  <data name="Skills_Token_StatusName" xml:space="preserve">
+    <value>State of the access key</value>
+  </data>
+  <data name="Skills_Token_SavedOk" xml:space="preserve">
+    <value>Key saved.</value>
+  </data>
+  <data name="Skills_Token_DeletedOk" xml:space="preserve">
+    <value>Key deleted.</value>
+  </data>
+  <data name="Skills_Token_NothingStored" xml:space="preserve">
+    <value>There was no stored key.</value>
+  </data>
+  <data name="Skills_Token_Denied" xml:space="preserve">
+    <value>Your presence was not confirmed: nothing was changed.</value>
+  </data>
+  <data name="Skills_Token_Invalid" xml:space="preserve">
+    <value>That key is not valid: only letters, numbers and signs, with no spaces.</value>
+  </data>
+  <data name="Skills_Token_Failed" xml:space="preserve">
+    <value>The key could not be saved or deleted.</value>
+  </data>
+  <data name="Skills_Hello_UseToken" xml:space="preserve">
+    <value>Confirm it is you to use your GitHub access key in this check.</value>
+  </data>
+  <data name="Skills_Hello_StoreToken" xml:space="preserve">
+    <value>Confirm it is you to save the GitHub access key.</value>
+  </data>
+  <data name="Skills_Hello_DeleteToken" xml:space="preserve">
+    <value>Confirm it is you to delete the GitHub access key.</value>
+  </data>
+  <data name="Skills_Scripts_Title" xml:space="preserve">
+    <value>Scripts</value>
+  </data>
+  <data name="Skills_Scripts_Files" xml:space="preserve">
+    <value>It brings these scripts. Agent Studio runs none of them.</value>
+  </data>
+  <data name="Skills_Scripts_FilesName" xml:space="preserve">
+    <value>Scripts of the skill</value>
+  </data>
+  <data name="Skills_Scripts_Mark" xml:space="preserve">
+    <value>Mark the scripts as reviewed</value>
+  </data>
+  <data name="Skills_Scripts_MarkName" xml:space="preserve">
+    <value>Mark the scripts of this skill as reviewed</value>
+  </data>
+  <data name="Skills_Scripts_Note" xml:space="preserve">
+    <value>The mark keeps a fingerprint of the scripts. If one changes, it shows as not reviewed again.</value>
+  </data>
+  <data name="Skills_Scripts_Reviewed" xml:space="preserve">
+    <value>You already marked these scripts as reviewed.</value>
+  </data>
+  <data name="Skills_Scripts_SaveFailed" xml:space="preserve">
+    <value>The review of the scripts could not be saved.</value>
+  </data>
+  <data name="Info_SkillsDoctor_Title" xml:space="preserve">
+    <value>Check on GitHub</value>
+  </data>
+  <data name="Info_SkillsDoctor_What" xml:space="preserve">
+    <value>It asks GitHub whether the source of a skill changed. It also asks whether its repository is archived. It connects only when you press the button.</value>
+  </data>
+  <data name="Info_SkillsDoctor_Actions" xml:space="preserve">
+    <value>Turn on the box if you want to allow the request.
+Press &quot;Check on GitHub&quot;: the skills are asked one after another.
+Optional: store a read-only access key (token) to raise the limit.
+Mark the scripts as reviewed once you have read them.</value>
+  </data>
 </root>

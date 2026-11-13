@@ -54,6 +54,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     internal const string StackContextPrefix = "Contexto del proyecto (detectado por los nombres de sus ficheros): ";
 
     private readonly SkillsBackend _backend;
+    private readonly TimeProvider _time;
     private readonly Func<string, CancellationToken, IReadOnlyList<string>> _projectFiles;
     private IReadOnlyList<SkillItemViewModel> _items = [];
     private IReadOnlyList<AgentDefinition> _roster = [];
@@ -71,6 +72,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         ArgumentNullException.ThrowIfNull(time);
         ProjectRoot = string.IsNullOrWhiteSpace(projectRoot) ? null : projectRoot;
         _backend = backend;
+        _time = time;
         _projectFiles = projectFiles ?? ((root, ct) => ProjectFileIndexer.Build(root, ProjectFileIndexer.DefaultMaxFiles, ct).RelativePaths);
     }
 
@@ -204,6 +206,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             _roster = await ReadRosterAsync(notices, ct).ConfigureAwait(true);
             _activations = await ReadActivationsAsync(notices, ct).ConfigureAwait(true);
             var health = await ReadHealthAsync(catalog, notices, ct).ConfigureAwait(true);
+            await LoadDoctorStateAsync(catalog, ct).ConfigureAwait(true);
             if (_backend.Recommendations is null)
             {
                 notices.Add(Texts.Get("Skills_Notice_NoAssisted"));
@@ -425,7 +428,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
                 }
             }
 
-            health.TryAdd(skill.Entry.Id, report);
+            health.TryAdd(skill.Entry.Id, OverlayRemote(skill.Entry.Id, report));
         }
 
         return health;
@@ -536,8 +539,12 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             warnings.Add(Texts.Get("Skills_Card_LinkedWarning"));
         }
 
+        var (scriptFiles, scriptsReviewed, markScripts) = ScriptsOf(item);
         return new SkillDetailViewModel
         {
+            ScriptFiles = scriptFiles,
+            ScriptsReviewedText = scriptsReviewed,
+            MarkScriptsReviewedCommand = markScripts,
             Id = item.Id,
             Name = entry.Name,
             SectorTitle = SectorTitleOf(entry.Sector),

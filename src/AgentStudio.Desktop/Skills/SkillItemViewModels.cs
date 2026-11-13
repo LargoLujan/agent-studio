@@ -143,6 +143,24 @@ public sealed class SkillDetailViewModel
     public IReadOnlyList<string> Warnings { get; init; } = [];
 
     public bool HasWarnings => Warnings.Count > 0;
+
+    /// <summary>The scripts of the skill, relative to its <c>scripts/</c> folder (docs/20 D-14); empty when it has none. None is ever run.</summary>
+    public IReadOnlyList<string> ScriptFiles { get; init; } = [];
+
+    public bool HasScripts => ScriptFiles.Count > 0;
+
+    /// <summary>The scripts, one per line, for the card.</summary>
+    public string ScriptFilesText => string.Join('\n', ScriptFiles.Take(MaxScriptLines).Concat(ScriptFiles.Count > MaxScriptLines ? ["…"] : []));
+
+    /// <summary>«Ya los marcaste como revisados», or null while they are not.</summary>
+    public string? ScriptsReviewedText { get; init; }
+
+    /// <summary>Marks the scripts as they are now as reviewed; null when there is nothing to mark (no scripts, or already reviewed).</summary>
+    public IAsyncRelayCommand? MarkScriptsReviewedCommand { get; init; }
+
+    public bool CanMarkScripts => MarkScriptsReviewedCommand is not null;
+
+    private const int MaxScriptLines = 25;
 }
 
 /// <summary>
