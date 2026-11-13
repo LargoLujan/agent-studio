@@ -116,6 +116,8 @@
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding SessionText, TargetNullValue=''}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding LastSyncText, TargetNullValue=''}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding SyncPolicyText, TargetNullValue=''}"/>
+                <CheckBox Margin="0,4,0,0" Content="{l:T Hosting_Sync_Permission}" IsChecked="{Binding SyncEnabled}" ToolTip="{l:T Hosting_Sync_Permission_What}"
+                          Visibility="{Binding HasSyncSwitch, Converter={StaticResource Pr.BoolToVisibility}}"/>
                 <WrapPanel Margin="0,6,0,0">
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,0" Content="{l:T Hosting_Header_SyncNow}" Command="{Binding SyncNowCommand}"/>
                     <Button Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Header_Check}" Command="{Binding CheckConnectionCommand}"/>
@@ -125,6 +127,8 @@
 
         <TextBlock Style="{StaticResource Pr.Warning}" Margin="0,8,0,0" Text="{Binding GuideText, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"
                    Visibility="{Binding HasGuide, Converter={StaticResource Pr.BoolToVisibility}}"/>
+        <TextBlock Style="{StaticResource Pr.Warning}" Margin="0,4,0,0" Text="{Binding OtherRepositoryText, TargetNullValue=''}"
+                   Visibility="{Binding HasOtherRepository, Converter={StaticResource Pr.BoolToVisibility}}"/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding Message, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"
                    Visibility="{Binding HasMessage, Converter={StaticResource Pr.BoolToVisibility}}"/>
         <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding Error, TargetNullValue=''}" AutomationProperties.LiveSetting="Assertive"
@@ -149,7 +153,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type pr:PublishableRunRow}">
                         <DockPanel Margin="0,2,0,2">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Publish_Open}"
+                            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Publish_Open}" AutomationProperties.Name="{Binding ButtonName}"
                                     Command="{Binding DataContext.OpenPublishCardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                     ToolTip="{l:T Hosting_Publish_Button}"/>
                             <TextBlock Style="{StaticResource BodyText}" VerticalAlignment="Center" FontFamily="{StaticResource MonoFont}" Text="{Binding Run}"/>
@@ -178,6 +182,18 @@
                             <Run Text="{Binding StateText, Mode=OneWay}"/> · <Run Text="{Binding VerdictText, Mode=OneWay}"/>
                         </TextBlock>
                         <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding OriginText}"/>
+                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding MilestoneText}"/>
+                        <TextBlock Text="{Binding PublishedText}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource OptionalSecondaryText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PublishedIsStale}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock Text="{Binding JudgedText}" TextWrapping="Wrap">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource OptionalSecondaryText}">
@@ -223,6 +239,8 @@
                             Visibility="{Binding CanOpenChain, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Verdict}" Command="{Binding OpenVerdictCardCommand}"
                             Visibility="{Binding Detail.CanPublishVerdict, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Update}" Command="{Binding OpenUpdateCardCommand}"
+                            Visibility="{Binding Detail.CanUpdate, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Reviewers}" Command="{Binding OpenReviewersCardCommand}"
                             Visibility="{Binding Detail.CanRequestReviewers, FallbackValue={x:Static Visibility.Collapsed}, Converter={StaticResource Pr.BoolToVisibility}}"/>
                     <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0,0,8,6" Content="{l:T Hosting_Action_Merge}" Command="{Binding OpenMergeCardCommand}"
@@ -252,7 +270,7 @@
                         <DataTemplate DataType="{x:Type pr:GrantRow}">
                             <Border Style="{StaticResource InnerCard}" Padding="10,6" Margin="0,4,0,0">
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Permissions_Revoke}"
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Permissions_Revoke}" AutomationProperties.Name="{Binding RevokeName}"
                                             Command="{Binding DataContext.RevokeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding ClassText}"/>

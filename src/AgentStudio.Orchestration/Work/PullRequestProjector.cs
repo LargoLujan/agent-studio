@@ -69,6 +69,8 @@ public sealed class PullRequestProjector(
         // The verdict in force is a fact of the run, not of the pull request: it is worked out once for each run, however many pull requests it has.
         var byRun = new Dictionary<string, (string? JudgedCommit, HostingStanding? Standing)>(StringComparer.Ordinal);
         var result = new List<PullRequestView>();
+        var succession = remote.Succession(_ => null);
+        var milestones = AgentStudio.Application.Work.MilestoneMembership.Of(entries);
         foreach (var (pullRequest, run, observed) in views.OrderBy(v => v.PullRequest.Repository.Id, StringComparer.Ordinal).ThenBy(v => v.PullRequest.Number))
         {
             (string? JudgedCommit, HostingStanding? Standing) verdict = default;
@@ -79,6 +81,18 @@ public sealed class PullRequestProjector(
 
             var (judgedCommit, standing) = verdict;
             var snapshot = observed?.Latest;
+
+            // The mode is a fact only when the log has the merge Agent Studio did with that method (the succession knows it); the judged commit plays no part in it.
+            var deduced = snapshot is not { State: Domain.Hosting.PullRequestState.Merged } || succession.OfPullRequest(pullRequest)?.ModeIsDeduced is not false;
+            var published = remote.Operations
+                .Where(o => o.Payload is { Operation: HostingOperationKind.PublishVerdictStatus or HostingOperationKind.PublishVerdictComment, Outcome: HostingOutcome.Ok }
+                    && o.Payload.PullRequest == pullRequest.Number
+                    && string.Equals($"{o.Payload.Host}/{o.Payload.Owner}/{o.Payload.Repository}", pullRequest.Repository.Id, StringComparison.Ordinal)
+                    && Enum.TryParse<HostingStanding>(o.Payload.Verdict, out _))
+                .OrderBy(o => o.Sequence)
+                .LastOrDefault();
+            LastPublishedVerdict? lastPublished = published is null ? null : new LastPublishedVerdict(Enum.Parse<HostingStanding>(published.Payload.Verdict!), published.Payload.Commit, published.At);
+            var milestone = run is not null && milestones.TryGetValue(run, out var of) && of.Count > 0 ? of[0] : null;
             result.Add(new PullRequestView(
                 pullRequest,
                 run is null ? null : SafeRun(run),
@@ -88,7 +102,10 @@ public sealed class PullRequestProjector(
                 standing,
                 followed.TryGetValue(pullRequest.TraceId, out var cached) ? cached.Display : RemoteDisplayTexts.None,
                 observed?.ObservedAt,
-                [.. pending.Where(p => p.Ticket.PullRequest is { } ticket && string.Equals(ticket.TraceId, pullRequest.TraceId, StringComparison.Ordinal))]));
+                [.. pending.Where(p => p.Ticket.PullRequest is { } ticket && string.Equals(ticket.TraceId, pullRequest.TraceId, StringComparison.Ordinal))],
+                deduced,
+                lastPublished,
+                milestone));
         }
 
         return result;

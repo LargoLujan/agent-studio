@@ -2278,15 +2278,15 @@ Dónde el diseño y el código chocaron al escribir las pantallas, qué dato no 
   `HostingPolicyGrant.Covers` para el envío y para abrir el PR; si no cubre los dos, dice que pedirá Windows Hello. Los rechazos del servicio (`UserTextException`) se pintan con su código; un código sin texto se dice con una frase
   genérica que lo nombra (`Hosting_Code_Unknown`), nunca vacío ni `[clave]`.
 - **Datos que no se pudieron enseñar por falta de puerto** (no se inventaron ni se cambió ningún contrato):
-  - «Ejecución e hito»: `PullRequestView` no trae el hito; la fila dice solo la ejecución. Por eso tampoco hay «Reabrir el hito…» en el PR (necesita el hito de la ejecución).
-  - «Veredicto… y si es el publicado»: ningún puerto dice si el estado o el comentario del veredicto se publicaron. La fila dice el veredicto en vigor y si la cabeza es la juzgada.
-  - **Modo deducido:** `PullRequestView` no trae `ModeIsDeduced`, así que la lista dice siempre «(deducido)» tras el modo, aunque lo fusionara la propia app. La cadena sí usa `Suggested`. Pide: `ModeIsDeduced` en `PullRequestView`.
-  - «Actualizar el PR» (título y cuerpo): `IPublicationService` no tiene un miembro que edite el texto del PR, así que no hay botón. «Sincronizar ahora» refresca la lectura.
+  - «Ejecución e hito»: ahora `PullRequestView.Milestone` (de los vínculos del hito y de las ejecuciones que sigue) y la fila dice el hito. **Pendiente, sin botón:** «Ir al hito» y «Reabrir el hito…» desde el PR: no hay una petición de navegación del PR a «Trabajo» con un hito (solo existe la de la cadena); cuando el lead la conecte, el botón se añade.
+  - «Veredicto… y si es el publicado»: ahora `PullRequestView.PublishedVerdict` (lo último que quedó publicado, de `HostingOperationPerformed` con resultado `Ok`: el payload guarda `Verdict` y `Commit`). La fila dice «Publicado en la petición: …», «aún no se publicó» o, si el resultado cambió, «El resultado de la revisión cambió y la petición aún dice lo anterior» (D-22); «Publicar el veredicto» sigue siendo la acción.
+  - **Modo deducido:** ahora `PullRequestView.ModeIsDeduced` (de `CommitSuccession`): la lista dice «(deducido)» solo cuando lo es; una fusión hecha por la propia app con ese método es un hecho.
+  - «Actualizar el PR…»: sin contrato nuevo, es la tarjeta de publicación sobre un PR que ya existe (publicar otra vez la misma ejecución abre o actualiza, D-18), con el texto editable; pide la capacidad `UpdatePullRequest`. «Sincronizar ahora» sigue refrescando la lectura.
   - «Delante y detrás» de «Ramas»: no hay puerto que cuente commits contra el remoto (D-03); no se enseña. «Ramas» dice publicada, en qué versión o borrada en GitHub solo cuando un PR del registro nombra la ejecución.
-  - **«Actividad»:** `RepositoryActivity` no dice qué operación ni qué cambio observado fue. Cada fila dice «Operación en GitHub» u «Observado en GitHub» con su resultado real (o su código). Pide: un campo `Operation`/`Change` en `RepositoryActivity`.
-  - **El interruptor «Sincronizar con GitHub»:** `IRemoteSyncPolicy` solo lee. La cabecera dice si está activado y que se cambia en Ajustes (del lead); no hay interruptor en la pantalla.
+  - **«Actividad»:** `RepositoryActivity` gana al final `Operation`, `Outcome`, `Changes` (incluido `BaseChanged`) y `PullRequest`; la fila dice «Publicó la rama», «Pidió fusionar», «Se fusionó», «La rama base cambió»… con su PR y su resultado real. Una entrada sin esos datos se nombra por su clase.
+  - **El interruptor «Sincronizar con GitHub»:** con `IRemoteSyncPermission` (parámetro opcional al final de `PullRequestsViewModel`) la cabecera tiene la casilla; solo el clic la cambia (cargar, cambiar de proyecto o un cambio desde Ajustes solo mueven la casilla). Sin el puerto, la cabecera solo dice el estado.
   - El remoto que se identifica es siempre `origin`; otro nombre no se mira.
-- **Una regla de más, a sabiendas.** «Los modos que la rama admite»: además de `NarrowedBy` (el proveedor y el repositorio), `PullRequestsViewModel.ModesFor` quita «con versión de fusión» si la rama base pide historial lineal y se pudieron leer
+- **La regla de «los modos que la rama admite»** vive ahora en `HostingCapabilities.NarrowedBy(hechos, protecciones)` (Domain, con su prueba): quita «con versión de fusión» si la rama base pide historial lineal y se leyeron sus protecciones. Solo estrecha. La pantalla solo pinta.
   sus protecciones. Solo estrecha, nunca añade. Convendría que esa regla viviera en `HostingCapabilities.NarrowedBy` (Domain), que ya recibe los datos del repositorio.
 - **Sin ajustes del repositorio no hay «Fusionar…»:** sin los modos permitidos (la lectura falló o la versión de `gh` no declara `ReadRepository`) no hay modo que elegir, y la pantalla lo dice en el detalle.
 - **Los ajustes y las protecciones se leen al elegir un PR** (una lectura de red por clic, no por vuelta) y se guardan cinco minutos, para que un `Changed` del buzón no repita la lectura.
@@ -2300,6 +2300,18 @@ Dónde el diseño y el código chocaron al escribir las pantallas, qué dato no 
   «Abrir en el navegador» (hay una prueba de las direcciones, no se abrió ningún navegador).
 - **Para la integración (el lead):** registrar `PullRequestsViewModel(IHostingProviders?, IPullRequestProjector?, IRemoteSync?, IPublicationService?, IHostingPolicyGate?, IRemoteSyncPolicy?, TimeProvider, IAddressOpener?)` con `ShellAddressOpener`
   como `IAddressOpener`, y pasarlo como último parámetro de `RepositoryViewModel`; pasar `IPullRequestProjector` a `WorkBackend`; llamar a `RepositoryViewModel.ShowPublishCardAsync(RunId)` desde el botón del monitor.
+
+**Ronda tras la revisión independiente (2026-11-13).** Lo que cambió, por punto:
+
+- **Borrar la rama con otro PR vivo:** «Borrar la rama remota…» no se ofrece si otro PR abierto, en borrador o sin observar de la misma ejecución usa esa rama; «Ramas» habla por el PR vigente (abierto, borrador o sin observar; si no hay, el último).
+- **Fusionar:** solo se ofrece si la cabeza es el commit juzgado; la tarjeta lo enseña y dice que GitHub solo fusiona exactamente ese (D-20). Con otra cabeza, o sin saber qué vio el revisor independiente, no hay botón y el detalle dice por qué con frases distintas.
+- **Permisos y cambio de proyecto:** `PublishingPermissionsViewModel.Reset()` y `PullRequestsViewModel.Reset()` vacían filas, tarjeta, detalle y permisos en cuanto se deja el proyecto; «Dar permiso…» y «Retirar» no actúan sin proyecto y repositorio. `RepositoryViewModel` limpia la sección PR al empezar el cambio y ya no espera su lectura dentro de su «ocupado» (`PullRequestsLoaded`).
+- **Hilo de la interfaz:** el contexto se toma al fijar el proyecto, no en el constructor; los eventos del buzón y de Ajustes se publican en él.
+- **Actualizar en su sitio:** una vuelta que no cambia una fila deja el mismo objeto, su selección y la tarjeta abierta con lo escrito; si el PR deja de admitir la acción de la tarjeta, se cierra y se dice. Las acciones tienen su cancelación (no la reinicia una vuelta); un tiempo agotado dentro de un puerto se dice; `CheckConnection` con `Ok` sin cuenta es un error; `IsBusy` no se queda activo.
+- **Textos y accesibilidad:** «revisiones/checks que pide: N» (sin plural), nombre propio para los botones repetidos por fila, las tarjetas de cerrar y borrar dicen repositorio y commit, la del veredicto dice qué la ampara, y la sección dice que hay peticiones de otro repositorio en el historial.
+- **Datos nuevos (contratos con valor por defecto al final):** `PullRequestView.{ModeIsDeduced, PublishedVerdict, Milestone}` y `RepositoryActivity.{Operation, Outcome, Changes, PullRequest}`, rellenados en `PullRequestProjector` y `RepositoryActivityReader`, con pruebas en `Orchestration.WorkTracking`.
+- **Códigos:** `HostingTexts.KnownCodes` toma los del ejecutor de `RemoteGitCodes`.
+- **Constructores cambiados:** `PullRequestsViewModel(..., IAddressOpener? opener = null, IRemoteSyncPermission? syncPermission = null)`, `PullRequestView` y `RepositoryActivity` (miembros finales con valor por defecto) y `HostingCapabilities.NarrowedBy(hechos, protecciones = null)`.
 
 ### 10.8 WP-AZ · Azure DevOps por `az` (M; solo con la decisión 1 (b))
 

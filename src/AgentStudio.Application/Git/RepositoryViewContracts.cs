@@ -83,7 +83,23 @@ public enum RepositoryActivityKind
 }
 
 /// <summary>An event of the timeline with its real result: <paramref name="ErrorCode"/> is the code of what failed, null when it worked; <paramref name="Sequence"/> the entry of the log.</summary>
-public sealed record RepositoryActivity(DateTimeOffset At, RepositoryActivityKind Kind, string? Run, string? Task, string? Commit, bool Succeeded, string? ErrorCode, long Sequence);
+/// <remarks>
+/// Phase 10 (docs/21 §7.3) appends what a remote entry says of itself, so the screen can name it: <paramref name="Operation"/> and <paramref name="Outcome"/> of an operation the app did, <paramref name="Changes"/> of an observation
+/// (including <see cref="RemoteChangeKind.BaseChanged"/>) and <paramref name="PullRequest"/> the number it is about. They are null for what is not a remote entry.
+/// </remarks>
+public sealed record RepositoryActivity(
+    DateTimeOffset At,
+    RepositoryActivityKind Kind,
+    string? Run,
+    string? Task,
+    string? Commit,
+    bool Succeeded,
+    string? ErrorCode,
+    long Sequence,
+    HostingOperationKind? Operation = null,
+    Hosting.HostingOutcome? Outcome = null,
+    IReadOnlyList<RemoteChangeKind>? Changes = null,
+    int? PullRequest = null);
 
 /// <summary>The filters of the timeline, all dimensions the log or the links already have. Null lets everything through.</summary>
 public sealed record RepositoryActivityFilter(

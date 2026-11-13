@@ -113,6 +113,28 @@ public sealed class RemoteSnapshotTests
     }
 
     [Fact]
+    public void A_base_branch_that_asks_for_a_linear_history_takes_out_the_merge_commit_and_only_when_its_rules_were_read()
+    {
+        var facts = new RemoteRepositoryFacts(Main, [MergeMethod.MergeCommit, MergeMethod.Squash, MergeMethod.Rebase], true, false);
+        var linear = new BranchRules(true, [new BranchRule(BranchRuleKind.LinearHistory, null)]);
+
+        var narrowed = Everything.NarrowedBy(facts, linear);
+        Assert.DoesNotContain(MergeMethod.MergeCommit, narrowed.MergeMethods);
+        Assert.Contains(MergeMethod.Squash, narrowed.MergeMethods);
+        Assert.Contains(MergeMethod.Rebase, narrowed.MergeMethods);
+
+        // Rules that could not be read narrow nothing (the platform applies them anyway), and rules without that one leave every method.
+        Assert.Contains(MergeMethod.MergeCommit, Everything.NarrowedBy(facts, BranchRules.Unreadable).MergeMethods);
+        Assert.Contains(MergeMethod.MergeCommit, Everything.NarrowedBy(facts, new BranchRules(true, [new BranchRule(BranchRuleKind.Protected, null)])).MergeMethods);
+        Assert.Contains(MergeMethod.MergeCommit, Everything.NarrowedBy(facts).MergeMethods);
+
+        // It only narrows: with only the merge commit allowed, a linear history leaves no merge at all.
+        var onlyCommit = Everything.NarrowedBy(new RemoteRepositoryFacts(Main, [MergeMethod.MergeCommit], true, false), linear);
+        Assert.False(onlyCommit.Has(HostingCapability.Merge));
+        Assert.Equal(Everything.Supported & narrowed.Supported, narrowed.Supported);
+    }
+
+    [Fact]
     public void A_repository_that_allows_no_method_the_provider_knows_leaves_no_merge()
     {
         var narrowed = Everything.NarrowedBy(new RemoteRepositoryFacts(Main, [], true, false));

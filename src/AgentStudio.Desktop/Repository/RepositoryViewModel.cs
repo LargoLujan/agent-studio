@@ -106,6 +106,9 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
     /// <summary>Phase 10 (docs/21 section 7.1): the pull requests of the repository, their actions and the permissions of publication.</summary>
     public PullRequestsViewModel PullRequests { get; }
 
+    /// <summary>The reading of the pull requests that the last change of project or refresh started; it is not part of the «ocupado» of the repository, so tests await it here.</summary>
+    public Task PullRequestsLoaded { get; private set; } = Task.CompletedTask;
+
     /// <summary>
     /// Opens the section of pull requests with the card of publication of a run (docs/21 section 7.2): where the button beside «Entregar» of the monitor leads. The card asks the service what
     /// it would do and says what covers it; nothing is published until the person confirms.
@@ -282,6 +285,9 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         _project = null;
         OnPropertyChanged(nameof(Project));
         Clear();
+
+        // The section of pull requests of the project before goes now, not when the history is read: nothing of it can be confirmed over the new one.
+        PullRequests.Reset();
         if (projectRoot is null)
         {
             StatusMessage = Texts.Get("Repository_Status_OpenFolder");
@@ -311,7 +317,8 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             await ReadAllAsync(project, generation).ConfigureAwait(true);
             if (generation == _generation)
             {
-                await PullRequests.SetProjectAsync(project).ConfigureAwait(true);
+                // The reading of GitHub is not part of the «ocupado» of the repository: a slow gh must not hold «Actualizar». The section says for itself that it is reading.
+                PullRequestsLoaded = PullRequests.SetProjectAsync(project);
             }
         }
 #pragma warning disable CA1031 // The workspace is behind a port: a failure is shown in the screen, never thrown into the UI.
@@ -322,6 +329,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             {
                 RefusalText = Texts.Format("Repository_Refused", RepositoryTexts.Refusal("unreadable"));
                 StatusMessage = null;
+                PullRequestsLoaded = PullRequests.SetProjectAsync(null);
             }
         }
         finally
@@ -350,7 +358,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             await ReadAllAsync(_project, generation).ConfigureAwait(true);
             if (generation == _generation)
             {
-                await PullRequests.ReloadAsync().ConfigureAwait(true);
+                PullRequestsLoaded = PullRequests.ReloadAsync();
             }
         }
         finally
@@ -759,7 +767,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             : string.Empty;
         return new ActivityRow(
             TimeZoneInfo.ConvertTime(activity.At, _time.LocalTimeZone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
-            RepositoryTexts.Kind(activity.Kind),
+            RepositoryTexts.Kind(activity),
             where,
             activity.Commit is { } commit ? ShortId(commit) : string.Empty,
             activity.Succeeded ? Texts.Get("Repository_Activity_Succeeded") : Texts.Format("Repository_Activity_FailedWith", RepositoryTexts.Error(activity.ErrorCode ?? RepositoryActivityReader.FailedCode)),

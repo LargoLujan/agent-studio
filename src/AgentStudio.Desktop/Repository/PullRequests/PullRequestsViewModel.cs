@@ -38,8 +38,18 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     private readonly IRemoteSyncPolicy? _syncPolicy;
     private readonly TimeProvider _time;
     private readonly IAddressOpener? _opener;
-    private readonly SynchronizationContext? _context = SynchronizationContext.Current;
+    private readonly IRemoteSyncPermission? _syncPermission;
+
+    // The context of the interface, taken when the project is set (the shell does it from the interface thread), never where the section was built.
+    private SynchronizationContext? _context;
     private ProjectContext? _project;
+    private CancellationTokenSource _actions = new();
+    private Func<PullRequestDetail, bool>? _cardNeeds;
+    private bool _selectingInPlace;
+    private bool _rowsUpdating;
+    private bool _permissionSubscribed;
+    private bool _syncSwitchUpdating;
+    private int _otherRepositories;
     private RemoteRepository? _repository;
     private IHostingProvider? _provider;
     private HostingCapabilities _capabilities = HostingCapabilities.None;
@@ -60,6 +70,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     /// <param name="syncPolicy">Whether the project may sync in the background, to say it in the header.</param>
     /// <param name="time">The clock of the dates and the «hace 3 min».</param>
     /// <param name="opener">Opens a page of a pull request in the browser; null: no such button.</param>
+    /// <param name="syncPermission">The switch «Sincronizar con GitHub» of the header (docs/21 §7.1); only a click on it gives the permission. Null: the header only says the state.</param>
     public PullRequestsViewModel(
         IHostingProviders? providers,
         IPullRequestProjector? projector,
@@ -68,9 +79,11 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         IHostingPolicyGate? gate,
         IRemoteSyncPolicy? syncPolicy,
         TimeProvider time,
-        IAddressOpener? opener = null)
+        IAddressOpener? opener = null,
+        IRemoteSyncPermission? syncPermission = null)
     {
         ArgumentNullException.ThrowIfNull(time);
+        _syncPermission = syncPermission;
         _providers = providers;
         _projector = projector;
         _sync = sync;
@@ -112,6 +125,78 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     /// <summary>Whether the project syncs in the background; null when the shell has no way to say it. It is set in «Ajustes › Git remoto».</summary>
     [ObservableProperty]
     private string? _syncPolicyText;
+
+    /// <summary>Whether the header offers the switch «Sincronizar con GitHub»: only when the shell composed the port that gives the permission.</summary>
+    public bool HasSyncSwitch => _syncPermission is not null;
+
+    /// <summary>The switch of the header. Only a click on it gives the permission (the setter is the click); a change that comes from Settings only moves the box.</summary>
+    public bool SyncEnabled
+    {
+        get => _syncPermission is not null && _project is { } project && _syncPermission.IsAllowed(project.ProjectId);
+        set
+        {
+            if (_syncSwitchUpdating || _syncPermission is null || _project is not { } project || value == SyncEnabled)
+            {
+                return;
+            }
+
+            _ = ApplySyncSwitchAsync(project, value);
+        }
+    }
+
+    private async Task ApplySyncSwitchAsync(ProjectContext project, bool allowed)
+    {
+        Error = null;
+        try
+        {
+            await _syncPermission!.SetAsync(project.ProjectId, allowed, _actions.Token).ConfigureAwait(true);
+            Message = Texts.Get(allowed ? "Hosting_Sync_TurnedOn" : "Hosting_Sync_TurnedOff");
+        }
+        catch (OperationCanceledException) when (_actions.IsCancellationRequested)
+        {
+            // Closed or changed project.
+        }
+#pragma warning disable CA1031 // The port is behind an interface: a failure is said in the section.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            Error = Texts.Get("Hosting_Card_Failed");
+        }
+
+        RefreshSyncSwitch(project);
+    }
+
+    private void RefreshSyncSwitch(ProjectContext project)
+    {
+        _ = project;
+        _syncSwitchUpdating = true;
+        try
+        {
+            OnPropertyChanged(nameof(SyncEnabled));
+            OnPropertyChanged(nameof(HasSyncSwitch));
+        }
+        finally
+        {
+            _syncSwitchUpdating = false;
+        }
+    }
+
+    private void OnSyncPermissionChanged(object? sender, string projectId)
+    {
+        if (_disposed || _project is not { } project || !string.Equals(project.ProjectId, projectId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        PostToInterface(() => RefreshSyncSwitch(project));
+    }
+
+    /// <summary>The log follows pull requests of another repository (the remote changed): said apart, since they are not in the list.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOtherRepository))]
+    private string? _otherRepositoryText;
+
+    public bool HasOtherRepository => OtherRepositoryText is not null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMessage))]
@@ -186,7 +271,9 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     /// </summary>
     public string? RemoteBranchText(string run)
     {
-        var view = _views.FirstOrDefault(v => string.Equals(v.Run?.Value, run, StringComparison.Ordinal));
+        // Of several pull requests on the same branch the one in force speaks (open or draft, or not observed yet); without one, the latest.
+        var ofRun = _views.Where(v => string.Equals(v.Run?.Value, run, StringComparison.Ordinal)).OrderByDescending(v => v.PullRequest.Number).ToList();
+        var view = ofRun.FirstOrDefault(IsLive) ?? ofRun.FirstOrDefault();
         if (view is null)
         {
             return null;
@@ -199,6 +286,9 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             var snapshot => Texts.Format("Hosting_Branch_Published", HostingTexts.Short(snapshot.HeadCommit), view.PullRequest.Number),
         };
     }
+
+    /// <summary>A pull request that can still use its branch: open or draft, or not observed yet (the careful reading: an unobserved one may be open).</summary>
+    private static bool IsLive(PullRequestView view) => view.Snapshot is null || view.Snapshot.State is PullRequestState.Open or PullRequestState.Draft;
 
     /// <summary>Whether the pieces to read and to act are composed.</summary>
     public bool IsAvailable => _providers is not null && _projector is not null;
@@ -213,24 +303,53 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     /// <summary>The project changed (null: none): the reads of the one before are cancelled and everything is read for the new one.</summary>
     public async Task SetProjectAsync(ProjectContext? project)
     {
-        CancelReads();
-        Unsubscribe();
+        // What belongs to the project before goes at once: no row, card, permission or switch of it stays to be confirmed over the new one.
+        Reset();
+        _context = SynchronizationContext.Current;
         _project = project;
+        if (project is not null && !_disposed)
+        {
+            if (_sync is not null)
+            {
+                _sync.Changed += OnSyncChanged;
+                _subscribed = true;
+            }
+
+            if (_syncPermission is not null)
+            {
+                _syncPermission.Changed += OnSyncPermissionChanged;
+                _permissionSubscribed = true;
+            }
+        }
+
+        await ReloadAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Leaves the project: cancels what was being read or asked, empties the rows, the card, the pending work and the permissions, and says nothing is read yet. The screen that changes
+    /// project calls it before it starts reading, so the old project is never on screen with the new one.
+    /// </summary>
+    public void Reset()
+    {
+        CancelReads();
+        RestartActions();
+        Unsubscribe();
+        _project = null;
         _repository = null;
         _provider = null;
         _capabilities = HostingCapabilities.None;
         _views = [];
+        _otherRepositories = 0;
         Clear();
         Message = null;
         Error = null;
+        OtherRepositoryText = null;
         Card = null;
-        if (project is not null && _sync is not null && !_disposed)
-        {
-            _sync.Changed += OnSyncChanged;
-            _subscribed = true;
-        }
-
-        await ReloadAsync().ConfigureAwait(true);
+        _cardNeeds = null;
+        Permissions.Reset();
+        IsBusy = false;
+        SetStatus(PullRequestsStatus.NotRead, Texts.Get("Hosting_Pr_Loading"));
+        OnPropertyChanged(nameof(SyncEnabled));
     }
 
     /// <summary>Reads again: the remote, the program, the pull requests and what is pending. A read that is not the last one asked is dropped when it ends.</summary>
@@ -241,12 +360,18 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         var token = RestartReads();
         if (_project is not { } project)
         {
+            IsBusy = false;
+            Clear();
+            Permissions.Reset();
             SetStatus(PullRequestsStatus.NoProject, Texts.Get("Hosting_Pr_NoProject"));
             return;
         }
 
         if (_providers is null || _projector is null)
         {
+            IsBusy = false;
+            Clear();
+            Permissions.Reset();
             SetStatus(PullRequestsStatus.Unavailable, Texts.Get("Hosting_Pr_Unavailable"));
             return;
         }
@@ -266,8 +391,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             {
                 Clear();
                 RepositoryText = null;
+                Permissions.Reset();
                 SetStatus(PullRequestsStatus.NoRemote, Texts.Get("Hosting_Pr_NoRemote"));
-                await Permissions.LoadAsync(project, null).ConfigureAwait(true);
                 return;
             }
 
@@ -286,23 +411,26 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             }
 
             _views = [.. views.Where(v => v.PullRequest.Repository == repository)];
+            _otherRepositories = views.Count - _views.Count;
+            OtherRepositoryText = _otherRepositories > 0 ? Texts.Format("Hosting_Pr_OtherRepository", _otherRepositories) : null;
             ShowHealth(project);
             ShowRows();
             ResolveStatus(availability);
             RefreshPublishable();
             await Permissions.LoadAsync(project, repository).ConfigureAwait(true);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // A newer read or a closed section: nothing to say.
         }
-#pragma warning disable CA1031 // The ports are behind interfaces: a failure is said in the section, never thrown into the UI.
+#pragma warning disable CA1031 // The ports are behind interfaces: a failure (a timeout inside one too) is said in the section, never thrown into the UI.
         catch (Exception)
 #pragma warning restore CA1031
         {
             if (generation == _generation)
             {
                 Clear();
+                Permissions.Reset();
                 SetStatus(PullRequestsStatus.Unavailable, Texts.Get("Hosting_Pr_Unreadable"));
             }
         }
@@ -333,7 +461,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
         else
         {
-            SetStatus(PullRequestsStatus.Ready, Rows.Count == 0 ? Texts.Get("Hosting_Pr_None") : null);
+            // Nothing in the list is «none followed» only when the log has none of any repository: pull requests of another one are said as that.
+            SetStatus(PullRequestsStatus.Ready, Rows.Count == 0 && _otherRepositories == 0 ? Texts.Get("Hosting_Pr_None") : null);
         }
     }
 
@@ -347,9 +476,11 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
     private void ShowHealth(ProjectContext project)
     {
-        SyncPolicyText = _syncPolicy is null
+        // With the switch the header shows the box; without it, only the state, which is changed in Settings.
+        SyncPolicyText = _syncPolicy is null || _syncPermission is not null
             ? null
             : Texts.Get(_syncPolicy.PeriodicSyncAllowed(project.ProjectId) ? "Hosting_Header_SyncOn" : "Hosting_Header_SyncOff");
+        RefreshSyncSwitch(project);
         if (_sync is null)
         {
             SessionText = null;
@@ -380,15 +511,77 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
     private void ShowRows()
     {
+        // In place: a row that did not change stays the very same object (its selection, its detail and the card that is open stay too); one that changed is replaced where it is.
+        var fresh = _views.OrderByDescending(v => v.PullRequest.Number).Select(BuildRow).ToList();
         var selected = Selected?.Reference.TraceId;
-        Rows.Clear();
-        foreach (var view in _views.OrderByDescending(v => v.PullRequest.Number))
+        _rowsUpdating = true;
+        try
         {
-            Rows.Add(BuildRow(view));
+            UpdateRows(fresh, selected);
+        }
+        finally
+        {
+            _rowsUpdating = false;
+        }
+    }
+
+    private void UpdateRows(List<PullRequestRow> fresh, string? selected)
+    {
+        for (var i = 0; i < fresh.Count; i++)
+        {
+            if (i < Rows.Count && Rows[i].Reference.TraceId == fresh[i].Reference.TraceId)
+            {
+                if (Rows[i].Signature != fresh[i].Signature)
+                {
+                    var wasSelected = ReferenceEquals(Selected, Rows[i]);
+                    Rows[i] = fresh[i];
+                    if (wasSelected)
+                    {
+                        SelectInPlace(fresh[i]);
+                    }
+                }
+            }
+            else
+            {
+                Rows.Insert(i, fresh[i]);
+            }
+        }
+
+        while (Rows.Count > fresh.Count)
+        {
+            Rows.RemoveAt(Rows.Count - 1);
         }
 
         OnPropertyChanged(nameof(HasRows));
-        Selected = Rows.FirstOrDefault(r => r.Reference.TraceId == selected);
+        if (selected is not null && Rows.All(r => r.Reference.TraceId != selected))
+        {
+            // The pull request is no longer followed: its detail and its card go with it.
+            _rowsUpdating = false;
+            Selected = null;
+            Detail = null;
+            Card = null;
+            _cardNeeds = null;
+        }
+        else if (selected is not null && !ReferenceEquals(Selected, Rows.First(r => r.Reference.TraceId == selected)))
+        {
+            SelectInPlace(Rows.First(r => r.Reference.TraceId == selected));
+        }
+    }
+
+    /// <summary>Selects the new row of the pull request that was already selected: its detail is read again, but the card that is open and what was typed in it stay.</summary>
+    private void SelectInPlace(PullRequestRow row)
+    {
+        _selectingInPlace = true;
+        try
+        {
+            Selected = row;
+        }
+        finally
+        {
+            _selectingInPlace = false;
+        }
+
+        _ = LoadDetailAsync(row);
     }
 
     private void RefreshPublishable()
@@ -417,6 +610,27 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         var environment = string.Empty;
         var judged = string.Empty;
         var headMoved = false;
+        var published = string.Empty;
+        var publishedStale = false;
+
+        // What the pull request says of the verdict (docs/21 D-22): only for one that is still open and has a verdict to compare with.
+        if (view.Verdict is { } verdictNow && snapshot is { State: PullRequestState.Open or PullRequestState.Draft })
+        {
+            if (view.PublishedVerdict is not { } last)
+            {
+                published = Texts.Get("Hosting_Published_None");
+            }
+            else if (last.Standing == verdictNow && (last.Commit is null || string.Equals(last.Commit, view.JudgedCommit, StringComparison.Ordinal)))
+            {
+                published = Texts.Format("Hosting_Published_Same", Texts.Get("Hosting_Verdict_" + last.Standing));
+            }
+            else
+            {
+                published = Texts.Get("Hosting_Published_Stale");
+                publishedStale = true;
+            }
+        }
+
         if (snapshot is not null)
         {
             if (caps.Has(HostingCapability.ReadChecks))
@@ -461,8 +675,11 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         {
             NumberText = Texts.Format("Hosting_Pr_Number", view.PullRequest.Number),
             Title = HostingTexts.Data(display.Title) ?? string.Empty,
-            StateText = StateText(snapshot),
+            StateText = StateText(view),
             OriginText = view.Run is { } run ? Texts.Format("Hosting_Origin_Run", run.Value) : string.Empty,
+            MilestoneText = view.Milestone is { } milestone ? Texts.Format("Hosting_Milestone_Of", HostingTexts.Data(milestone) ?? "?") : string.Empty,
+            PublishedText = published,
+            PublishedIsStale = publishedStale,
             VerdictText = view.Verdict is { } standing ? Texts.Get("Hosting_Verdict_" + standing) : Texts.Get("Hosting_Verdict_None"),
             JudgedText = judged,
             HeadMoved = headMoved,
@@ -477,7 +694,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         };
     }
 
-    private static string StateText(RemoteSnapshot? snapshot) => snapshot is null
+    private static string StateText(PullRequestView view) => view.Snapshot is not { } snapshot
         ? Texts.Get("Hosting_State_NotObserved")
         : snapshot.State switch
         {
@@ -485,8 +702,10 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             PullRequestState.Draft => Texts.Get("Hosting_State_Draft"),
             PullRequestState.Closed => Texts.Get("Hosting_State_Closed"),
 
-            // The mode is a deduction: the view does not say whether Agent Studio merged it (docs/21 D-27), so it is said as one.
-            _ => snapshot.MergeMode is { } mode ? Texts.Format("Hosting_State_MergedDeduced", HostingTexts.MergeMode(mode)) : Texts.Get("Hosting_State_Merged"),
+            // «(deducido)» only when the mode is a deduction: a merge Agent Studio did with that method is a fact (docs/21 D-27).
+            _ => snapshot.MergeMode is { } mode
+                ? view.ModeIsDeduced ? Texts.Format("Hosting_State_MergedDeduced", HostingTexts.MergeMode(mode)) : HostingTexts.MergeMode(mode)
+                : Texts.Get("Hosting_State_Merged"),
         };
 
     /// <summary>The words of a piece of work that waits: its reason and, when there is one, the time of the next try.</summary>
@@ -512,8 +731,15 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
     partial void OnSelectedChanged(PullRequestRow? value)
     {
+        // The control drops its selection while the rows are replaced in place, and the same pull request is selected again at once: neither is the person choosing another one.
+        if ((_rowsUpdating && value is null) || _selectingInPlace)
+        {
+            return;
+        }
+
         Detail = null;
         Card = null;
+        _cardNeeds = null;
         if (value is not null)
         {
             _ = LoadDetailAsync(value);
@@ -578,11 +804,11 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             return;
         }
-#pragma warning disable CA1031 // The provider is behind a port: a failure is said in the detail, never thrown into the UI.
+#pragma warning disable CA1031 // The provider is behind a port: a failure (a timeout inside it too) is said in the detail, never thrown into the UI.
         catch (Exception)
 #pragma warning restore CA1031
         {
@@ -595,17 +821,36 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
 
         Detail = BuildDetail(row, capabilities, facts, branchRules, rules, notes);
+
+        // A card that was open for an action the pull request no longer admits (it changed under it) is closed, and it is said.
+        if (Card is not null && _cardNeeds is { } needs && !needs(Detail))
+        {
+            Card = null;
+            _cardNeeds = null;
+            Message = Texts.Get("Hosting_Card_Stale");
+        }
     }
 
     private PullRequestDetail BuildDetail(PullRequestRow row, HostingCapabilities declared, RemoteRepositoryFacts? facts, BranchRules? rules, List<CardLine> ruleLines, List<CardLine> notes)
     {
         var view = row.View;
         var snapshot = view.Snapshot;
-        var caps = facts is null ? declared : declared.NarrowedBy(facts);
+        var caps = facts is null ? declared : declared.NarrowedBy(facts, rules);
         var open = snapshot is { State: PullRequestState.Open or PullRequestState.Draft };
         var hasRun = view.Run is not null;
         var canWrite = _publication is not null;
-        var methods = facts is null ? [] : ModesFor(caps, rules);
+        IReadOnlyList<MergeMethod> methods = facts is null || !caps.Has(HostingCapability.Merge) ? [] : caps.MergeMethods;
+
+        // The service merges only the commit the judge saw (docs/21 D-20): with another head, or without knowing what the judge saw, «Fusionar…» is not offered and the detail says why.
+        var judgedHead = view.JudgedCommit is not null && view.HeadIsJudgedCommit;
+        if (snapshot is { State: PullRequestState.Open } && caps.Has(HostingCapability.Merge) && methods.Count > 0 && !judgedHead)
+        {
+            notes.Add(new CardLine(Texts.Get(view.JudgedCommit is null ? "Hosting_Merge_NoJudged" : "Hosting_Merge_HeadMoved"), true));
+        }
+
+        // Another pull request of the same run that is still alive uses the branch: deleting it would close that one (docs/21 D-16).
+        var branchInUse = view.Run is { } ownRun
+            && _views.Any(v => v.PullRequest != view.PullRequest && v.Run == ownRun && IsLive(v));
         var originals = snapshot is null || snapshot.OriginalCommits.Count == 0 ? string.Empty
             : Texts.Format(snapshot.CommitsTruncated ? "Hosting_Detail_OriginalsTruncated" : "Hosting_Detail_Originals", snapshot.OriginalCommits.Count, string.Join(", ", snapshot.OriginalCommits.Select(HostingTexts.Short)));
         var results = snapshot is null ? string.Empty : IntegrationByPullRequest.ResultCommitsOf(snapshot) is { Count: > 0 } r
@@ -622,24 +867,16 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             ResultsText = results,
             CanPublishVerdict = canWrite && open && hasRun && (caps.Has(HostingCapability.CommitStatus) || caps.Has(HostingCapability.Comment)),
             VerdictOnlyAsComment = !caps.Has(HostingCapability.CommitStatus) && caps.Has(HostingCapability.Comment),
+            CanUpdate = canWrite && open && hasRun && caps.Has(HostingCapability.UpdatePullRequest),
             CanRequestReviewers = canWrite && open && hasRun && caps.Has(HostingCapability.RequestReviewers),
-            CanMerge = canWrite && snapshot is { State: PullRequestState.Open } && caps.Has(HostingCapability.Merge) && methods.Count > 0,
+            CanMerge = canWrite && snapshot is { State: PullRequestState.Open } && caps.Has(HostingCapability.Merge) && methods.Count > 0 && judgedHead,
             CanClose = canWrite && open && caps.Has(HostingCapability.ClosePullRequest),
-            CanDeleteBranch = canWrite && hasRun && snapshot is { HeadBranchExists: true, State: PullRequestState.Merged or PullRequestState.Closed } && caps.Has(HostingCapability.DeleteBranch),
+            CanDeleteBranch = canWrite && hasRun && !branchInUse && snapshot is { HeadBranchExists: true, State: PullRequestState.Merged or PullRequestState.Closed } && caps.Has(HostingCapability.DeleteBranch),
             CanOpenInBrowser = _opener is not null && PullRequestAddress.Of(view.PullRequest) is not null,
             CanUnfollow = _sync is not null,
             MergeMethods = methods,
         };
     }
-
-    /// <summary>
-    /// The methods to offer: those the provider declares and the repository allows (already in <paramref name="caps"/>), minus the commit of merge when the branch asks for a linear
-    /// history, which GitHub then refuses. It only narrows: it never adds a method.
-    /// </summary>
-    internal static IReadOnlyList<MergeMethod> ModesFor(HostingCapabilities caps, BranchRules? rules) =>
-        !caps.Has(HostingCapability.Merge)
-            ? []
-            : [.. caps.MergeMethods.Where(m => !(m == MergeMethod.MergeCommit && rules is { Readable: true } && rules.Has(BranchRuleKind.LinearHistory)))];
 
     // ---- Actions ----
 
@@ -652,7 +889,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
-        await Run(() => _sync.SyncNowAsync(project, _cancellation.Token), "Hosting_Sync_Asked").ConfigureAwait(true);
+        var token = _actions.Token;
+        await Run(() => _sync.SyncNowAsync(project, token), "Hosting_Sync_Asked", token).ConfigureAwait(true);
     }
 
     /// <summary>«Comprobar la conexión»: asks the platform who the account is; the answer says if there is a session, no limit or no connection.</summary>
@@ -667,12 +905,18 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         Error = null;
         Message = null;
         IsBusy = true;
+        var token = _actions.Token;
         try
         {
-            var result = await _provider.ReadAccountAsync(repository, _cancellation.Token).ConfigureAwait(true);
+            var result = await _provider.ReadAccountAsync(repository, token).ConfigureAwait(true);
             if (result.Outcome == HostingOutcome.Ok && result.Value is { } login)
             {
                 Message = Texts.Format("Hosting_Connection_Ok", login.Value);
+            }
+            else if (result.Outcome == HostingOutcome.Ok)
+            {
+                // Said Ok and gave no account: that is not a connection to be proud of, and «GitHub lo aceptó» is no error either.
+                Error = HostingTexts.Outcome(HostingOutcome.InvalidAnswer);
             }
             else if (result.Outcome == HostingOutcome.RateLimited && result.RetryAt is { } until)
             {
@@ -687,11 +931,11 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
                 Error = result.RefusalCode is { } code ? HostingTexts.Code(code) : HostingTexts.Outcome(result.Outcome);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Closed or changed project: nothing to say.
         }
-#pragma warning disable CA1031 // The provider is behind a port: a failure is said in the section.
+#pragma warning disable CA1031 // The provider is behind a port: a failure (a timeout inside it too) is said in the section.
         catch (Exception)
 #pragma warning restore CA1031
         {
@@ -712,7 +956,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
-        await Run(() => _sync.UnfollowAsync(project, row.Reference, _cancellation.Token), "Hosting_Unfollowed").ConfigureAwait(true);
+        var token = _actions.Token;
+        await Run(() => _sync.UnfollowAsync(project, row.Reference, token), "Hosting_Unfollowed", token).ConfigureAwait(true);
         await ReloadAsync().ConfigureAwait(true);
     }
 
@@ -748,19 +993,27 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     }
 
     [RelayCommand]
-    private void OpenVerdictCard()
+    private async Task OpenVerdictCardAsync()
     {
-        if (_publication is null || _project is not { } project || Selected is not { } row || Detail is not { CanPublishVerdict: true } detail)
+        if (_publication is null || _project is not { } project || Selected is not { } row || Detail is not { CanPublishVerdict: true } detail || row.View.Snapshot is not { } snapshot)
         {
             return;
         }
 
-        var lines = new List<CardLine> { new(Texts.Get("Hosting_Verdict_NotApproval")) };
+        var coverage = await CoverageAsync(
+            project, row.Reference.Repository, snapshot.BaseBranch, [HostingOperationKind.PublishVerdictStatus, HostingOperationKind.PublishVerdictComment], _actions.Token).ConfigureAwait(true);
+        if (!ReferenceEquals(Selected, row))
+        {
+            return;
+        }
+
+        var lines = new List<CardLine> { new(Texts.Get("Hosting_Verdict_NotApproval")), new(coverage) };
         if (detail.VerdictOnlyAsComment)
         {
             lines.Add(new CardLine(Texts.Get("Hosting_Verdict_OnlyComment")));
         }
 
+        _cardNeeds = d => d.CanPublishVerdict;
         Card = new ActionCardViewModel(
             Texts.Format("Hosting_Verdict_Heading", row.Number),
             Texts.Get("Hosting_Verdict_Confirm"),
@@ -776,6 +1029,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     {
         if (_publication is not null && _project is { } project && Selected is { } row && Detail is { CanRequestReviewers: true })
         {
+            _cardNeeds = d => d.CanRequestReviewers;
             Card = new ReviewersCardViewModel(project, row.Reference, _publication, CloseCard, Sent);
         }
     }
@@ -788,12 +1042,12 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
+        // «Fusionar…» is offered only when the head is the commit the judge saw, and the service merges exactly that one (docs/21 D-20): the card says both.
         var lines = new List<CardLine>
         {
             new(Texts.Format("Hosting_Merge_Into", snapshot.BaseBranch.Name)),
-            row.View.JudgedCommit is not null && row.View.HeadIsJudgedCommit
-                ? new CardLine(Texts.Format("Hosting_Merge_Commit", HostingTexts.Short(snapshot.HeadCommit)))
-                : new CardLine(Texts.Get("Hosting_Head_Moved"), true),
+            new(Texts.Format("Hosting_Merge_Commit", HostingTexts.Short(snapshot.HeadCommit))),
+            new(Texts.Get("Hosting_Merge_Exact")),
         };
         lines.AddRange(detail.Rules);
         if (row.ChecksText.Length > 0)
@@ -806,6 +1060,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             lines.Add(new CardLine(row.ReviewsText));
         }
 
+        _cardNeeds = d => d.CanMerge;
         Card = new MergeCardViewModel(project, row.Reference, snapshot.BaseBranch.Name, detail.MergeMethods, lines, _publication, CloseCard, Sent);
     }
 
@@ -817,11 +1072,15 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
+        _cardNeeds = d => d.CanClose;
         Card = new ActionCardViewModel(
             Texts.Format("Hosting_Close_Heading", row.Number),
             Texts.Get("Hosting_Close_Confirm"),
             Texts.Format("Hosting_Close_Hello", snapshot.BaseBranch.Name),
-            [new CardLine(Texts.Get("Hosting_Close_Explain"))],
+            [
+                new CardLine(Texts.Format("Hosting_Card_Where", $"{row.Reference.Repository.Owner}/{row.Reference.Repository.Name}", HostingTexts.Short(snapshot.HeadCommit))),
+                new CardLine(Texts.Get("Hosting_Close_Explain")),
+            ],
             ct => _publication.CloseAsync(project, row.Reference, ct),
             CloseCard,
             Sent);
@@ -830,7 +1089,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     [RelayCommand]
     private void OpenDeleteBranchCard()
     {
-        if (_publication is null || _project is not { } project || Selected is not { } row || Detail is not { CanDeleteBranch: true })
+        if (_publication is null || _project is not { } project || Selected is not { } row || Detail is not { CanDeleteBranch: true } || row.View.Snapshot is not { } snapshot)
         {
             return;
         }
@@ -840,11 +1099,15 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
+        _cardNeeds = d => d.CanDeleteBranch;
         Card = new ActionCardViewModel(
             Texts.Format("Hosting_Delete_Heading", row.Number),
             Texts.Get("Hosting_Delete_Confirm"),
             Texts.Get("Hosting_Delete_Hello"),
-            [new CardLine(Texts.Format("Hosting_Delete_Explain", RemoteBranch.ForRun(run).Name))],
+            [
+                new CardLine(Texts.Format("Hosting_Card_Where", $"{row.Reference.Repository.Owner}/{row.Reference.Repository.Name}", HostingTexts.Short(snapshot.HeadCommit))),
+                new CardLine(Texts.Format("Hosting_Delete_Explain", RemoteBranch.ForRun(run).Name)),
+            ],
             ct => _publication.DeleteRunBranchAsync(project, run, ct),
             CloseCard,
             Sent);
@@ -872,6 +1135,19 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         await ShowPublishCardAsync(run).ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// «Actualizar el PR…»: publishing the same run again opens or updates the pull request (docs/21 D-18), so the card is the one of publication, over a pull request that
+    /// already exists, with the text to edit.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenUpdateCardAsync()
+    {
+        if (Selected is { } row && row.View.Run is { } run && Detail is { CanUpdate: true })
+        {
+            await ShowPublishCardAsync(run).ConfigureAwait(true);
+        }
+    }
+
     /// <summary>Opens the card of publication of a run, wherever the person asked for it (the list of runs here, or the button beside «Entregar» of the monitor).</summary>
     public async Task ShowPublishCardAsync(RunId run)
     {
@@ -883,7 +1159,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
         Error = null;
         Message = null;
-        var token = _cancellation.Token;
+        var token = _actions.Token;
         IsBusy = true;
         try
         {
@@ -893,10 +1169,14 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
                 return;
             }
 
-            var coverage = await CoverageAsync(project, preview, token).ConfigureAwait(true);
+            HostingOperationKind[] kinds = preview.Existing is null
+                ? [HostingOperationKind.PushRunBranch, HostingOperationKind.OpenPullRequest]
+                : [HostingOperationKind.PushRunBranch, HostingOperationKind.UpdatePullRequest];
+            var coverage = await CoverageAsync(project, preview.Repository, preview.BaseBranch, kinds, token).ConfigureAwait(true);
+            _cardNeeds = null;
             Card = new PublishCardViewModel(project, run, preview, coverage, _publication, CloseCard, Sent);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Closed or changed project.
         }
@@ -904,7 +1184,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         {
             Error = HostingTexts.Say(refusal.Text);
         }
-#pragma warning disable CA1031 // The service is behind a port: a failure is said in the section.
+#pragma warning disable CA1031 // The service is behind a port: a failure (a timeout inside it too) is said in the section.
         catch (Exception)
 #pragma warning restore CA1031
         {
@@ -916,11 +1196,14 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
     }
 
-    /// <summary>What covers a publication: a standing permission the gate holds for the push and for opening the pull request, or the confirmation with Windows Hello. The gate is not asked to authorise: it is asked what it holds.</summary>
-    private async Task<string> CoverageAsync(ProjectContext project, PublicationPreview preview, CancellationToken token)
+    /// <summary>
+    /// What covers an action: a standing permission the gate holds for every operation it needs, or the confirmation with Windows Hello. The gate is not asked to authorise: it is asked
+    /// what it holds. The push has no base branch; the others go towards <paramref name="baseBranch"/>.
+    /// </summary>
+    private async Task<string> CoverageAsync(ProjectContext project, RemoteRepository? repository, RemoteBranch? baseBranch, IReadOnlyList<HostingOperationKind> kinds, CancellationToken token)
     {
         var hello = Texts.Get("Hosting_Publish_CoverHello");
-        if (_gate is null || preview.Repository is not { } repository || preview.BaseBranch is not { } baseBranch)
+        if (_gate is null || repository is null || baseBranch is null)
         {
             return hello;
         }
@@ -928,13 +1211,21 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         try
         {
             var grants = await _gate.GrantsAsync(project, token).ConfigureAwait(true);
-            var push = grants.Where(g => g.Covers(HostingOperationKind.PushRunBranch, repository, null)).OrderByDescending(g => g.At).FirstOrDefault();
-            var open = grants.Where(g => g.Covers(HostingOperationKind.OpenPullRequest, repository, baseBranch)).OrderByDescending(g => g.At).FirstOrDefault();
-            return push is not null && open is not null
-                ? Texts.Format("Hosting_Publish_CoverGrant", HostingTexts.When(push.At > open.At ? push.At : open.At, _time))
-                : hello;
+            var covering = new List<HostingPolicyGrant>();
+            foreach (var kind in kinds)
+            {
+                var found = grants.Where(g => g.Covers(kind, repository, kind == HostingOperationKind.PushRunBranch ? null : baseBranch)).OrderByDescending(g => g.At).FirstOrDefault();
+                if (found is null)
+                {
+                    return hello;
+                }
+
+                covering.Add(found);
+            }
+
+            return Texts.Format("Hosting_Publish_CoverGrant", HostingTexts.When(covering.Max(g => g.At), _time));
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             throw;
         }
@@ -946,7 +1237,11 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
     }
 
-    private void CloseCard() => Card = null;
+    private void CloseCard()
+    {
+        Card = null;
+        _cardNeeds = null;
+    }
 
     private void Sent(string message)
     {
@@ -954,7 +1249,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         Error = null;
     }
 
-    private async Task Run(Func<Task> action, string doneKey)
+    private async Task Run(Func<Task> action, string doneKey, CancellationToken token)
     {
         Error = null;
         Message = null;
@@ -964,7 +1259,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             await action().ConfigureAwait(true);
             Message = Texts.Get(doneKey);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Closed or changed project.
         }
@@ -972,7 +1267,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         {
             Error = HostingTexts.Say(refusal.Text);
         }
-#pragma warning disable CA1031 // The mailbox is behind a port: a failure is said in the section.
+#pragma warning disable CA1031 // The mailbox is behind a port: a failure (a timeout inside it too) is said in the section.
         catch (Exception)
 #pragma warning restore CA1031
         {
@@ -993,14 +1288,19 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
-        // The mailbox raises it from its own thread: the lists belong to the one that built the section.
+        PostToInterface(() => _ = ReloadAsync());
+    }
+
+    /// <summary>The mailbox and the settings raise their events from their own thread: what touches the lists runs on the context of the interface the project was set from.</summary>
+    private void PostToInterface(Action action)
+    {
         if (_context is { } context && SynchronizationContext.Current != context)
         {
-            context.Post(_ => _ = ReloadAsync(), null);
+            context.Post(_ => action(), null);
         }
         else
         {
-            _ = ReloadAsync();
+            action();
         }
     }
 
@@ -1011,6 +1311,15 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         previous.Cancel();
         previous.Dispose();
         return _cancellation.Token;
+    }
+
+    /// <summary>The actions have a cancellation of their own: a refresh of the list never aborts «Publicar» or «Sincronizar ahora»; changing the project does.</summary>
+    private void RestartActions()
+    {
+        var previous = _actions;
+        _actions = new CancellationTokenSource();
+        previous.Cancel();
+        previous.Dispose();
     }
 
     private void CancelReads()
@@ -1028,6 +1337,12 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
 
         _subscribed = false;
+        if (_permissionSubscribed && _syncPermission is not null)
+        {
+            _syncPermission.Changed -= OnSyncPermissionChanged;
+        }
+
+        _permissionSubscribed = false;
     }
 
     private void Clear()
@@ -1058,5 +1373,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         Unsubscribe();
         _cancellation.Cancel();
         _cancellation.Dispose();
+        _actions.Cancel();
+        _actions.Dispose();
     }
 }

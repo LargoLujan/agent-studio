@@ -24,7 +24,7 @@ Publishing uploads to GitHub the work of a run that an independent reviewer (jud
 In «Repository and changes», tab **Pull requests (PR)**. Press a row to see its detail and its actions.
 - A button only shows if your version of gh can do it and the request allows it.
 - Merging, closing and deleting the remote branch first show a card. They ask for Windows Hello every time.
-- What GitHub writes is shown as data, exactly as it arrives.
+- Only the version the reviewer judged is merged. «Update the PR…» publishes again with the text you change.
 - What Agent Studio deduces carries the mark «(deduced)».
 
 ## Publishing permissions

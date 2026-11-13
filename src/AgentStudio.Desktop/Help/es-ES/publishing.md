@@ -24,7 +24,7 @@ Publicar sube a GitHub el trabajo de una ejecución que un revisor independiente
 En «Repositorio y cambios», pestaña **Peticiones de fusión (PR)**. Pulsa una fila para ver su detalle y sus acciones.
 - Un botón solo sale si tu versión de gh sabe hacerlo y la petición lo admite.
 - Fusionar, cerrar y borrar la rama remota enseñan antes una tarjeta. Piden Windows Hello cada vez.
-- Lo que escribe GitHub se enseña como dato, tal cual llega.
+- Solo se fusiona la versión que juzgó el revisor. «Actualizar el PR…» publica otra vez con el texto que cambies.
 - Lo que Agent Studio deduce lleva la marca «(deducido)».
 
 ## Permisos de publicación

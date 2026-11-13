@@ -91,11 +91,11 @@ public sealed class RepositoryActivityReader(AgentStudio.Application.Decisions.I
                 case HostingOperationPerformedPayload operation:
                     operation.EnsureValid();
                     var succeeded = operation.Outcome is HostingOutcome.Ok or HostingOutcome.NotModified;
-                    return new RepositoryActivity(entry.RecordedAt, RepositoryActivityKind.RemoteOperation, operation.Run, null, operation.Commit, succeeded, succeeded ? null : operation.FailureCode ?? OutcomeCode(operation.Outcome), entry.Sequence);
+                    return new RepositoryActivity(entry.RecordedAt, RepositoryActivityKind.RemoteOperation, operation.Run, null, operation.Commit, succeeded, succeeded ? null : operation.FailureCode ?? OutcomeCode(operation.Outcome), entry.Sequence, operation.Operation, operation.Outcome, null, operation.PullRequest);
                 case RemoteStateObservedPayload observed:
                     observed.EnsureValid();
                     var snapshot = observed.ToSnapshot();
-                    return new RepositoryActivity(entry.RecordedAt, RepositoryActivityKind.RemoteObservation, observed.Run, null, snapshot.MergeCommit ?? snapshot.HeadCommit, true, null, entry.Sequence);
+                    return new RepositoryActivity(entry.RecordedAt, RepositoryActivityKind.RemoteObservation, observed.Run, null, snapshot.MergeCommit ?? snapshot.HeadCommit, true, null, entry.Sequence, null, null, [.. observed.Changes], observed.PullRequest);
                 default:
                     return null;
             }

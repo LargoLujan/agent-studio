@@ -79,10 +79,16 @@ public sealed record HostingCapabilities(HostingCapability Supported, IReadOnlyL
     /// What is left of these capabilities for one repository: the merge methods it allows (and no merge at all when none is left), and no write
     /// when the account cannot write to it or it is archived. Reads stay.
     /// </summary>
-    public HostingCapabilities NarrowedBy(RemoteRepositoryFacts repository)
+    /// <param name="repository">What the repository allows.</param>
+    /// <param name="baseBranchRules">
+    /// The protections of the base branch, when they could be read: a branch that asks for a linear history does not take a merge commit, so that method is left out
+    /// (docs/21 §7.2). Rules that could not be read narrow nothing: the platform applies them anyway. It only ever narrows.
+    /// </param>
+    public HostingCapabilities NarrowedBy(RemoteRepositoryFacts repository, BranchRules? baseBranchRules = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
-        var methods = MergeMethods.Where(repository.AllowedMergeMethods.Contains).ToArray();
+        var linear = baseBranchRules is { Readable: true } && baseBranchRules.Has(BranchRuleKind.LinearHistory);
+        var methods = MergeMethods.Where(repository.AllowedMergeMethods.Contains).Where(m => !(linear && m == MergeMethod.MergeCommit)).ToArray();
         var supported = Supported;
         if (!repository.CanPush || repository.Archived)
         {
