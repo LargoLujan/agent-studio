@@ -47,7 +47,7 @@ public static class PullRequestAddress
         }
 
         var parts = parsed.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 4 || parts[2] != "pull" || !HostingIdentifiers.IsOwner(parts[0]) || !HostingIdentifiers.IsRepositoryName(parts[1]) || !parts[3].All(char.IsAsciiDigit))
+        if (parts.Length != 4 || parts[2] != "pull" || RemoteRepository.TryCreateGitHub(parts[0], parts[1]) is null || !parts[3].All(char.IsAsciiDigit))
         {
             return false;
         }

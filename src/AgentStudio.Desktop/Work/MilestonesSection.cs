@@ -8,6 +8,7 @@ using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Tracing;
@@ -421,6 +422,93 @@ public sealed partial class MilestonesSection : WorkSection
         OnPropertyChanged(nameof(HasDetailProblems));
         OnPropertyChanged(nameof(CanClose));
         OnPropertyChanged(nameof(CanReopen));
+        IntegrationRead = SelectedItem?.View is { } selected ? ReadIntegrationAsync(selected.Header.Id) : ClearIntegrationAsync();
+    }
+
+    // ---- Integrated and deployed (Phase 10, docs/21 section 7.4) ----
+
+    private int _integrationReads;
+
+    /// <summary>How many requirements of the selected milestone are integrated, and by what; empty when the board could not say (no board, no project or a failed read).</summary>
+    [ObservableProperty]
+    private string _integrationText = string.Empty;
+
+    /// <summary>
+    /// How many of them the platform reports as deployed. Empty without data: it appears only when a pull request that integrated a requirement has a deployment the platform
+    /// reported, since without that there is no «no desplegado» (docs/21 D-29).
+    /// </summary>
+    [ObservableProperty]
+    private string _deploymentText = string.Empty;
+
+    public bool HasIntegration => IntegrationText.Length > 0;
+
+    public bool HasDeployment => DeploymentText.Length > 0;
+
+    /// <summary>The read that fills <see cref="IntegrationText"/> and <see cref="DeploymentText"/> for the milestone selected; tests await it.</summary>
+    internal Task IntegrationRead { get; private set; } = Task.CompletedTask;
+
+    private Task ClearIntegrationAsync()
+    {
+        _integrationReads++;
+        IntegrationText = string.Empty;
+        DeploymentText = string.Empty;
+        NotifyIntegration();
+        return Task.CompletedTask;
+    }
+
+    private async Task ReadIntegrationAsync(MilestoneId milestone)
+    {
+        var read = ++_integrationReads;
+        var integration = string.Empty;
+        var deployment = string.Empty;
+        if (Context.Backend.Board is { } board && Context.Project is { } project)
+        {
+            try
+            {
+                var projected = await board.ProjectAsync(project, milestone, CancellationToken.None).ConfigureAwait(true);
+                var integrated = projected.Requirements.Where(c => c.Column == BoardColumn.Integrated).ToList();
+                if (projected.Requirements.Count > 0)
+                {
+                    var byPullRequest = integrated.Count(c => c.IntegratedByPullRequest is not null);
+                    integration = byPullRequest > 0
+                        ? Texts.Format("Hosting_Milestone_IntegratedBoth", integrated.Count, projected.Requirements.Count, byPullRequest)
+                        : Texts.Format("Hosting_Milestone_Integrated", integrated.Count, projected.Requirements.Count);
+                    if (byPullRequest > 0 && Context.Backend.PullRequests is { } projector)
+                    {
+                        var views = await projector.ListAsync(project, CancellationToken.None).ConfigureAwait(true);
+                        var withDeployment = views.Where(v => v.Snapshot?.Deployment is not null).ToDictionary(v => v.PullRequest.TraceId, v => v.Snapshot!, StringComparer.Ordinal);
+                        var carried = integrated.Where(c => c.IntegratedByPullRequest is not null && withDeployment.ContainsKey(c.IntegratedByPullRequest)).ToList();
+                        if (carried.Count > 0)
+                        {
+                            var deployed = carried.Count(c => IntegrationByPullRequest.IsDeployed(withDeployment[c.IntegratedByPullRequest!]));
+                            deployment = Texts.Format("Hosting_Milestone_Deployed", deployed, carried.Count);
+                        }
+                    }
+                }
+            }
+#pragma warning disable CA1031 // The projections are behind ports: what could not be read is left out, never shown as a default.
+            catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+            {
+                integration = string.Empty;
+                deployment = string.Empty;
+            }
+        }
+
+        if (read != _integrationReads)
+        {
+            return;
+        }
+
+        IntegrationText = integration;
+        DeploymentText = deployment;
+        NotifyIntegration();
+    }
+
+    private void NotifyIntegration()
+    {
+        OnPropertyChanged(nameof(HasIntegration));
+        OnPropertyChanged(nameof(HasDeployment));
     }
 
     /// <summary>The budget in words: «Sin presupuesto», or its limits and the period.</summary>

@@ -1,5 +1,6 @@
 using AgentStudio.Application.Git;
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Desktop.Repository.PullRequests;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Orchestration.Work;
 
@@ -40,6 +41,8 @@ public static class RepositoryTexts
         RepositoryActivityKind.Integration => Texts.Get("Repository_Activity_Integration"),
         RepositoryActivityKind.Delivery => Texts.Get("Repository_Activity_Delivery"),
         RepositoryActivityKind.WorktreeRemoved => Texts.Get("Repository_Activity_WorktreeRemoved"),
+        RepositoryActivityKind.RemoteOperation => Texts.Get("Hosting_Activity_Operation"),
+        RepositoryActivityKind.RemoteObservation => Texts.Get("Hosting_Activity_Observation"),
         _ => kind.ToString(),
     };
 
@@ -48,6 +51,9 @@ public static class RepositoryTexts
     {
         RepositoryActivityReader.ConflictCode => Texts.Get("Repository_Activity_ErrorConflict"),
         RepositoryActivityReader.FailedCode => Texts.Get("Repository_Activity_ErrorNoCommit"),
+
+        // Phase 10: the failure of a remote operation is a code of the platform, of the adapter or of git (or hosting.outcome.*), said by the area of the hosting texts.
+        _ when AgentStudio.Application.Localization.UserText.IsCode(code) && Texts.Current.Has(AgentStudio.Application.Localization.UserText.KeyOf(code)) => HostingTexts.Code(code),
         _ => Texts.Format("Repository_Activity_ErrorOther", code),
     };
 

@@ -177,6 +177,29 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
     }
 
+    /// <summary>Raised on the context of the section when a read ended and the list, the pending work or the state changed: «Ramas» and «Actividad» read it again.</summary>
+    public event EventHandler? Reloaded;
+
+    /// <summary>
+    /// What the log says of the remote branch of a run (docs/21 section 7.3): published and at which version, not observed yet, or deleted on the remote; null when no pull request of
+    /// the log names the run, since then nothing is known of its remote branch.
+    /// </summary>
+    public string? RemoteBranchText(string run)
+    {
+        var view = _views.FirstOrDefault(v => string.Equals(v.Run?.Value, run, StringComparison.Ordinal));
+        if (view is null)
+        {
+            return null;
+        }
+
+        return view.Snapshot switch
+        {
+            null => Texts.Format("Hosting_Branch_NotObserved", view.PullRequest.Number),
+            { HeadBranchExists: false } => Texts.Format("Hosting_Branch_RemoteDeleted", view.PullRequest.Number),
+            var snapshot => Texts.Format("Hosting_Branch_Published", HostingTexts.Short(snapshot.HeadCommit), view.PullRequest.Number),
+        };
+    }
+
     /// <summary>Whether the pieces to read and to act are composed.</summary>
     public bool IsAvailable => _providers is not null && _projector is not null;
 
@@ -288,6 +311,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             if (generation == _generation)
             {
                 IsBusy = false;
+                Reloaded?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -369,7 +393,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
     private void RefreshPublishable()
     {
-        var followed = _views.Select(v => v.Run).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var followed = _views.Select(v => v.Run?.Value).OfType<string>().ToHashSet(StringComparer.Ordinal);
         PublishableRuns.Clear();
         if (Status == PullRequestsStatus.Ready && _publication is not null && _capabilities.Has(HostingCapability.OpenPullRequest))
         {
@@ -438,7 +462,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             NumberText = Texts.Format("Hosting_Pr_Number", view.PullRequest.Number),
             Title = HostingTexts.Data(display.Title) ?? string.Empty,
             StateText = StateText(snapshot),
-            OriginText = view.Run is { } run ? Texts.Format("Hosting_Origin_Run", HostingTexts.Data(run) ?? "?") : string.Empty,
+            OriginText = view.Run is { } run ? Texts.Format("Hosting_Origin_Run", run.Value) : string.Empty,
             VerdictText = view.Verdict is { } standing ? Texts.Get("Hosting_Verdict_" + standing) : Texts.Get("Hosting_Verdict_None"),
             JudgedText = judged,
             HeadMoved = headMoved,
@@ -811,12 +835,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             return;
         }
 
-        RunId run;
-        try
-        {
-            run = new RunId(row.View.Run!);
-        }
-        catch (ArgumentException)
+        if (row.View.Run is not { } run)
         {
             return;
         }

@@ -3,6 +3,8 @@ using AgentStudio.Application.Work;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Monitor;
+using AgentStudio.Desktop.Repository.PullRequests;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Tracing;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -31,12 +33,22 @@ public sealed class ChainStepViewModel
 
     public string StageText => WorkTexts.Stage(Step.Stage);
 
-    public string Title => string.IsNullOrWhiteSpace(Step.Title) ? WorkTexts.Short(Step.Node.Id) : Step.Title;
+    public string Title => Step.Stage switch
+    {
+        // Phase 10 (docs/21 D-28): the pull request, how it was merged («remote.merge.squash»…, «remote.reverted-by») and the deployment come as codes.
+        TraceChainStage.Publication => PullRequestRef.TryParseTraceId(Step.Node.Id) is { } pullRequest
+            ? Texts.Format("Hosting_Chain_PullRequest", pullRequest.Number)
+            : WorkTexts.Short(Step.Node.Id),
+        TraceChainStage.RemoteMerge or TraceChainStage.Deployment when !string.IsNullOrWhiteSpace(Step.Title) => HostingTexts.Code(Step.Title),
+        _ => string.IsNullOrWhiteSpace(Step.Title) ? WorkTexts.Short(Step.Node.Id) : Step.Title,
+    };
+
+    private bool IsRemoteStage => Step.Stage is TraceChainStage.Publication or TraceChainStage.RemoteMerge or TraceChainStage.Deployment;
 
     public string NodeText => Texts.Format("Work_Chain_Node", WorkTexts.Node(Step.Node.Kind), WorkTexts.Short(Step.Node.Id));
 
     /// <summary>A step nobody confirmed (inferred): shown as such. The reader of the log gives none today, and the screen never hides one.</summary>
-    public string? SuggestedText => Step.Suggested ? Texts.Get("Work_Chain_Suggested") : null;
+    public string? SuggestedText => Step.Suggested ? Texts.Get(IsRemoteStage ? "Hosting_Chain_Deduced" : "Work_Chain_Suggested") : null;
 
     public bool IsSuggested => Step.Suggested;
 

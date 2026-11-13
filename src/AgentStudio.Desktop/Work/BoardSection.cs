@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using AgentStudio.Application.Work;
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Desktop.Repository.PullRequests;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Domain.Work.Milestones;
 using CommunityToolkit.Mvvm.Input;
@@ -29,9 +31,22 @@ public sealed class BoardCardViewModel
     public string KindText => WorkTexts.CardKind(Card.Kind);
 
     /// <summary>Why the card is where it is; null when its column says it all.</summary>
-    public string? ReasonText => WorkTexts.Reason(Card.Reason);
+    public string? ReasonText => Card.Reason == BoardCardReasons.MergedWithUnjudgedChanges ? HostingTexts.Reason(Card.Reason) : WorkTexts.Reason(Card.Reason);
 
     public bool HasReason => ReasonText is not null;
+
+    /// <summary>The requirement was merged on the platform with changes the judge did not see (docs/21 D-29): its ⓘ says what it means.</summary>
+    public bool HasUnjudgedReason => Card.Reason == BoardCardReasons.MergedWithUnjudgedChanges;
+
+    /// <summary>
+    /// «Integrado por la petición de fusión #12»: which pull request carried the requirement (docs/21 section 7.4); null when it was integrated by the local delivery or is not integrated.
+    /// The number and the repository come from validated identifiers.
+    /// </summary>
+    public string? IntegratedByText => PullRequestRef.TryParseTraceId(Card.IntegratedByPullRequest) is { } pullRequest
+        ? Texts.Format("Hosting_Board_IntegratedBy", pullRequest.Number, $"{pullRequest.Repository.Owner}/{pullRequest.Repository.Name}")
+        : null;
+
+    public bool HasIntegratedBy => IntegratedByText is not null;
 
     public string? RunText => Card.Run is { } run ? Texts.Format("Work_Board_Run", run) : null;
 
