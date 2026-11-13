@@ -89,9 +89,12 @@ internal static class PrData
 
 internal sealed class FakeProviders(FakeProvider? provider, RemoteRepository? repository) : IHostingProviders
 {
+    /// <summary>The repository the remote names; a test sets it to null to say the remote is not recognised.</summary>
+    public RemoteRepository? Repository { get; set; } = repository;
+
     public IHostingProvider? For(RemoteRepository repository1) => provider;
 
-    public Task<RemoteRepository?> IdentifyAsync(ProjectContext project, string remoteName, CancellationToken ct) => Task.FromResult(repository);
+    public Task<RemoteRepository?> IdentifyAsync(ProjectContext project, string remoteName, CancellationToken ct) => Task.FromResult(Repository);
 }
 
 internal sealed class FakeProvider : IHostingProvider
@@ -197,10 +200,16 @@ internal sealed class FakeSync : IRemoteSync
 
     public event EventHandler<string>? Changed;
 
-    public Task SyncNowAsync(ProjectContext project, CancellationToken ct)
+    /// <summary>When set, «Sincronizar ahora» waits for it, honouring the token it was given: a read that cancelled it would throw.</summary>
+    public TaskCompletionSource? HoldSync { get; set; }
+
+    public async Task SyncNowAsync(ProjectContext project, CancellationToken ct)
     {
         SyncNows++;
-        return Task.CompletedTask;
+        if (HoldSync is { } hold)
+        {
+            await hold.Task.WaitAsync(ct);
+        }
     }
 
     public Task FollowAsync(ProjectContext project, PullRequestRef pullRequest, RunId? run, CancellationToken ct) => Task.CompletedTask;
@@ -254,10 +263,18 @@ internal sealed class FakePublication : IPublicationService
         return Task.FromResult(Preview);
     }
 
-    public Task<RemoteWorkTicket> PublishAsync(PublicationRequest request, CancellationToken ct)
+    /// <summary>When set, the publication waits for it with its token.</summary>
+    public TaskCompletionSource? HoldPublish { get; set; }
+
+    public async Task<RemoteWorkTicket> PublishAsync(PublicationRequest request, CancellationToken ct)
     {
         Published = request;
-        return Ticket("publish", HostingOperationKind.PushRunBranch);
+        if (HoldPublish is { } hold)
+        {
+            await hold.Task.WaitAsync(ct);
+        }
+
+        return await Ticket("publish", HostingOperationKind.PushRunBranch);
     }
 
     public Task<RemoteWorkTicket> UpdateVerdictAsync(ProjectContext project, PullRequestRef pullRequest, CancellationToken ct) => Ticket("verdict", HostingOperationKind.PublishVerdictStatus);
@@ -319,6 +336,73 @@ internal sealed class RecordingOpener : IAddressOpener
     public void Open(Uri address) => Opened.Add(address);
 }
 
+internal sealed class FakePermission : IRemoteSyncPermission
+{
+    private readonly HashSet<string> _allowed = [];
+
+    public List<(string Project, bool Allowed)> Sets { get; } = [];
+
+    public bool IsAllowed(string projectId) => _allowed.Contains(projectId);
+
+    public Task SetAsync(string projectId, bool allowed, CancellationToken ct)
+    {
+        Sets.Add((projectId, allowed));
+        _ = allowed ? _allowed.Add(projectId) : _allowed.Remove(projectId);
+        return Task.CompletedTask;
+    }
+
+    public event EventHandler<string>? Changed;
+
+    public void Allow(string projectId) => _allowed.Add(projectId);
+
+    public void RaiseChanged(string projectId) => Changed?.Invoke(this, projectId);
+
+    public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
+}
+
+/// <summary>A context that keeps what is posted to it: the test runs it when it says, like the dispatcher of the interface would.</summary>
+internal sealed class QueueContext : SynchronizationContext
+{
+    public Queue<(SendOrPostCallback Callback, object? State)> Posted { get; } = [];
+
+    public override void Post(SendOrPostCallback d, object? state)
+    {
+        lock (Posted)
+        {
+            Posted.Enqueue((d, state));
+        }
+    }
+
+    /// <summary>Runs what was posted, on the calling thread with this context current.</summary>
+    public int Pump()
+    {
+        var previous = Current;
+        SetSynchronizationContext(this);
+        try
+        {
+            var run = 0;
+            while (true)
+            {
+                (SendOrPostCallback Callback, object? State) item;
+                lock (Posted)
+                {
+                    if (!Posted.TryDequeue(out item))
+                    {
+                        return run;
+                    }
+                }
+
+                item.Callback(item.State);
+                run++;
+            }
+        }
+        finally
+        {
+            SetSynchronizationContext(previous);
+        }
+    }
+}
+
 internal sealed class FakeSyncPolicy(bool allowed) : IRemoteSyncPolicy
 {
     public bool PeriodicSyncAllowed(string projectId) => allowed;
@@ -341,19 +425,26 @@ internal sealed class PrWorld
 
     public RecordingOpener Opener { get; } = new();
 
+    public FakeProviders Providers { get; }
+
+    public FakePermission? Permission { get; }
+
     public PullRequestsViewModel Model { get; }
 
-    public PrWorld(RemoteRepository? repository = null, bool withProvider = true, bool syncAllowed = true, bool withRemote = true)
+    public PrWorld(RemoteRepository? repository = null, bool withProvider = true, bool syncAllowed = true, bool withRemote = true, bool withPermission = false)
     {
+        Permission = withPermission ? new FakePermission() : null;
+        Providers = new FakeProviders(withProvider ? Provider : null, withRemote ? repository ?? PrData.Repository : null);
         Model = new PullRequestsViewModel(
-            new FakeProviders(withProvider ? Provider : null, withRemote ? repository ?? PrData.Repository : null),
+            Providers,
             Projector,
             Sync,
             Publication,
             Gate,
             new FakeSyncPolicy(syncAllowed),
             PrData.Clock(),
-            Opener);
+            Opener,
+            Permission);
     }
 
     /// <summary>Reads the section for the project, selects the row of the pull request and waits for its detail.</summary>

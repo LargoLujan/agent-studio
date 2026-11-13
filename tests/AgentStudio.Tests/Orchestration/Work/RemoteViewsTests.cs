@@ -204,6 +204,73 @@ public sealed class RemoteViewsTests
         Assert.Empty(view.Pending);
     }
 
+    [Fact]
+    public async Task The_mode_of_a_merge_is_a_fact_only_when_the_app_merged_with_that_method_and_a_merge_made_outside_is_deduced()
+    {
+        using var outside = await JudgedAsync();
+        await outside.ObserveAsync(Merged(RemoteMergeMode.Squash));
+        Assert.True(Assert.Single(await Views(outside).ListAsync(outside.Project, Ct)).ModeIsDeduced);
+
+        using var byTheApp = await JudgedAsync();
+        await byTheApp.OperationAsync(HostingOperationKind.MergePullRequest, 12, MergeMethod.Squash);
+        await byTheApp.ObserveAsync(Merged(RemoteMergeMode.Squash));
+        Assert.False(Assert.Single(await Views(byTheApp).ListAsync(byTheApp.Project, Ct)).ModeIsDeduced);
+
+        // The app asked for a squash and the platform left a rebase: the mode is not the one it asked for, and «squash o rebase» is never a fact.
+        using var other = await JudgedAsync();
+        await other.OperationAsync(HostingOperationKind.MergePullRequest, 12, MergeMethod.Squash);
+        await other.ObserveAsync(Merged(RemoteMergeMode.SquashOrRebase));
+        Assert.True(Assert.Single(await Views(other).ListAsync(other.Project, Ct)).ModeIsDeduced);
+    }
+
+    [Fact]
+    public async Task The_verdict_last_published_on_a_pull_request_is_the_last_operation_that_ended_well_and_none_when_there_is_none()
+    {
+        using var world = await JudgedAsync();
+        await world.ObserveAsync(Open());
+        Assert.Null(Assert.Single(await Views(world).ListAsync(world.Project, Ct)).PublishedVerdict);
+
+        await world.OperationAsync(HostingOperationKind.PublishVerdictStatus, 12, verdict: "InReview");
+        await world.OperationAsync(HostingOperationKind.PublishVerdictComment, 12, verdict: "Approved");
+        await world.OperationAsync(HostingOperationKind.PublishVerdictComment, 12, outcome: HostingOutcome.Unreachable, verdict: "Rejected");
+        await world.OperationAsync(HostingOperationKind.PublishVerdictStatus, 13, verdict: "Rejected");
+
+        var published = Assert.Single(await Views(world).ListAsync(world.Project, Ct)).PublishedVerdict!;
+        Assert.Equal(AgentStudio.Application.Hosting.VerdictStanding.Approved, published.Standing);
+        Assert.Equal(Head, published.Commit);
+    }
+
+    [Fact]
+    public async Task The_milestone_of_the_run_comes_from_its_links_and_a_run_in_none_has_no_milestone()
+    {
+        using var world = await JudgedAsync();
+        await world.ObserveAsync(Open());
+        Assert.Null(Assert.Single(await Views(world).ListAsync(world.Project, Ct)).Milestone);
+
+        var milestone = await world.OpenMilestoneAsync();
+        await world.Milestones.LinkAsync(world.Project, milestone.Header.Id, new MilestoneTarget(MilestoneTargetKind.Run, Run), "manuel", Ct);
+
+        Assert.Equal(milestone.Header.Id.Value, Assert.Single(await Views(world).ListAsync(world.Project, Ct)).Milestone);
+    }
+
+    [Fact]
+    public async Task The_activity_of_the_remote_names_the_operation_the_outcome_the_changes_and_the_pull_request()
+    {
+        using var world = await JudgedAsync();
+        await world.OperationAsync(HostingOperationKind.MergePullRequest, 12, MergeMethod.Squash, HostingOutcome.RateLimited);
+        await world.ObserveAsync(Open());
+        await world.ObserveAsync(Merged(RemoteMergeMode.Squash));
+
+        var events = await new RepositoryActivityReader(world.Instance.Recorder).ListAsync(world.Project, null, Ct);
+
+        var operation = events.Single(e => e.Kind == RepositoryActivityKind.RemoteOperation);
+        Assert.Equal((HostingOperationKind.MergePullRequest, HostingOutcome.RateLimited, 12, false), (operation.Operation, operation.Outcome, operation.PullRequest, operation.Succeeded));
+        var observations = events.Where(e => e.Kind == RepositoryActivityKind.RemoteObservation).ToList();
+        Assert.Contains(RemoteChangeKind.Opened, observations[0].Changes!);
+        Assert.Contains(RemoteChangeKind.Merged, observations[1].Changes!);
+        Assert.All(observations, o => Assert.Equal(12, o.PullRequest));
+    }
+
     [Theory]
     [InlineData(VerdictDecision.Rejected, AgentStudio.Application.Hosting.VerdictStanding.Rejected)]
     [InlineData(VerdictDecision.ChangesRequested, AgentStudio.Application.Hosting.VerdictStanding.Rejected)]

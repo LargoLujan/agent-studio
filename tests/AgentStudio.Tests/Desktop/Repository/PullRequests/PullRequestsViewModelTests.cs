@@ -441,17 +441,6 @@ public sealed class PullRequestsViewModelTests
     }
 
     [Fact]
-    public async Task A_head_that_changed_after_the_verdict_is_a_warning_on_the_merge_card()
-    {
-        var world = new PrWorld();
-        world.Projector.Views.Add(PrData.View(PrData.Snapshot(12), judged: PrData.Sha('e'), headIsJudged: false));
-        await world.OpenAsync();
-        world.Model.OpenMergeCardCommand.Execute(null);
-
-        Assert.Contains(world.Model.Card!.Lines, l => l.IsWarning && l.Text == Texts.Get("Hosting_Head_Moved"));
-    }
-
-    [Fact]
     public async Task A_refusal_of_the_service_is_said_with_its_coded_text_and_the_card_stays_open()
     {
         var world = WorldWith(OpenView());

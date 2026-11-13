@@ -38,13 +38,14 @@ internal static class RemoteTestSupport
         MergeMethod? method = null,
         HostingOutcome outcome = HostingOutcome.Ok,
         string? account = null,
-        string run = Run) =>
+        string run = Run,
+        string? verdict = null) =>
         world.RecordAsync(
             Run,
             DecisionKind.HostingOperationPerformed,
             HostingOperationPerformedPayload.Of(
                 operation, run, Repository, pullRequest, operation is HostingOperationKind.PushRunBranch ? RemoteBranch.ForRun(new RunId(run)).Name : null, Head, method, null, 1, outcome, null,
-                account is null ? null : RemoteLogin.TryParse(account), null, null, null, null));
+                account is null ? null : RemoteLogin.TryParse(account), null, null, verdict, null));
 
     /// <summary>The integration of the run into its own branch (what the dossier of the judge is built on), then the verdict of the judge on the head of the log that has it.</summary>
     public static async Task JudgeAsync(
