@@ -428,6 +428,14 @@ internal sealed class PublishFlow(
 
     private async Task<FlowResult?> VerdictAsync(FlowContext context)
     {
+        // Without a verdict that counts (the log does not verify or none judged the run) nothing is published (D-21), and that is not a failure of the publication.
+        _verdict.Package ??= await Deps.Notices.BuildAsync(project, run, null, context.Stopping).ConfigureAwait(false);
+        if (_verdict.Package is null)
+        {
+            _stage = Stage.NoteVerdict;
+            return null;
+        }
+
         var stop = await PublishVerdictAsync(context, project, run, _pullRequest!, commit, baseBranch, null, _verdict).ConfigureAwait(false);
         if (stop is { } result)
         {
@@ -440,7 +448,11 @@ internal sealed class PublishFlow(
 
     private async Task<FlowResult?> NoteVerdictStageAsync(FlowContext context)
     {
-        await NoteVerdictAsync(context, project, run, _pullRequest!, commit, baseBranch, _account, _verdict).ConfigureAwait(false);
+        if (_verdict.Package is not null)
+        {
+            await NoteVerdictAsync(context, project, run, _pullRequest!, commit, baseBranch, _account, _verdict).ConfigureAwait(false);
+        }
+
         context.Follow(_pullRequest!, run.Value);
         _stage = Stage.Finished;
         return null;
@@ -616,7 +628,8 @@ internal sealed class WriteFlow(
                         var check = await verify(context).ConfigureAwait(false);
                         if (check == WriteCheck.Busy)
                         {
-                            return FlowResult.WaitForProject();
+                            // It could not be read now: it stays pending, and the next round reads before it asks again.
+                            return FlowResult.WaitForSync(PendingReason.Offline, PublicationCodes.OfflineWait(0), PublicationCodes.Unreachable);
                         }
 
                         done = check == WriteCheck.Done;

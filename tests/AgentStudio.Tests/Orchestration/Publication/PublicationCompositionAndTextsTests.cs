@@ -28,6 +28,8 @@ public sealed class PublicationCompositionAndTextsTests
         services.AddSingleton<IVerdictStore>(new RigVerdicts());
         services.AddSingleton<IRemoteGitRunner>(rig.Git);
         services.AddSingleton<IEvidenceStore>(new RigEvidence());
+        services.AddSingleton<IRepositoryHistoryReader>(rig.History);
+        services.AddSingleton<IRepositoryAnnotator>(rig.Annotator);
         services.AddSingleton<IUserTextRenderer>(new RigTexts());
         services.AddSingleton<TimeProvider>(rig.Time);
         services.AddAgentStudioPublication();
