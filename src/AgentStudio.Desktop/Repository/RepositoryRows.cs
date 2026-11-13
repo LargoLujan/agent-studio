@@ -12,6 +12,9 @@ public enum RepositorySection
     Branches,
     Commits,
     Activity,
+
+    /// <summary>Phase 10 (docs/21 section 7.1): the pull requests, after the four of Phase 9.</summary>
+    PullRequests,
 }
 
 /// <summary>A remote of the repository: its name and its URL without credentials (both are data of the configuration, shown as they are).</summary>
@@ -22,10 +25,11 @@ public sealed record RemoteRow(string Name, string Url)
 }
 
 /// <summary>A local branch with the saved version it points at; a branch of a run of the system says so.</summary>
-public sealed record BranchRow(string Name, string Version, string Marks, bool IsCurrent, bool IsRun)
+/// <param name="RemoteText">Phase 10 (docs/21 section 7.3): what the log says of its branch on the remote (published, at which version, deleted there); empty when it says nothing.</param>
+public sealed record BranchRow(string Name, string Version, string Marks, bool IsCurrent, bool IsRun, string RemoteText = "")
 {
-    /// <summary>What a screen reader says of a branch: its name and its marks.</summary>
-    public override string ToString() => Marks.Length == 0 ? Name : $"{Name} · {Marks}";
+    /// <summary>What a screen reader says of a branch: its name, its marks and what is known of its remote branch.</summary>
+    public override string ToString() => string.Join(" · ", new[] { Name, Marks, RemoteText }.Where(s => s.Length > 0));
 }
 
 /// <summary>One line of what a commit says of its origin: what the log backs, or a suggestion nobody confirmed (D-44).</summary>

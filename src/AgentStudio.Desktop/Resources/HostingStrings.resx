@@ -124,4 +124,730 @@
   <data name="Hosting_Revert_Suspected_What" xml:space="preserve">
     <value>Es una deducción. Si es cierta, puedes reabrir el hito.</value>
   </data>
+  <!-- WP5: the section «Peticiones de fusión (PR)», its cards, «Ramas», «Actividad» and «Trabajo». -->
+  <data name="Hosting_Section_PullRequests" xml:space="preserve">
+    <value>Peticiones de fusión (PR)</value>
+  </data>
+  <data name="Hosting_Header_Repository" xml:space="preserve">
+    <value>GitHub · {0}</value>
+    <comment>{0}: owner/repository.</comment>
+  </data>
+  <data name="Hosting_Header_SessionOk" xml:space="preserve">
+    <value>Sesión de GitHub iniciada, vista el {0}.</value>
+  </data>
+  <data name="Hosting_Header_SessionUnchecked" xml:space="preserve">
+    <value>La sesión de GitHub aún no se ha comprobado.</value>
+  </data>
+  <data name="Hosting_Header_LastSync" xml:space="preserve">
+    <value>Última sincronización buena: {0}.</value>
+  </data>
+  <data name="Hosting_Header_NeverSynced" xml:space="preserve">
+    <value>Todavía no hubo ninguna sincronización buena.</value>
+  </data>
+  <data name="Hosting_Header_SyncOn" xml:space="preserve">
+    <value>Sincronizar con GitHub está activado en este proyecto. Lo cambias en Ajustes.</value>
+  </data>
+  <data name="Hosting_Header_SyncOff" xml:space="preserve">
+    <value>Sincronizar con GitHub está desactivado en este proyecto. Lo cambias en Ajustes.</value>
+  </data>
+  <data name="Hosting_Header_SyncNow" xml:space="preserve">
+    <value>Sincronizar ahora</value>
+  </data>
+  <data name="Hosting_Header_Check" xml:space="preserve">
+    <value>Comprobar la conexión</value>
+  </data>
+  <data name="Hosting_Connection_Ok" xml:space="preserve">
+    <value>Conectado a GitHub como {0}.</value>
+  </data>
+  <data name="Hosting_Sync_Asked" xml:space="preserve">
+    <value>Pedido hecho. Lo verás aquí en unos segundos.</value>
+  </data>
+  <data name="Hosting_Unfollowed" xml:space="preserve">
+    <value>Dejas de seguir esta petición de fusión.</value>
+  </data>
+  <data name="Hosting_Pr_NoProject" xml:space="preserve">
+    <value>Abre un proyecto para ver sus peticiones de fusión (PR).</value>
+  </data>
+  <data name="Hosting_Pr_Unavailable" xml:space="preserve">
+    <value>Las peticiones de fusión (PR) no están disponibles en esta ventana.</value>
+  </data>
+  <data name="Hosting_Pr_NoRemote" xml:space="preserve">
+    <value>Este proyecto no tiene un remoto de GitHub que Agent Studio reconozca. Añade un remoto llamado origin con una dirección de github.com.</value>
+  </data>
+  <data name="Hosting_Pr_NoGh" xml:space="preserve">
+    <value>No está instalado el programa gh de GitHub. Instálalo con: winget install --id GitHub.cli --exact</value>
+  </data>
+  <data name="Hosting_Pr_None" xml:space="preserve">
+    <value>Todavía no sigues ninguna petición de fusión de este proyecto.</value>
+  </data>
+  <data name="Hosting_Pr_Unreadable" xml:space="preserve">
+    <value>No se pudo leer GitHub ni el historial. Pulsa Actualizar para intentarlo otra vez.</value>
+  </data>
+  <data name="Hosting_Pr_Number" xml:space="preserve">
+    <value>#{0}</value>
+  </data>
+  <data name="Hosting_Pending_Title" xml:space="preserve">
+    <value>Pendiente de sincronizar</value>
+  </data>
+  <data name="Hosting_Pending_OfflineNoTime" xml:space="preserve">
+    <value>Pendiente de sincronizar: no hay conexión. Se volverá a intentar pronto.</value>
+  </data>
+  <data name="Hosting_Pending_Busy" xml:space="preserve">
+    <value>Pendiente de sincronizar: el proyecto está ocupado.</value>
+  </data>
+  <data name="Hosting_RateLimitedNoTime" xml:space="preserve">
+    <value>GitHub pide esperar un rato.</value>
+  </data>
+  <data name="Hosting_Work_Queued" xml:space="preserve">
+    <value>En cola.</value>
+  </data>
+  <data name="Hosting_Work_WaitingForProject" xml:space="preserve">
+    <value>Espera a que el proyecto quede libre.</value>
+  </data>
+  <data name="Hosting_Work_Running" xml:space="preserve">
+    <value>En marcha.</value>
+  </data>
+  <data name="Hosting_Work_PendingSync" xml:space="preserve">
+    <value>Pendiente de sincronizar.</value>
+  </data>
+  <data name="Hosting_Work_Done" xml:space="preserve">
+    <value>Hecho.</value>
+  </data>
+  <data name="Hosting_Work_Failed" xml:space="preserve">
+    <value>No se pudo hacer.</value>
+  </data>
+  <data name="Hosting_Work_Cancelled" xml:space="preserve">
+    <value>Cancelado.</value>
+  </data>
+  <data name="Hosting_Work_Expired" xml:space="preserve">
+    <value>Caducó sin hacerse.</value>
+  </data>
+  <data name="Hosting_Runs_Title" xml:space="preserve">
+    <value>Ejecuciones sin publicar</value>
+  </data>
+  <data name="Hosting_Publish_Open" xml:space="preserve">
+    <value>Publicar y abrir PR…</value>
+  </data>
+  <data name="Hosting_List_Name" xml:space="preserve">
+    <value>Peticiones de fusión que sigues</value>
+  </data>
+  <data name="Hosting_State_Open" xml:space="preserve">
+    <value>Abierto</value>
+  </data>
+  <data name="Hosting_State_Draft" xml:space="preserve">
+    <value>Borrador</value>
+  </data>
+  <data name="Hosting_State_Closed" xml:space="preserve">
+    <value>Cerrado sin fusionar</value>
+  </data>
+  <data name="Hosting_State_Merged" xml:space="preserve">
+    <value>Fusionado</value>
+  </data>
+  <data name="Hosting_State_MergedDeduced" xml:space="preserve">
+    <value>{0} (deducido)</value>
+    <comment>{0}: the mode of the merge, such as «Fusionado con squash».</comment>
+  </data>
+  <data name="Hosting_State_NotObserved" xml:space="preserve">
+    <value>Todavía sin observar</value>
+  </data>
+  <data name="Hosting_Verdict_Approved" xml:space="preserve">
+    <value>Veredicto: aprobado</value>
+  </data>
+  <data name="Hosting_Verdict_Rejected" xml:space="preserve">
+    <value>Veredicto: rechazado</value>
+  </data>
+  <data name="Hosting_Verdict_InReview" xml:space="preserve">
+    <value>Veredicto: en revisión</value>
+  </data>
+  <data name="Hosting_Verdict_None" xml:space="preserve">
+    <value>Sin veredicto</value>
+  </data>
+  <data name="Hosting_Judged_Same" xml:space="preserve">
+    <value>La cabeza es la versión guardada (commit) que juzgó el revisor.</value>
+  </data>
+  <data name="Hosting_Judged_Unknown" xml:space="preserve">
+    <value>No consta qué versión vio el revisor.</value>
+  </data>
+  <data name="Hosting_Origin_Run" xml:space="preserve">
+    <value>Ejecución {0}</value>
+  </data>
+  <data name="Hosting_Checks" xml:space="preserve">
+    <value>{0} pasan · {1} fallan · {2} esperan</value>
+  </data>
+  <data name="Hosting_Checks_None" xml:space="preserve">
+    <value>Sin checks</value>
+  </data>
+  <data name="Hosting_Truncated" xml:space="preserve">
+    <value>(lista incompleta)</value>
+  </data>
+  <data name="Hosting_Reviews_Approved" xml:space="preserve">
+    <value>Aprobaciones: {0}</value>
+  </data>
+  <data name="Hosting_Reviews_Changes" xml:space="preserve">
+    <value>Cambios pedidos</value>
+  </data>
+  <data name="Hosting_Reviews_None" xml:space="preserve">
+    <value>Sin revisiones</value>
+  </data>
+  <data name="Hosting_Deployment_Pending" xml:space="preserve">
+    <value>Despliegue pendiente</value>
+  </data>
+  <data name="Hosting_Deployment_Succeeded" xml:space="preserve">
+    <value>Despliegue correcto, pero de otra versión</value>
+  </data>
+  <data name="Hosting_Deployment_Failed" xml:space="preserve">
+    <value>El despliegue falló</value>
+  </data>
+  <data name="Hosting_Deployment_Inactive" xml:space="preserve">
+    <value>Despliegue inactivo</value>
+  </data>
+  <data name="Hosting_Deployment_Unknown" xml:space="preserve">
+    <value>Despliegue en un estado desconocido</value>
+  </data>
+  <data name="Hosting_Sync_Never" xml:space="preserve">
+    <value>Sin observar todavía</value>
+  </data>
+  <data name="Hosting_Detail_Heading" xml:space="preserve">
+    <value>Petición de fusión #{0}</value>
+  </data>
+  <data name="Hosting_Detail_Base" xml:space="preserve">
+    <value>Rama base: {0}</value>
+  </data>
+  <data name="Hosting_Detail_FailingChecks" xml:space="preserve">
+    <value>Checks que fallan</value>
+  </data>
+  <data name="Hosting_Detail_Originals" xml:space="preserve">
+    <value>{0} versiones guardadas (commit) originales: {1}</value>
+  </data>
+  <data name="Hosting_Detail_OriginalsTruncated" xml:space="preserve">
+    <value>Hay {0} versiones guardadas (commit) originales o más: {1}</value>
+  </data>
+  <data name="Hosting_Detail_Results" xml:space="preserve">
+    <value>{0} versiones guardadas (commit) tras la fusión: {1}</value>
+  </data>
+  <data name="Hosting_Facts_Unreadable" xml:space="preserve">
+    <value>No se pudieron leer los ajustes del repositorio. {0}</value>
+  </data>
+  <data name="Hosting_Facts_NotDeclared" xml:space="preserve">
+    <value>Esta versión de gh no lee los ajustes del repositorio. Por eso no se ofrece fusionar.</value>
+  </data>
+  <data name="Hosting_Rules_None" xml:space="preserve">
+    <value>La rama {0} no tiene protecciones.</value>
+  </data>
+  <data name="Hosting_Rules_NotDeclared" xml:space="preserve">
+    <value>Esta versión de gh no lee las protecciones de {0}.</value>
+  </data>
+  <data name="Hosting_Rule_Protected" xml:space="preserve">
+    <value>La rama está protegida.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredReviews" xml:space="preserve">
+    <value>Pide revisiones antes de fusionar.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredReviews_Count" xml:space="preserve">
+    <value>Pide al menos {0} revisiones antes de fusionar.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredChecks" xml:space="preserve">
+    <value>Pide que pasen ciertos checks.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredChecks_Count" xml:space="preserve">
+    <value>Pide que pasen {0} checks.</value>
+  </data>
+  <data name="Hosting_Rule_SignedCommits" xml:space="preserve">
+    <value>Pide versiones guardadas (commit) firmadas.</value>
+  </data>
+  <data name="Hosting_Rule_LinearHistory" xml:space="preserve">
+    <value>Pide un historial lineal.</value>
+  </data>
+  <data name="Hosting_Rule_MergeQueue" xml:space="preserve">
+    <value>Usa una cola de fusión.</value>
+  </data>
+  <data name="Hosting_Rule_Unknown" xml:space="preserve">
+    <value>Tiene otra regla que Agent Studio no reconoce.</value>
+  </data>
+  <data name="Hosting_Action_Browser" xml:space="preserve">
+    <value>Abrir en el navegador</value>
+  </data>
+  <data name="Hosting_Action_Chain" xml:space="preserve">
+    <value>Ver su cadena</value>
+  </data>
+  <data name="Hosting_Action_Close" xml:space="preserve">
+    <value>Cerrar sin fusionar…</value>
+  </data>
+  <data name="Hosting_Action_DeleteBranch" xml:space="preserve">
+    <value>Borrar la rama remota…</value>
+  </data>
+  <data name="Hosting_Action_Merge" xml:space="preserve">
+    <value>Fusionar…</value>
+  </data>
+  <data name="Hosting_Action_Reviewers" xml:space="preserve">
+    <value>Pedir revisión…</value>
+  </data>
+  <data name="Hosting_Action_Unfollow" xml:space="preserve">
+    <value>Dejar de seguir</value>
+  </data>
+  <data name="Hosting_Action_Verdict" xml:space="preserve">
+    <value>Publicar el veredicto</value>
+  </data>
+  <data name="Hosting_Browser_Failed" xml:space="preserve">
+    <value>No se pudo abrir el navegador.</value>
+  </data>
+  <data name="Hosting_Card_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Hosting_Card_Sent" xml:space="preserve">
+    <value>Pedido enviado. El resultado saldrá en la lista y en la actividad.</value>
+  </data>
+  <data name="Hosting_Card_Failed" xml:space="preserve">
+    <value>No se pudo hacer. Inténtalo otra vez en un momento.</value>
+  </data>
+  <data name="Hosting_Merge_Heading" xml:space="preserve">
+    <value>Fusionar la petición de fusión #{0}</value>
+  </data>
+  <data name="Hosting_Merge_Confirm" xml:space="preserve">
+    <value>Fusionar</value>
+  </data>
+  <data name="Hosting_Merge_Into" xml:space="preserve">
+    <value>Se fusiona en la rama {0}.</value>
+  </data>
+  <data name="Hosting_Merge_Commit" xml:space="preserve">
+    <value>Se fusiona la versión guardada (commit) {0}, la que juzgó el revisor.</value>
+  </data>
+  <data name="Hosting_Merge_Method" xml:space="preserve">
+    <value>Cómo fusionar</value>
+  </data>
+  <data name="Hosting_Method_MergeCommit" xml:space="preserve">
+    <value>Con versión de fusión</value>
+  </data>
+  <data name="Hosting_Method_Squash" xml:space="preserve">
+    <value>Squash: todo en una versión</value>
+  </data>
+  <data name="Hosting_Method_Rebase" xml:space="preserve">
+    <value>Rebase: una versión tras otra</value>
+  </data>
+  <data name="Hosting_Close_Heading" xml:space="preserve">
+    <value>Cerrar la petición de fusión #{0}</value>
+  </data>
+  <data name="Hosting_Close_Confirm" xml:space="preserve">
+    <value>Cerrar sin fusionar</value>
+  </data>
+  <data name="Hosting_Close_Explain" xml:space="preserve">
+    <value>La petición se cierra y su trabajo no entra en la rama base.</value>
+  </data>
+  <data name="Hosting_Close_Hello" xml:space="preserve">
+    <value>Cerrar se confirma con Windows Hello cada vez. La rama {0} no cambia.</value>
+  </data>
+  <data name="Hosting_Delete_Heading" xml:space="preserve">
+    <value>Borrar la rama remota de #{0}</value>
+  </data>
+  <data name="Hosting_Delete_Confirm" xml:space="preserve">
+    <value>Borrar la rama remota</value>
+  </data>
+  <data name="Hosting_Delete_Explain" xml:space="preserve">
+    <value>Se borra la rama {0} de GitHub. Tu rama local no cambia.</value>
+  </data>
+  <data name="Hosting_Delete_Hello" xml:space="preserve">
+    <value>Borrar se confirma con Windows Hello cada vez.</value>
+  </data>
+  <data name="Hosting_Reviewers_Heading" xml:space="preserve">
+    <value>Pedir revisión de #{0}</value>
+  </data>
+  <data name="Hosting_Reviewers_Confirm" xml:space="preserve">
+    <value>Pedir revisión</value>
+  </data>
+  <data name="Hosting_Reviewers_Explain" xml:space="preserve">
+    <value>GitHub avisa a cada persona por su nombre. Escribe sus cuentas.</value>
+  </data>
+  <data name="Hosting_Reviewers_Hello" xml:space="preserve">
+    <value>Pedir revisión avisa a personas, así que se confirma con Windows Hello cada vez.</value>
+  </data>
+  <data name="Hosting_Reviewers_Logins" xml:space="preserve">
+    <value>Cuentas de GitHub</value>
+  </data>
+  <data name="Hosting_Verdict_Heading" xml:space="preserve">
+    <value>Publicar el veredicto en #{0}</value>
+  </data>
+  <data name="Hosting_Verdict_Confirm" xml:space="preserve">
+    <value>Publicar el veredicto</value>
+  </data>
+  <data name="Hosting_Verdict_OnlyComment" xml:space="preserve">
+    <value>Esta versión de gh no publica estados. El veredicto saldrá solo como comentario.</value>
+  </data>
+  <data name="Hosting_Publish_Confirm" xml:space="preserve">
+    <value>Publicar y abrir</value>
+  </data>
+  <data name="Hosting_Publish_Target" xml:space="preserve">
+    <value>Va a {0}, rama {1}, hacia {2}.</value>
+  </data>
+  <data name="Hosting_Publish_Commit" xml:space="preserve">
+    <value>Se publica la versión guardada (commit) {0}.</value>
+  </data>
+  <data name="Hosting_Publish_UploadsUnknown" xml:space="preserve">
+    <value>Se publican {0} versiones guardadas (commit) de Agent Studio. No se pudieron contar las tuyas sin publicar.</value>
+  </data>
+  <data name="Hosting_Publish_Existing" xml:space="preserve">
+    <value>Ya hay una petición de fusión #{0} para esta rama.</value>
+  </data>
+  <data name="Hosting_Publish_NoOpen" xml:space="preserve">
+    <value>Esta versión de gh no abre peticiones de fusión.</value>
+  </data>
+  <data name="Hosting_Publish_TitleLabel" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="Hosting_Publish_BodyLabel" xml:space="preserve">
+    <value>Texto</value>
+  </data>
+  <data name="Hosting_Publish_Draft" xml:space="preserve">
+    <value>Abrir como borrador</value>
+  </data>
+  <data name="Hosting_Publish_CoverGrant" xml:space="preserve">
+    <value>Con tu permiso del {0}</value>
+  </data>
+  <data name="Hosting_Publish_CoverHello" xml:space="preserve">
+    <value>Te pedirá confirmación con Windows Hello</value>
+  </data>
+  <data name="Hosting_Cli_Untested" xml:space="preserve">
+    <value>Esta versión de gh no es la que se probó. Algo podría fallar.</value>
+  </data>
+  <data name="Hosting_Permissions_Title" xml:space="preserve">
+    <value>Permisos de publicación</value>
+  </data>
+  <data name="Hosting_Permissions_Explain" xml:space="preserve">
+    <value>Un permiso guardado evita pedir Windows Hello al publicar la rama y al escribir en la petición. Fusionar y borrar siempre lo piden.</value>
+  </data>
+  <data name="Hosting_Permissions_Class" xml:space="preserve">
+    <value>Qué cubre</value>
+  </data>
+  <data name="Hosting_Permissions_Base" xml:space="preserve">
+    <value>Rama base (vacía: cualquiera)</value>
+  </data>
+  <data name="Hosting_Permissions_Give" xml:space="preserve">
+    <value>Dar permiso…</value>
+  </data>
+  <data name="Hosting_Permissions_Revoke" xml:space="preserve">
+    <value>Retirar</value>
+  </data>
+  <data name="Hosting_Permissions_Given" xml:space="preserve">
+    <value>Permiso guardado.</value>
+  </data>
+  <data name="Hosting_Permissions_NotGiven" xml:space="preserve">
+    <value>No se guardó el permiso.</value>
+  </data>
+  <data name="Hosting_Permissions_Revoked" xml:space="preserve">
+    <value>Has retirado el permiso. Te lo volverá a pedir.</value>
+  </data>
+  <data name="Hosting_Permissions_Unreadable" xml:space="preserve">
+    <value>No se pudieron leer los permisos guardados.</value>
+  </data>
+  <data name="Hosting_Permissions_Where" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="Hosting_Permissions_WhereBase" xml:space="preserve">
+    <value>{0}, hacia {1}</value>
+  </data>
+  <data name="Hosting_Permissions_Who" xml:space="preserve">
+    <value>Lo dio {0}</value>
+  </data>
+  <data name="Hosting_Class_PublishRunBranch" xml:space="preserve">
+    <value>Publicar la rama de una ejecución</value>
+  </data>
+  <data name="Hosting_Class_PullRequestWrite" xml:space="preserve">
+    <value>Escribir en la petición de fusión</value>
+  </data>
+  <data name="Hosting_Class_MergePullRequest" xml:space="preserve">
+    <value>Fusionar</value>
+  </data>
+  <data name="Hosting_Class_Destructive" xml:space="preserve">
+    <value>Cerrar y borrar</value>
+  </data>
+  <data name="Hosting_Branch_Published" xml:space="preserve">
+    <value>Publicada en la versión {0} · PR #{1}</value>
+  </data>
+  <data name="Hosting_Branch_NotObserved" xml:space="preserve">
+    <value>Publicada con la PR #{0}, aún sin observar</value>
+  </data>
+  <data name="Hosting_Branch_RemoteDeleted" xml:space="preserve">
+    <value>Su rama en GitHub se borró · PR #{0}</value>
+  </data>
+  <data name="Hosting_Branch_RemoteRun" xml:space="preserve">
+    <value>En el remoto</value>
+  </data>
+  <data name="Hosting_Activity_Operation" xml:space="preserve">
+    <value>Operación en GitHub</value>
+  </data>
+  <data name="Hosting_Activity_Observation" xml:space="preserve">
+    <value>Observado en GitHub</value>
+  </data>
+  <data name="Hosting_Board_IntegratedBy" xml:space="preserve">
+    <value>Integrado por la PR #{0} de {1}</value>
+  </data>
+  <data name="Hosting_Chain_PullRequest" xml:space="preserve">
+    <value>Petición de fusión #{0}</value>
+  </data>
+  <data name="Hosting_Chain_Deduced" xml:space="preserve">
+    <value>(deducido)</value>
+  </data>
+  <data name="Hosting_Milestone_Integrated" xml:space="preserve">
+    <value>Integrados: {0} de {1} requisitos.</value>
+  </data>
+  <data name="Hosting_Milestone_IntegratedBoth" xml:space="preserve">
+    <value>Integrados: {0} de {1} requisitos, {2} por petición de fusión.</value>
+  </data>
+  <data name="Hosting_Milestone_Deployed" xml:space="preserve">
+    <value>Desplegados, según GitHub: {0} de {1}.</value>
+  </data>
+  <data name="Hosting_Code_Unknown" xml:space="preserve">
+    <value>Motivo sin texto propio: {0}</value>
+  </data>
+  <data name="Hosting_Code_None" xml:space="preserve">
+    <value>sin código</value>
+  </data>
+  <data name="Hosting_Ago_Now" xml:space="preserve">
+    <value>Ahora</value>
+  </data>
+  <data name="Hosting_Ago_Minutes" xml:space="preserve">
+    <value>Hace {0} min</value>
+  </data>
+  <data name="Hosting_Ago_Hours" xml:space="preserve">
+    <value>Hace {0} h</value>
+  </data>
+  <data name="Hosting_Ago_Days" xml:space="preserve">
+    <value>Hace {0} d</value>
+  </data>
+  <data name="Info_Hosting_PullRequests_Title" xml:space="preserve">
+    <value>Peticiones de fusión (PR)</value>
+  </data>
+  <data name="Info_Hosting_PullRequests_What" xml:space="preserve">
+    <value>Una petición de fusión (PR) pide pasar el trabajo de una ejecución a la rama principal en GitHub. Aquí ves las que sigues y cómo van.</value>
+  </data>
+  <data name="Info_Hosting_PullRequests_Actions" xml:space="preserve">
+    <value>Pulsa una fila para ver su detalle y sus acciones.
+Publica una ejecución con Publicar y abrir PR.
+Fusionar, cerrar y borrar piden Windows Hello cada vez.</value>
+  </data>
+  <data name="Info_Hosting_Permissions_Title" xml:space="preserve">
+    <value>Permisos de publicación</value>
+  </data>
+  <data name="Info_Hosting_Permissions_What" xml:space="preserve">
+    <value>Un permiso guardado deja publicar la rama y escribir en la petición sin pedir Windows Hello. No cubre fusionar ni borrar.</value>
+  </data>
+  <data name="Info_Hosting_Permissions_Actions" xml:space="preserve">
+    <value>Pulsa Dar permiso para guardar uno.
+Pulsa Retirar para volver a pedir confirmación.</value>
+  </data>
+  <data name="Info_Hosting_MergedUnjudged_Title" xml:space="preserve">
+    <value>Fusionado con cambios que el juez no vio</value>
+  </data>
+  <data name="Info_Hosting_MergedUnjudged_What" xml:space="preserve">
+    <value>Alguien subió cambios después de la revisión y se fusionó así. El revisor independiente (juez) no los vio, así que no cuenta como integrado.</value>
+  </data>
+  <data name="Info_Hosting_MergedUnjudged_Actions" xml:space="preserve">
+    <value>Pide una revisión nueva de esos cambios.
+Si hace falta, reabre el hito.</value>
+  </data>
+  <!-- The codes the layers below hand the desktop as text (Text_&lt;code&gt;): the outcome of a call, the refusals of the adapter of GitHub and of the git executor, the mode of a merge,
+       the reasons of the board. A code with no text is said generically (HostingTexts.Code); a test walks the known ones. -->
+  <data name="Text_hosting_outcome_ok" xml:space="preserve">
+    <value>GitHub lo aceptó.</value>
+  </data>
+  <data name="Text_hosting_outcome_not_modified" xml:space="preserve">
+    <value>GitHub dice que nada cambió.</value>
+  </data>
+  <data name="Text_hosting_outcome_sign_in_needed" xml:space="preserve">
+    <value>No hay sesión de GitHub. Abre una terminal y escribe: gh auth login</value>
+  </data>
+  <data name="Text_hosting_outcome_rate_limited" xml:space="preserve">
+    <value>GitHub pide esperar. Agent Studio no insiste.</value>
+  </data>
+  <data name="Text_hosting_outcome_unreachable" xml:space="preserve">
+    <value>No hay conexión con GitHub. Comprueba tu red e inténtalo otra vez.</value>
+  </data>
+  <data name="Text_hosting_outcome_forbidden" xml:space="preserve">
+    <value>GitHub no deja a tu cuenta hacer esto. Revisa sus permisos en el repositorio.</value>
+  </data>
+  <data name="Text_hosting_outcome_not_found" xml:space="preserve">
+    <value>GitHub no encontró lo que se pidió. Puede que ya no exista.</value>
+  </data>
+  <data name="Text_hosting_outcome_refused" xml:space="preserve">
+    <value>GitHub rechazó la petición.</value>
+  </data>
+  <data name="Text_hosting_outcome_unsupported" xml:space="preserve">
+    <value>Esta versión de gh no puede hacer esto.</value>
+  </data>
+  <data name="Text_hosting_outcome_invalid_answer" xml:space="preserve">
+    <value>GitHub contestó algo que Agent Studio no entiende, y no lo da por bueno.</value>
+  </data>
+  <data name="Text_gh_not_installed" xml:space="preserve">
+    <value>No está instalado el programa gh de GitHub.</value>
+  </data>
+  <data name="Text_capability_not_declared" xml:space="preserve">
+    <value>Esta versión de gh no declara esta operación, así que no se hace.</value>
+  </data>
+  <data name="Text_answer_invalid" xml:space="preserve">
+    <value>GitHub contestó algo que Agent Studio no entiende.</value>
+  </data>
+  <data name="Text_account_login_invalid" xml:space="preserve">
+    <value>El nombre de la cuenta de GitHub no es válido.</value>
+  </data>
+  <data name="Text_remote_moved" xml:space="preserve">
+    <value>El repositorio se movió o cambió de nombre en GitHub. Revisa el remoto.</value>
+  </data>
+  <data name="Text_server_error" xml:space="preserve">
+    <value>GitHub falló al contestar. Inténtalo otra vez más tarde.</value>
+  </data>
+  <data name="Text_text_title_invalid" xml:space="preserve">
+    <value>El título no es válido. Escribe uno más corto y sin caracteres raros.</value>
+  </data>
+  <data name="Text_text_body_invalid" xml:space="preserve">
+    <value>El texto no es válido. Acórtalo y quita los caracteres raros.</value>
+  </data>
+  <data name="Text_commit_invalid" xml:space="preserve">
+    <value>La versión guardada (commit) no es válida.</value>
+  </data>
+  <data name="Text_merge_method_not_declared" xml:space="preserve">
+    <value>Esta versión de gh no puede fusionar de esa forma.</value>
+  </data>
+  <data name="Text_merge_blocked" xml:space="preserve">
+    <value>GitHub no deja fusionar todavía. Faltan revisiones o checks, o hay un conflicto.</value>
+  </data>
+  <data name="Text_merge_head_moved" xml:space="preserve">
+    <value>La petición cambió mientras se pedía fusionar. Nada se fusionó. Revísala y vuelve a pedirlo.</value>
+  </data>
+  <data name="Text_merge_rejected" xml:space="preserve">
+    <value>GitHub rechazó la fusión por sus ajustes. Revisa los modos que admite el repositorio.</value>
+  </data>
+  <data name="Text_branch_not_run_branch" xml:space="preserve">
+    <value>Solo se borran ramas de una ejecución de Agent Studio.</value>
+  </data>
+  <data name="Text_branch_head_differs" xml:space="preserve">
+    <value>La rama de GitHub ya no está en la versión esperada. No se borró.</value>
+  </data>
+  <data name="Text_reviewers_invalid" xml:space="preserve">
+    <value>Alguna cuenta de revisión no es válida.</value>
+  </data>
+  <data name="Text_verdict_run_invalid" xml:space="preserve">
+    <value>La ejecución del veredicto no es válida.</value>
+  </data>
+  <data name="Text_text_description_invalid" xml:space="preserve">
+    <value>El texto del estado del veredicto no es válido.</value>
+  </data>
+  <data name="Text_reviews_too_many" xml:space="preserve">
+    <value>La petición tiene demasiadas revisiones para contarlas bien. No se enseña un recuento a medias.</value>
+  </data>
+  <data name="Text_comment_lookup_unknown" xml:space="preserve">
+    <value>No se encontró el comentario del veredicto. Se publicó solo el estado.</value>
+  </data>
+  <data name="Text_repository_merge_settings_missing" xml:space="preserve">
+    <value>GitHub no dijo qué modos de fusión admite el repositorio.</value>
+  </data>
+  <data name="Text_configuration_refused" xml:space="preserve">
+    <value>El repositorio tiene una configuración que impide publicar. Quítala, o publica con tu programa de git.</value>
+  </data>
+  <data name="Text_inspection_failed" xml:space="preserve">
+    <value>No se pudo revisar la configuración del repositorio, así que no se publica.</value>
+  </data>
+  <data name="Text_inspection_output_too_large" xml:space="preserve">
+    <value>La configuración del repositorio es muy grande. No se pudo revisar y no se publica.</value>
+  </data>
+  <data name="Text_git_unavailable" xml:space="preserve">
+    <value>No se encuentra el programa git. Instálalo y vuelve a intentarlo.</value>
+  </data>
+  <data name="Text_hooks_file_unsafe" xml:space="preserve">
+    <value>El fichero de ganchos de git del repositorio no es seguro, así que no se publica.</value>
+  </data>
+  <data name="Text_work_folder_unsafe" xml:space="preserve">
+    <value>La carpeta de trabajo de git no es segura, así que no se publica.</value>
+  </data>
+  <data name="Text_project_unreadable" xml:space="preserve">
+    <value>No se pudo leer el proyecto.</value>
+  </data>
+  <data name="Text_invalid_address" xml:space="preserve">
+    <value>La dirección del remoto no es válida.</value>
+  </data>
+  <data name="Text_invalid_commit" xml:space="preserve">
+    <value>La versión guardada (commit) no es válida.</value>
+  </data>
+  <data name="Text_timed_out" xml:space="preserve">
+    <value>Git tardó demasiado y se paró. Inténtalo otra vez.</value>
+  </data>
+  <data name="Text_output_too_large" xml:space="preserve">
+    <value>Git dio una respuesta demasiado grande y se paró.</value>
+  </data>
+  <data name="Text_credentials_needed" xml:space="preserve">
+    <value>Git no pudo identificarse en GitHub. Comprueba tu gestor de credenciales.</value>
+  </data>
+  <data name="Text_rejected_not_fast_forward" xml:space="preserve">
+    <value>GitHub tiene cambios que tu rama no tiene. No se forzó nada. Revisa la rama en GitHub.</value>
+  </data>
+  <data name="Text_remote_unreachable" xml:space="preserve">
+    <value>No hay conexión con el remoto. Comprueba tu red e inténtalo otra vez.</value>
+  </data>
+  <data name="Text_redirected" xml:space="preserve">
+    <value>El remoto redirige a otra dirección. No se sigue. Revisa la dirección del remoto.</value>
+  </data>
+  <data name="Text_protocol_refused" xml:space="preserve">
+    <value>El remoto usa un protocolo que Agent Studio no admite. Solo admite https.</value>
+  </data>
+  <data name="Text_git_failed" xml:space="preserve">
+    <value>Git falló. Prueba a publicar con tu programa de git.</value>
+  </data>
+  <data name="Text_lfs_detected" xml:space="preserve">
+    <value>Este proyecto usa Git LFS y Agent Studio no sube esos ficheros. Publica la rama con tu programa de git.</value>
+  </data>
+  <data name="Text_lfs_check_failed" xml:space="preserve">
+    <value>No se pudo comprobar si el proyecto usa Git LFS, así que no se publica.</value>
+  </data>
+  <data name="Text_push_rejected" xml:space="preserve">
+    <value>GitHub rechazó el envío. Revisa los permisos y las reglas de la rama.</value>
+  </data>
+  <data name="Text_partial_clone_unsupported" xml:space="preserve">
+    <value>Este repositorio es una copia parcial y Agent Studio no lo publica.</value>
+  </data>
+  <data name="Text_remote_unrecognized" xml:space="preserve">
+    <value>Agent Studio no reconoce la dirección de este remoto.</value>
+  </data>
+  <data name="Text_remote_host_not_supported" xml:space="preserve">
+    <value>Solo se admiten remotos de github.com.</value>
+  </data>
+  <data name="Text_remote_credentials_in_url" xml:space="preserve">
+    <value>La dirección del remoto lleva usuario o clave. Quítalos: Agent Studio no los usa.</value>
+  </data>
+  <data name="Text_remote_port" xml:space="preserve">
+    <value>La dirección del remoto indica un puerto, y no se admite.</value>
+  </data>
+  <data name="Text_remote_owner_invalid" xml:space="preserve">
+    <value>El propietario del repositorio no es un nombre válido.</value>
+  </data>
+  <data name="Text_remote_name_invalid" xml:space="preserve">
+    <value>El nombre del repositorio no es válido.</value>
+  </data>
+  <data name="Text_branch_unsupported_characters" xml:space="preserve">
+    <value>El nombre de la rama tiene caracteres que no se admiten.</value>
+  </data>
+  <data name="Text_branch_invalid_form" xml:space="preserve">
+    <value>El nombre de la rama no es válido para git.</value>
+  </data>
+  <data name="Text_board_merged_unjudged_changes" xml:space="preserve">
+    <value>Fusionado con cambios que el juez no vio</value>
+  </data>
+  <data name="Text_remote_reverted_by" xml:space="preserve">
+    <value>Posible reversión, por el mensaje de una versión guardada</value>
+  </data>
+  <data name="Text_remote_deployed" xml:space="preserve">
+    <value>Desplegado</value>
+  </data>
+  <data name="Text_remote_merge_squash" xml:space="preserve">
+    <value>Fusionado con squash</value>
+  </data>
+  <data name="Text_remote_merge_rebase" xml:space="preserve">
+    <value>Fusionado con rebase</value>
+  </data>
+  <data name="Text_remote_merge_merge_commit" xml:space="preserve">
+    <value>Fusionado con una versión de fusión</value>
+  </data>
+  <data name="Text_remote_merge_squash_or_rebase" xml:space="preserve">
+    <value>Fusionado con squash o con rebase</value>
+  </data>
+  <data name="Text_remote_merge_unknown" xml:space="preserve">
+    <value>Fusionado, de una forma que no se sabe</value>
+  </data>
 </root>

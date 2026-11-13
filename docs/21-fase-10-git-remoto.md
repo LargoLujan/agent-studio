@@ -2260,6 +2260,41 @@ Dónde el diseño y el código real chocaron al escribir las proyecciones, y có
 - **Hecho cuando:** las pruebas de ViewModel de F10-1 y F10-8 pasan; cada vista nueva está en el inventario; los dos
   artículos de ayuda cubren las claves ⓘ nuevas; ninguna pantalla enseña un dato que no venga de un puerto.
 
+#### Ajustes de WP5
+
+Dónde el diseño y el código chocaron al escribir las pantallas, qué dato no se pudo enseñar por falta de puerto y qué queda sin verificar (2026-11-13). Lo que no está aquí, está como lo fija §7.
+
+- **Qué hay.** `PullRequestsViewModel` (la sección «Peticiones de fusión (PR)»), las tarjetas (`PublishCardViewModel`, `MergeCardViewModel`, `ReviewersCardViewModel`, `ActionCardViewModel` para el veredicto, cerrar y borrar la rama remota),
+  `PublishingPermissionsViewModel` («Permisos de publicación») y `HostingTexts` (los códigos y los textos del remoto). `RepositoryViewModel` gana al final un parámetro opcional `pullRequests` (sin él, la sección dice que no está
+  disponible), `RepositorySection.PullRequests` al final y `ShowPublishCardAsync(RunId)` para el botón junto a «Entregar». `WorkBackend` gana al final `PullRequests` (`IPullRequestProjector`, opcional). La vista nueva es
+  `Views/Repository/PullRequests/PullRequestsView.xaml` y va dentro de `RepositoryView`.
+- **Nada de lo que enseña la pantalla viene de otro sitio que un puerto.** La pantalla nunca llama a `IHostingPolicyGate.AuthorizeAsync` (la prueba lo vigila con un doble que lanza): «qué lo ampara» sale de `GrantsAsync` y de
+  `HostingPolicyGrant.Covers` para el envío y para abrir el PR; si no cubre los dos, dice que pedirá Windows Hello. Los rechazos del servicio (`UserTextException`) se pintan con su código; un código sin texto se dice con una frase
+  genérica que lo nombra (`Hosting_Code_Unknown`), nunca vacío ni `[clave]`.
+- **Datos que no se pudieron enseñar por falta de puerto** (no se inventaron ni se cambió ningún contrato):
+  - «Ejecución e hito»: `PullRequestView` no trae el hito; la fila dice solo la ejecución. Por eso tampoco hay «Reabrir el hito…» en el PR (necesita el hito de la ejecución).
+  - «Veredicto… y si es el publicado»: ningún puerto dice si el estado o el comentario del veredicto se publicaron. La fila dice el veredicto en vigor y si la cabeza es la juzgada.
+  - **Modo deducido:** `PullRequestView` no trae `ModeIsDeduced`, así que la lista dice siempre «(deducido)» tras el modo, aunque lo fusionara la propia app. La cadena sí usa `Suggested`. Pide: `ModeIsDeduced` en `PullRequestView`.
+  - «Actualizar el PR» (título y cuerpo): `IPublicationService` no tiene un miembro que edite el texto del PR, así que no hay botón. «Sincronizar ahora» refresca la lectura.
+  - «Delante y detrás» de «Ramas»: no hay puerto que cuente commits contra el remoto (D-03); no se enseña. «Ramas» dice publicada, en qué versión o borrada en GitHub solo cuando un PR del registro nombra la ejecución.
+  - **«Actividad»:** `RepositoryActivity` no dice qué operación ni qué cambio observado fue. Cada fila dice «Operación en GitHub» u «Observado en GitHub» con su resultado real (o su código). Pide: un campo `Operation`/`Change` en `RepositoryActivity`.
+  - **El interruptor «Sincronizar con GitHub»:** `IRemoteSyncPolicy` solo lee. La cabecera dice si está activado y que se cambia en Ajustes (del lead); no hay interruptor en la pantalla.
+  - El remoto que se identifica es siempre `origin`; otro nombre no se mira.
+- **Una regla de más, a sabiendas.** «Los modos que la rama admite»: además de `NarrowedBy` (el proveedor y el repositorio), `PullRequestsViewModel.ModesFor` quita «con versión de fusión» si la rama base pide historial lineal y se pudieron leer
+  sus protecciones. Solo estrecha, nunca añade. Convendría que esa regla viviera en `HostingCapabilities.NarrowedBy` (Domain), que ya recibe los datos del repositorio.
+- **Sin ajustes del repositorio no hay «Fusionar…»:** sin los modos permitidos (la lectura falló o la versión de `gh` no declara `ReadRepository`) no hay modo que elegir, y la pantalla lo dice en el detalle.
+- **Los ajustes y las protecciones se leen al elegir un PR** (una lectura de red por clic, no por vuelta) y se guardan cinco minutos, para que un `Changed` del buzón no repita la lectura.
+- **Códigos como texto.** Los códigos de `GitHubRefusal.*` son internos de Infrastructure; `HostingTexts.KnownCodes` los lista como cadenas. Convendría moverlos a `Application/Hosting` (constantes) y que la prueba recorra esa lista. Los de WP1 son los de la lista del
+  encargo más `partial-clone-unsupported`; cuando `RemoteGitCodes.cs` esté en la rama de integración, la lista debe salir de ahí. Los textos viven en `HostingStrings` como `Text_<código>`; **WP3 no debe repetir ninguna de esas claves** en
+  `OrchestratorStrings` (`Text_project_busy_remote` sigue siendo suya).
+- **Accesibilidad:** el inventario rechazó un `Expander` (sin nombre y fuera del orden de tabulación): «Permisos de publicación» es un botón de dos estados con su nombre. La prueba del idioma pide que lo que viene del remoto en el inventario sean identificadores.
+- **Pruebas.** Viven en el espacio de nombres `AgentStudio.Tests.Desktop.RepositoryScreen.PullRequests`: `…Desktop.Repository` choca con identificadores `Repository` de otras pruebas. Se cambió una prueba existente (`RepositoryViewModelTests`), que esperaba cuatro secciones.
+- **Sin verificar** (nadie ha visto estas pantallas con datos reales): el aspecto y el desbordamiento de las tarjetas y de la lista con títulos reales y en ventanas estrechas; el paso del evento `IRemoteSync.Changed` al hilo de la interfaz en la aplicación
+  real (se publica en el contexto en que se construyó la sección; en las pruebas no hay contexto y se llama directo); que `gh` real declare las capacidades que la pantalla espera; el orden y el texto de las frases con los datos de GitHub; y el botón de
+  «Abrir en el navegador» (hay una prueba de las direcciones, no se abrió ningún navegador).
+- **Para la integración (el lead):** registrar `PullRequestsViewModel(IHostingProviders?, IPullRequestProjector?, IRemoteSync?, IPublicationService?, IHostingPolicyGate?, IRemoteSyncPolicy?, TimeProvider, IAddressOpener?)` con `ShellAddressOpener`
+  como `IAddressOpener`, y pasarlo como último parámetro de `RepositoryViewModel`; pasar `IPullRequestProjector` a `WorkBackend`; llamar a `RepositoryViewModel.ShowPublishCardAsync(RunId)` desde el botón del monitor.
+
 ### 10.8 WP-AZ · Azure DevOps por `az` (M; solo con la decisión 1 (b))
 
 - `src/AgentStudio.Infrastructure/Hosting/AzureDevOps/**` (nuevo), con sus respuestas grabadas y su prueba en vivo.

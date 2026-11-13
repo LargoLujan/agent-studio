@@ -6,6 +6,8 @@
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:repository="clr-namespace:AgentStudio.Desktop.Repository"
+             xmlns:pullRequests="clr-namespace:AgentStudio.Desktop.Repository.PullRequests"
+             xmlns:prViews="clr-namespace:AgentStudio.Desktop.Views.Repository.PullRequests"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=repository:RepositoryViewModel}">
     <!-- «Repositorio y cambios» (docs/16 F9-9, D-44): what the agents and the person did to the repository, read through the
@@ -44,6 +46,14 @@
         <Style x:Key="Repository.Activity" TargetType="ScrollViewer" BasedOn="{StaticResource Repository.Section}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding SelectedSection.Value}" Value="Activity">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="Repository.PullRequests" TargetType="ScrollViewer" BasedOn="{StaticResource Repository.Section}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSection.Value}" Value="PullRequests">
                     <Setter Property="Visibility" Value="Visible"/>
                 </DataTrigger>
             </Style.Triggers>
@@ -163,6 +173,7 @@
                                         <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
                                         <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding Version}"/>
                                         <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Marks}"/>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding RemoteText}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -238,6 +249,14 @@
                         <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0,0,6,6" Content="{l:T Repository_Filter_Apply}" Command="{Binding ApplyFiltersCommand}"/>
                         <Button Style="{StaticResource ToolbarButton}" Margin="0,0,0,6" Content="{l:T Repository_Filter_Clear}" Command="{Binding ClearFiltersCommand}"/>
                     </WrapPanel>
+                    <!-- Phase 10 (docs/21 section 7.3): what waits to be synchronised with GitHub, with its reason, above the timeline. -->
+                    <ItemsControl ItemsSource="{Binding PullRequests.Pending}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Hosting_Pending_Title}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type pullRequests:PendingLine}">
+                                <TextBlock Style="{StaticResource Repository.Warning}" TextWrapping="Wrap" Text="{Binding Text}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                     <TextBlock Style="{StaticResource ErrorText}" Text="{Binding FilterError}" AutomationProperties.LiveSetting="Assertive"/>
                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding ActivityNote, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
                     <ItemsControl ItemsSource="{Binding Activities}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Repository_Activity_Name}">
@@ -269,6 +288,13 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Peticiones de fusión (PR): Phase 10, docs/21 section 7.1. -->
+            <ScrollViewer Style="{StaticResource Repository.PullRequests}">
+                <StackPanel Margin="12,10,12,12">
+                    <prViews:PullRequestsView DataContext="{Binding PullRequests}"/>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
