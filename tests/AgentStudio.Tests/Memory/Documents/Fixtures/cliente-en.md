@@ -50,4 +50,4 @@ There are no recorded risks or pending items.
 Not included in this document:
 
 - The state of each requirement according to the milestones of the project.
-- Whether the change is deployed: Agent Studio deploys nothing and does not know.
+- Whether the change is deployed: Agent Studio deploys nothing. Only the milestone report says so, and only when GitHub reports it.

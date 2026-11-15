@@ -50,4 +50,4 @@ No hay riesgos ni pendientes registrados.
 No incluido en este documento:
 
 - El estado de cada requisito según los hitos del proyecto.
-- Si el cambio está desplegado: Agent Studio no despliega nada y no lo sabe.
+- Si el cambio está desplegado: Agent Studio no despliega nada. Solo el informe del hito lo dice, y solo cuando GitHub lo informa.

@@ -1,6 +1,7 @@
 using System.Text;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Providers.Cli;
 using AgentStudio.Providers.Cli.Claude;
 using static AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 
@@ -684,6 +685,51 @@ public sealed class ClaudeCodeArgumentsTests
     }
 
     // ---- the rest of the launch ------------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("--permission-mode")]
+    [InlineData("--dangerously-skip-permissions")]
+    [InlineData("-x")]
+    [InlineData("session id")]
+    [InlineData("id\nflag")]
+    [InlineData("id\0tail")]
+    [InlineData("a/b")]
+    [InlineData("id;other")]
+    public void A_new_session_id_cannot_bypass_the_validation_used_for_resuming(string id)
+    {
+        var error = Assert.Throws<ArgumentException>(() => ClaudeCodeArguments.Build(Request(), id, null));
+
+        Assert.Equal("newSessionId", error.ParamName);
+    }
+
+    [Fact]
+    public void A_new_session_id_accepts_the_token_length_limit_and_rejects_one_character_more()
+    {
+        var longest = new string('a', CliArgumentGuard.MaxTokenLength);
+        var args = ClaudeCodeArguments.Build(Request(), longest, null);
+
+        Assert.Equal(longest, ValueOf(args, "--session-id"));
+        var error = Assert.Throws<ArgumentException>(() => ClaudeCodeArguments.Build(Request(), longest + "a", null));
+        Assert.Equal("newSessionId", error.ParamName);
+    }
+
+    [Fact]
+    public void A_valid_preview_session_id_is_passed_without_changes()
+    {
+        var args = ClaudeCodeArguments.Build(Request(), "preview-session", null);
+
+        Assert.Equal("preview-session", ValueOf(args, "--session-id"));
+    }
+
+    [Fact]
+    public void Resuming_does_not_validate_an_unused_new_session_id_as_a_token()
+    {
+        var args = ClaudeCodeArguments.Build(Request(resume: "existing-session"), "--unused-token", null);
+
+        Assert.Equal("existing-session", ValueOf(args, "--resume"));
+        Assert.DoesNotContain("--session-id", args);
+        Assert.DoesNotContain("--unused-token", args);
+    }
 
     [Theory]
     [InlineData("--dangerously-skip-permissions")]

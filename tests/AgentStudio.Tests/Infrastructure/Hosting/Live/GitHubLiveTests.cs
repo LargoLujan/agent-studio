@@ -1,9 +1,11 @@
 using System.IO;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Hosting;
+using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Infrastructure.Diagnostics;
+using AgentStudio.Infrastructure.Git.Remote;
 using AgentStudio.Infrastructure.Hosting.Cli;
 using AgentStudio.Infrastructure.Hosting.GitHub;
 using AgentStudio.Infrastructure.Processes;
@@ -25,6 +27,9 @@ public sealed class GitHubLiveTests : IDisposable
     private const string WriteVariable = "AGENTSTUDIO_HOSTING_LIVE_WRITE";
     private const string PullRequestVariable = "AGENTSTUDIO_HOSTING_LIVE_PR";
     private const string HeadVariable = "AGENTSTUDIO_HOSTING_LIVE_HEAD";
+    private const string CloneVariable = "AGENTSTUDIO_HOSTING_LIVE_CLONE";
+    private const string RunVariable = "AGENTSTUDIO_HOSTING_LIVE_RUN";
+    private const string EndVariable = "AGENTSTUDIO_HOSTING_LIVE_END";
 
     private readonly TempDirectory _temp = new();
 
@@ -76,6 +81,12 @@ public sealed class GitHubLiveTests : IDisposable
         var headers = result.StandardOutput.Split('\n').Skip(1).TakeWhile(l => l.Trim().Length > 0).Select(l => l.Split(':', 2)[0].Trim().ToLowerInvariant()).ToList();
         return $"exit {result.ExitCode}; first line «{(first.Length > 60 ? first[..60] : first)}»; headers {string.Join(",", headers)}; body {result.StandardOutput.Length} chars; stderr {result.StandardError.Length} chars";
     }
+
+    /// <summary>What was seen of a pull request, for the notes: states, modes and counts only. No commit, no account and no text of the platform.</summary>
+    private static string Seen(RemoteSnapshot snapshot) =>
+        $"state {snapshot.State}, mode {snapshot.MergeMode?.ToString() ?? "none"}, merge commit {(snapshot.MergeCommit is null ? "no" : "yes")}, original {snapshot.OriginalCommits.Count}, "
+        + $"result {snapshot.ResultCommits.Count}, reverts {snapshot.RevertCommits.Count}, head branch {(snapshot.HeadBranchExists ? "there" : "gone")}, checks {snapshot.Checks.Rollup}, "
+        + $"reviews {snapshot.Reviews.Approved}/{snapshot.Reviews.ChangesRequested}, force pushes {snapshot.ForcePushes}, deployment {snapshot.Deployment?.State.ToString() ?? "none"}";
 
     /// <summary>
     /// THE FIRST THING TO MEASURE (docs/21 §13): a 304 is an error for <c>gh</c> (exit code other than 0, «gh: HTTP 304» on its standard error). Does <c>gh api -i</c> still print the status line and the
@@ -153,8 +164,141 @@ public sealed class GitHubLiveTests : IDisposable
             LiveTestSupport.Note("round 2 · " + new GhCallSeen(run.Spec) + " · " + Shape(run.Result));
         }
 
-        LiveTestSupport.Note($"state {first.Value.Snapshot.State}, mode {first.Value.Snapshot.MergeMode}, checks {first.Value.Snapshot.Checks}, reviews {first.Value.Snapshot.Reviews.Approved}/{first.Value.Snapshot.Reviews.ChangesRequested}, force pushes {first.Value.Snapshot.ForcePushes}, deployment {first.Value.Snapshot.Deployment}");
-        LiveTestSupport.Note("round 2: " + second.Outcome);
+        LiveTestSupport.Note("round 1: " + Seen(first.Value.Snapshot));
+        LiveTestSupport.Note("round 2: " + second.Outcome + (second.Value is { } later ? " · " + Seen(later.Snapshot) : string.Empty));
+    }
+
+    /// <summary>
+    /// The whole way of a publication through the code the app uses, against the private test repository. The remote executor pushes one commit of a local clone to the branch of a run over HTTPS (with the
+    /// person's own credential helper and the allow list of the environment), and the adapter opens the pull request, finds it, changes its text and observes it. It ends as <c>AGENTSTUDIO_HOSTING_LIVE_END</c>
+    /// says: merged with one of the three methods and observed twice (the first time as a pull request, the second as one already merged), or closed and its branch deleted. Needs
+    /// <c>AGENTSTUDIO_HOSTING_LIVE_WRITE=1</c>, the folder of a clone of the test repository, the id of a run with no branch on the remote yet, and the commit to publish.
+    /// </summary>
+    [Fact]
+    public async Task A_commit_is_pushed_and_its_pull_request_lives_through_the_adapter()
+    {
+        var repository = Repository();
+        Assert.SkipUnless(Environment.GetEnvironmentVariable(WriteVariable) == "1", $"Set {WriteVariable}=1 to let this test push a branch and open, merge or close a pull request of the test repository.");
+        var clone = Environment.GetEnvironmentVariable(CloneVariable);
+        var runText = Environment.GetEnvironmentVariable(RunVariable);
+        var commit = Environment.GetEnvironmentVariable(HeadVariable);
+        var end = Environment.GetEnvironmentVariable(EndVariable);
+        Assert.SkipWhen(
+            string.IsNullOrWhiteSpace(clone) || !Directory.Exists(clone) || string.IsNullOrWhiteSpace(runText) || !GitHubApiPath.IsCommitId(commit) || end is not ("squash" or "rebase" or "merge" or "close"),
+            $"Set {CloneVariable} (a clone of the test repository), {RunVariable} (a run id with no branch on the remote), {HeadVariable} (the commit to publish) and {EndVariable}=squash|rebase|merge|close.");
+        var ct = TestContext.Current.CancellationToken;
+        var (runner, process, provider) = Build();
+
+        // Nothing is written anywhere but in the private test repository that the owner named: it is read first and it has to say that it is private.
+        var info = await runner.RunAsync(GitHubApiPath.Repository(repository).Call(), ct);
+        Assert.SkipUnless(info.Http is { Status: 200 } http && IsPrivate(http.Body), $"{RepositoryVariable} must name a private repository: nothing is written to a public one.");
+        process.Runs.Clear();
+
+        var run = new RunId(runText!);
+        var head = RemoteBranch.ForRun(run);
+        var project = new ProjectContext("live-check", clone!);
+        var gitProcess = new Capturing(new ProcessRunner());
+        var git = new RemoteGitRunner(gitProcess, new ExecutableLocator(), RemoteGitFolders.Under(_temp.Combine("local")), _temp.Combine("worktrees"), RemoteTransport.GitHubHttps);
+
+        try
+        {
+            var facts = await provider.ReadRepositoryAsync(repository, null, ct);
+            Assert.Equal(HostingOutcome.Ok, facts.Outcome);
+            var baseBranch = facts.Value!.DefaultBranch;
+
+            var before = await git.ReadBranchAsync(project, repository, head, ct);
+            LiveTestSupport.Note($"branch before the push: reached {before.Reached}, there {before.Commit is not null}, code {before.FailureCode ?? "none"}");
+            Assert.True(before.Reached);
+            Assert.Null(before.Commit);
+
+            var pushed = await git.PushRunBranchAsync(new RemotePush(project, repository, run, commit!), ct);
+            LiveTestSupport.Note(
+                $"push over https: {pushed.Outcome}, code {pushed.FailureCode ?? "none"}, configuration accepted {pushed.Inspection.Accepted}, refusals {pushed.Inspection.Refusals.Count}, lfs {pushed.Inspection.UsesLfs}, "
+                + $"confirmed {string.Equals(pushed.RemoteCommit, commit, StringComparison.Ordinal)}");
+            Assert.Equal(RemotePushOutcome.Pushed, pushed.Outcome);
+            Assert.Equal(commit, pushed.RemoteCommit);
+
+            var none = await provider.FindPullRequestAsync(repository, head, ct);
+            Assert.Equal(HostingOutcome.Ok, none.Outcome);
+            Assert.Null(none.Value);
+
+            var opened = await provider.OpenPullRequestAsync(
+                new PullRequestDraft(repository, head, baseBranch, new PullRequestText("Comprobación en vivo del adaptador", "Abierto por la prueba en vivo del adaptador. Se puede cerrar."), Draft: false), ct);
+            LiveTestSupport.Note($"open: {opened.Outcome}, code {opened.RefusalCode ?? "none"}");
+            Assert.Equal(HostingOutcome.Ok, opened.Outcome);
+            var pullRequest = opened.Value!;
+
+            var found = await provider.FindPullRequestAsync(repository, head, ct);
+            Assert.Equal(pullRequest, found.Value);
+            var updated = await provider.UpdatePullRequestAsync(
+                pullRequest, new PullRequestText("Comprobación en vivo del adaptador (texto cambiado)", "Texto cambiado por la prueba en vivo del adaptador. Se puede cerrar."), ct);
+            LiveTestSupport.Note($"update of the text: {updated.Outcome}, {updated.Value}");
+            Assert.Equal(HostingOutcome.Ok, updated.Outcome);
+
+            var open = await provider.ObserveAsync(pullRequest, null, ct);
+            Assert.Equal(HostingOutcome.Ok, open.Outcome);
+            LiveTestSupport.Note("open · " + Seen(open.Value!.Snapshot));
+            Assert.Equal(PullRequestState.Open, open.Value.Snapshot.State);
+            Assert.Equal(commit, open.Value.Snapshot.HeadCommit);
+
+            if (end is "close")
+            {
+                var closed = await provider.CloseAsync(pullRequest, ct);
+                LiveTestSupport.Note($"close: {closed.Outcome}, {closed.Value}");
+                Assert.Equal(HostingOutcome.Ok, closed.Outcome);
+                var seenClosed = await provider.ObserveAsync(pullRequest, null, ct);
+                Assert.Equal(HostingOutcome.Ok, seenClosed.Outcome);
+                LiveTestSupport.Note("closed · " + Seen(seenClosed.Value!.Snapshot));
+                Assert.Equal(PullRequestState.Closed, seenClosed.Value.Snapshot.State);
+
+                var deleted = await provider.DeleteRunBranchAsync(repository, head, commit!, ct);
+                LiveTestSupport.Note($"delete of the run branch: {deleted.Outcome}, {deleted.Value}, code {deleted.RefusalCode ?? "none"}");
+                Assert.Equal(HostingOutcome.Ok, deleted.Outcome);
+                var after = await git.ReadBranchAsync(project, repository, head, ct);
+                LiveTestSupport.Note($"branch after the delete: reached {after.Reached}, there {after.Commit is not null}");
+                Assert.True(after.Reached);
+                Assert.Null(after.Commit);
+                var gone = await provider.ObserveAsync(pullRequest, null, ct);
+                LiveTestSupport.Note("closed and deleted: " + gone.Outcome + (gone.Value is { } last ? " · " + Seen(last.Snapshot) : string.Empty));
+                return;
+            }
+
+            var method = end switch { "squash" => MergeMethod.Squash, "rebase" => MergeMethod.Rebase, _ => MergeMethod.MergeCommit };
+            HostingResult<MergeOutcome>? merged = null;
+            for (var attempt = 1; attempt <= 3; attempt++)
+            {
+                // Right after it is opened the platform may still be working out whether it can be merged: a refusal then is not a failure of the adapter, and it is asked again.
+                merged = await provider.MergeAsync(pullRequest, method, commit!, ct);
+                LiveTestSupport.Note(
+                    $"merge asked as {method}, attempt {attempt}: {merged.Outcome}, merged {merged.Value?.Merged}, merge commit {(merged.Value?.MergeCommit is null ? "no" : "yes")}, "
+                    + $"blocked {merged.Value?.BlockedState ?? "none"}, code {merged.RefusalCode ?? "none"}");
+                if (merged is { Outcome: HostingOutcome.Ok, Value.Merged: true })
+                {
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(3), ct);
+            }
+
+            Assert.Equal(HostingOutcome.Ok, merged!.Outcome);
+            Assert.True(merged.Value!.Merged);
+
+            var first = await provider.ObserveAsync(pullRequest, null, ct);
+            Assert.Equal(HostingOutcome.Ok, first.Outcome);
+            LiveTestSupport.Note($"merged, asked as {method} · " + Seen(first.Value!.Snapshot));
+            Assert.Equal(PullRequestState.Merged, first.Value.Snapshot.State);
+            var again = await provider.ObserveAsync(pullRequest, first.Value.Cursor, ct);
+            LiveTestSupport.Note("merged, second round: " + again.Outcome + (again.Value is { } later ? " · " + Seen(later.Snapshot) : string.Empty));
+        }
+        finally
+        {
+            // The notes are left even when a step fails: what was called and how it answered is what the measurement is for.
+            LiveTestSupport.Note($"git: {gitProcess.Runs.Count} runs, exit codes {string.Join(",", gitProcess.Runs.Select(r => r.Result.ExitCode))}");
+            foreach (var call in process.Runs)
+            {
+                LiveTestSupport.Note("life · " + new GhCallSeen(call.Spec) + " · " + Shape(call.Result));
+            }
+        }
     }
 
     /// <summary>Writes a status and a tagged comment to a pull request of the test repository, then edits the comment in place by its id. Needs <c>AGENTSTUDIO_HOSTING_LIVE_WRITE=1</c>, the number of a pull request and its head.</summary>

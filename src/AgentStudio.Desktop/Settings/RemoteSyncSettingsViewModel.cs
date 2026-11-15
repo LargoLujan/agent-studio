@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -37,15 +38,20 @@ public sealed partial class RemoteSyncSettingsViewModel : ObservableObject
     private readonly IAppSettingsStore _store;
     private readonly AppSettingsRemoteSyncPermission? _permission;
     private readonly HashSet<string> _removed = new(StringComparer.Ordinal);
+    private readonly Func<string, bool> _folderExists;
+    private readonly SynchronizationContext? _context;
     private AppSettings _inForce = AppSettings.Default;
 
     /// <param name="store">Where what is in force is read from when the section is made.</param>
     /// <param name="permission">The permission of the projects, told when «Guardar» takes one out and following the switch of the pull requests section; without it the list is read when the section is made.</param>
-    public RemoteSyncSettingsViewModel(IAppSettingsStore store, AppSettingsRemoteSyncPermission? permission = null)
+    /// <param name="folderExists">Whether a folder is still there, to say so of a project whose folder is gone; the real file system by default.</param>
+    public RemoteSyncSettingsViewModel(IAppSettingsStore store, AppSettingsRemoteSyncPermission? permission = null, Func<string, bool>? folderExists = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         _store = store;
         _permission = permission;
+        _folderExists = folderExists ?? Directory.Exists;
+        _context = SynchronizationContext.Current;
         Intervals = [.. AppSettings.RemoteSyncIntervals.Select(m => new RemoteSyncIntervalChoice(m, Texts.Format("RemoteSync_Interval_Item", m)))];
         _selectedInterval = Intervals[0];
         Show(store.Load());
@@ -134,7 +140,11 @@ public sealed partial class RemoteSyncSettingsViewModel : ObservableObject
         Projects.Clear();
         foreach (var grant in settings.RemoteSyncProjects.Where(g => !_removed.Contains(g.ProjectId)))
         {
-            Projects.Add(new RemoteSyncProjectRow(grant, grant.ToString(), Texts.Format("RemoteSync_Projects_RemoveName", grant)));
+            // A folder that is gone is said so; the project can be taken out all the same (its id is what the permission is keyed on).
+            var label = !string.IsNullOrWhiteSpace(grant.Folder) && !_folderExists(grant.Folder)
+                ? Texts.Format("RemoteSync_Projects_Missing", grant)
+                : grant.ToString();
+            Projects.Add(new RemoteSyncProjectRow(grant, label, Texts.Format("RemoteSync_Projects_RemoveName", grant)));
         }
 
         NotifyList();
@@ -142,6 +152,19 @@ public sealed partial class RemoteSyncSettingsViewModel : ObservableObject
 
     /// <summary>The switch of a project changed (its section, or the one «Guardar» just saved): the list follows what is stored, keeping what was taken out and not saved.</summary>
     private void OnPermissionChanged(object? sender, string projectId)
+    {
+        // The permission raises it from the thread that opened a project (the pool) as well as from a click: the list is bound, so it changes on the context of the interface.
+        if (_context is { } context && SynchronizationContext.Current != context)
+        {
+            context.Post(_ => ShowStored(), null);
+        }
+        else
+        {
+            ShowStored();
+        }
+    }
+
+    private void ShowStored()
     {
         var settings = _store.Load();
         _inForce = _inForce with { RemoteSyncProjects = settings.RemoteSyncProjects };

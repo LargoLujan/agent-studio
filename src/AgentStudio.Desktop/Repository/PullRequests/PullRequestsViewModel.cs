@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Repository.Policies;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Tracing;
@@ -39,6 +41,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     private readonly TimeProvider _time;
     private readonly IAddressOpener? _opener;
     private readonly IRemoteSyncPermission? _syncPermission;
+    private readonly IDecisionRecorder? _recorder;
 
     // The context of the interface, taken when the project is set (the shell does it from the interface thread), never where the section was built.
     private SynchronizationContext? _context;
@@ -63,6 +66,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     private int _generation;
     private int _detailGeneration;
     private IReadOnlyList<string> _runBranches = [];
+    private HashSet<string> _registeredRuns = new(StringComparer.Ordinal);
     private IReadOnlyList<PullRequestView> _views = [];
     private bool _subscribed;
     private bool _disposed;
@@ -77,6 +81,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     /// <param name="time">The clock of the dates and the «hace 3 min».</param>
     /// <param name="opener">Opens a page of a pull request in the browser; null: no such button.</param>
     /// <param name="syncPermission">The switch «Sincronizar con GitHub» of the header (docs/21 §7.1); only a click on it gives the permission. Null: the header only says the state.</param>
+    /// <param name="recorder">The verified project log: only runs started there can be offered for publication. Null: no branch is offered.</param>
     public PullRequestsViewModel(
         IHostingProviders? providers,
         IPullRequestProjector? projector,
@@ -86,10 +91,12 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         IRemoteSyncPolicy? syncPolicy,
         TimeProvider time,
         IAddressOpener? opener = null,
-        IRemoteSyncPermission? syncPermission = null)
+        IRemoteSyncPermission? syncPermission = null,
+        IDecisionRecorder? recorder = null)
     {
         ArgumentNullException.ThrowIfNull(time);
         _syncPermission = syncPermission;
+        _recorder = recorder;
         _providers = providers;
         _projector = projector;
         _sync = sync;
@@ -116,6 +123,9 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     private string? _guideText;
 
     public bool HasGuide => GuideText is not null;
+
+    /// <summary>An empty, ready list is normal; the other guides explain a state that needs attention.</summary>
+    public bool GuideIsWarning => Status != PullRequestsStatus.Ready;
 
     /// <summary>«GitHub · propietario/repositorio»; null while no remote is recognised.</summary>
     [ObservableProperty]
@@ -312,7 +322,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     /// <summary>Whether the pieces to read and to act are composed.</summary>
     public bool IsAvailable => _providers is not null && _projector is not null;
 
-    /// <summary>The branches of the repository (local names): those of a run without a pull request are offered to publish. Called by the screen that reads the branches.</summary>
+    /// <summary>The local branches: a matching name is offered only when its run also started in the verified project log.</summary>
     public void SetBranches(IEnumerable<string> localBranchNames)
     {
         _runBranches = [.. localBranchNames.Select(n => RemoteBranch.TryParse(n)?.RunIdentifier).OfType<string>().Distinct(StringComparer.Ordinal)];
@@ -360,6 +370,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         _provider = null;
         _capabilities = HostingCapabilities.None;
         _views = [];
+        _registeredRuns.Clear();
         _otherRepositories = 0;
         Clear();
         Message = null;
@@ -399,10 +410,12 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
 
         IsBusy = true;
+        _registeredRuns.Clear();
+        RefreshPublishable();
         try
         {
             var repository = await _providers.IdentifyAsync(project, RemoteName, token).ConfigureAwait(true);
-            if (generation != _generation)
+            if (generation != _generation || token.IsCancellationRequested)
             {
                 return;
             }
@@ -420,19 +433,43 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
 
             RepositoryText = Texts.Format("Hosting_Header_Repository", $"{repository.Owner}/{repository.Name}");
             var availability = await _provider.ProbeAsync(token).ConfigureAwait(true);
-            if (generation != _generation)
+            if (generation != _generation || token.IsCancellationRequested)
             {
                 return;
             }
 
             _capabilities = availability.Capabilities;
+            var registeredRuns = new HashSet<string>(StringComparer.Ordinal);
+            if (_recorder is not null)
+            {
+                var log = await _recorder.LoadAsync(project.ProjectId, token).ConfigureAwait(true);
+                if (!log.Verification.IsValid)
+                {
+                    throw new DecisionLogIntegrityException(project.ProjectId, log.Verification);
+                }
+
+                foreach (var entry in log.Entries.Where(e => e.Kind == DecisionKind.RunStarted))
+                {
+                    if (DecisionPayloadSerializer.Deserialize(entry.Kind, entry.PayloadJson) is RunStartedPayload started)
+                    {
+                        registeredRuns.Add(started.RunId);
+                    }
+                }
+            }
+
+            if (generation != _generation || token.IsCancellationRequested)
+            {
+                return;
+            }
+
             var views = await _projector.ListAsync(project, token).ConfigureAwait(true);
-            if (generation != _generation)
+            if (generation != _generation || token.IsCancellationRequested)
             {
                 return;
             }
 
             _views = [.. views.Where(v => v.PullRequest.Repository == repository)];
+            _registeredRuns = registeredRuns;
             _otherRepositories = views.Count - _views.Count;
             OtherRepositoryText = _otherRepositories > 0 ? Texts.Format("Hosting_Pr_OtherRepository", _otherRepositories) : null;
             ShowHealth(project);
@@ -492,6 +529,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     {
         Status = status;
         OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(GuideIsWarning));
         GuideText = guide;
         OnPropertyChanged(nameof(IsAvailable));
     }
@@ -612,7 +650,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         PublishableRuns.Clear();
         if (Status == PullRequestsStatus.Ready && _publication is not null && _capabilities.Has(HostingCapability.OpenPullRequest))
         {
-            foreach (var run in _runBranches.Where(r => !followed.Contains(r)))
+            foreach (var run in _runBranches.Where(r => _registeredRuns.Contains(r) && !followed.Contains(r)))
             {
                 PublishableRuns.Add(new PublishableRunRow(run));
             }
@@ -914,14 +952,16 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         }
 
         var token = _actions.Token;
-        await Run(() => _sync.SyncNowAsync(project, token), "Hosting_Sync_Asked", token).ConfigureAwait(true);
+        var followed = 0;
+        await Run(async () => { followed = await _sync.SyncNowAsync(project, token).ConfigureAwait(true); },
+            () => Texts.Get(followed == 0 ? "Hosting_Sync_Empty" : "Hosting_Sync_Asked"), token).ConfigureAwait(true);
     }
 
     /// <summary>«Comprobar la conexión»: asks the platform who the account is; the answer says if there is a session, no limit or no connection.</summary>
     [RelayCommand]
     private async Task CheckConnectionAsync()
     {
-        if (_provider is null || _repository is not { } repository)
+        if (_provider is null || _repository is not { } repository || _project is not { } project)
         {
             return;
         }
@@ -930,9 +970,20 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         Message = null;
         IsBusy = true;
         var token = _actions.Token;
+        var epoch = _projectEpoch;
         try
         {
             var result = await _provider.ReadAccountAsync(repository, token).ConfigureAwait(true);
+            // A late answer belongs to the project that started it. Keep the header and Auto Doctor on the same health reading.
+            token.ThrowIfCancellationRequested();
+            if (_sync is not null)
+            {
+                var outcome = result.Outcome == HostingOutcome.Ok && result.Value is null ? HostingOutcome.InvalidAnswer : result.Outcome;
+                await _sync.NoteConnectionAsync(project, outcome, token).ConfigureAwait(true);
+                token.ThrowIfCancellationRequested();
+                ShowHealth(project);
+            }
+
             if (result.Outcome == HostingOutcome.Ok && result.Value is { } login)
             {
                 Message = Texts.Format("Hosting_Connection_Ok", login.Value);
@@ -963,11 +1014,17 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
         catch (Exception)
 #pragma warning restore CA1031
         {
-            Error = Texts.Get("Hosting_Pr_Unreadable");
+            if (epoch == _projectEpoch)
+            {
+                Error = Texts.Get("Hosting_Pr_Unreadable");
+            }
         }
         finally
         {
-            IsBusy = false;
+            if (epoch == _projectEpoch)
+            {
+                IsBusy = false;
+            }
         }
     }
 
@@ -1321,6 +1378,9 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
     }
 
     private async Task Run(Func<Task> action, string doneKey, CancellationToken token)
+        => await Run(action, () => Texts.Get(doneKey), token).ConfigureAwait(true);
+
+    private async Task Run(Func<Task> action, Func<string> doneMessage, CancellationToken token)
     {
         var epoch = _projectEpoch;
         Error = null;
@@ -1331,7 +1391,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject, IDisposabl
             await action().ConfigureAwait(true);
             if (epoch == _projectEpoch)
             {
-                Message = Texts.Get(doneKey);
+                Message = doneMessage();
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)

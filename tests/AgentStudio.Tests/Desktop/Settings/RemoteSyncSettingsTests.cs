@@ -89,7 +89,7 @@ public sealed class RemoteSyncSettingsTests
     {
         var store = new InMemorySettingsStore(AppSettings.Default with { RemoteSyncProjects = [new RemoteSyncGrant("a", @"C:\a"), new RemoteSyncGrant("b")] });
         var permission = new AppSettingsRemoteSyncPermission(store);
-        var section = new RemoteSyncSettingsViewModel(store, permission);
+        var section = new RemoteSyncSettingsViewModel(store, permission, _ => true);
         var raised = new List<string>();
         permission.Changed += (_, id) => raised.Add(id);
 

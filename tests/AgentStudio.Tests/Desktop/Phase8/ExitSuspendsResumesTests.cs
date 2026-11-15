@@ -27,6 +27,25 @@ public sealed class ExitSuspendsResumesTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    /// <summary>
+    /// The time Windows gives the end of the session: half of it is the wait for a pass that never ends, and the rest is the room of the writes, which run on
+    /// the pool. It is real time by nature (<see cref="ManagedExit"/> has no clock to inject), so a busy machine may spend it before the pool runs the writes:
+    /// the end of the session then returns without them, as it should. What these tests assert is that the writes are made and the exit does not stay stuck on the
+    /// pass, so they wait for the writes with a long guard after it returns; whether they come within the budget is not asserted (it would depend on the machine).
+    /// </summary>
+    private static readonly TimeSpan SessionBudget = TimeSpan.FromMilliseconds(400);
+
+    /// <summary>Waits for the writes of the end of the session to be recorded; a minute is only the guard of a hang.</summary>
+    private static void WaitForRecorded(FakeRunExitRecorder recorder, int count)
+    {
+        var until = Stopwatch.GetTimestamp() + (60 * Stopwatch.Frequency);
+        while (recorder.Recorded.Count < count)
+        {
+            Assert.True(Stopwatch.GetTimestamp() < until, "The end of the session was never written.");
+            Thread.Sleep(1);
+        }
+    }
+
     [Fact]
     public async Task The_exit_suspends_the_resumes_at_once_then_waits_for_the_pass_in_progress_and_asks_about_the_run_it_resumed()
     {
@@ -135,19 +154,21 @@ public sealed class ExitSuspendsResumesTests
     }
 
     [Fact]
-    public void The_end_of_the_session_suspends_the_resumes_before_it_writes_and_never_releases_them()
+    public async Task The_end_of_the_session_suspends_the_resumes_before_it_writes_and_never_releases_them()
     {
         var work = Registry();
         work.Track(new FakeWork(BackgroundWorkKind.Run, ProjectA, "20261021-aaaaaa") { AttemptsInFlight = 1 });
         var resumes = new CountingResumes();
         var recorder = new FakeRunExitRecorder();
+        var written = new ExitRecordingSignal(recorder, expectedRecords: 1);
         var writtenWhenTaken = -1;
         resumes.OnSuspend = () => writtenWhenTaken = recorder.Recorded.Count;
-        var exit = new ManagedExit(work, new FakeExitPrompt(), recorder, new FakeShellWindow(), new FakeAppShutdown(), resumes: resumes);
+        var exit = new ManagedExit(work, new FakeExitPrompt(), written, new FakeShellWindow(), new FakeAppShutdown(), resumes: resumes);
 
         exit.RecordSessionEnded(TimeSpan.FromSeconds(5));
         exit.CancelPendingExit();
         exit.Dispose();
+        await written.Written.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         Assert.Equal(0, writtenWhenTaken);
         Assert.Equal(["Suspend", "WaitForIdle"], resumes.Calls);
@@ -167,7 +188,7 @@ public sealed class ExitSuspendsResumesTests
         var resumes = new CountingResumes { PassNeverEnds = true, WaitIgnoresItsToken = waitIgnoresItsToken };
         var recorder = new FakeRunExitRecorder();
         var exit = new ManagedExit(work, new FakeExitPrompt(), recorder, new FakeShellWindow(), new FakeAppShutdown(), resumes: resumes);
-        var budget = TimeSpan.FromMilliseconds(400);
+        var budget = SessionBudget;
 
         var clock = Stopwatch.StartNew();
         exit.RecordSessionEnded(budget);
@@ -175,6 +196,7 @@ public sealed class ExitSuspendsResumesTests
 
         // Half the time for the pass, the rest for the writes: never stuck on a pass that does not end.
         Assert.True(clock.Elapsed < budget + TimeSpan.FromSeconds(5), $"The end of the session took {clock.Elapsed}.");
+        WaitForRecorded(recorder, 1);
         Assert.Equal(1, resumes.HeldWhenWaiting);
         Assert.Equal([("p-a", "20261021-aaaaaa", RunExitChoice.SessionEnded)], recorder.Recorded.ToList());
         Assert.Equal((1, 0), (resumes.Taken, resumes.Released));
@@ -198,7 +220,7 @@ public sealed class ExitSuspendsResumesTests
             var leaving = exit.ExitAsync();
 
             // Windows ends the session while the exit waits for the pass, before its question.
-            exit.RecordSessionEnded(TimeSpan.FromMilliseconds(400));
+            exit.RecordSessionEnded(SessionBudget);
             var stopped = await leaving;
             exit.CancelPendingExit();
             return (stopped, exit.IsExiting, exit.SuspendsResumes);
@@ -207,6 +229,7 @@ public sealed class ExitSuspendsResumesTests
         Assert.Equal(CloseOutcome.Exiting, outcome);
         Assert.Empty(prompt.Asked);
         Assert.Equal(0, shutdown.Calls);
+        WaitForRecorded(recorder, 1);
         Assert.Equal([("p-a", "20261021-aaaaaa", RunExitChoice.SessionEnded)], recorder.Recorded.ToList());
         Assert.Equal((1, 0), (resumes.Taken, resumes.Released));
         Assert.True(exiting);

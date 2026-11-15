@@ -34,7 +34,7 @@ public sealed class ListItemTypesGuardTests
         ["AgentStudio.Desktop.Help.HelpSynonyms+Entry"] =
             "A row of the table of synonyms of the help search: it only widens the query sent to the index, and is never shown.",
         ["AgentStudio.Desktop.Orchestrator.Monitor.RunMonitorViewModel"] =
-            "MainViewModel.BackgroundMonitors lists the monitors followed in the background for the tests to read; no view binds it. A monitor on screen is a document, shown by its template.",
+            "The shell's raw BackgroundMonitors are wrapped as named BackgroundRunItemViewModel rows. A monitor itself is the content of RunMonitorView, never a list item.",
         ["AgentStudio.Desktop.Markdown.MarkdownListItem"] =
             "The parse of a line of the journal: the converter builds a FlowDocument from it, and the viewer shows its text, never the object.",
         ["AgentStudio.Desktop.Markdown.MarkdownSpan"] =

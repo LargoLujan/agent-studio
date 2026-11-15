@@ -23,7 +23,7 @@ internal sealed record MailboxServices(
 
 /// <summary>
 /// The mailbox of one project (docs/21 D-25): a <see cref="Channel{T}"/> with one consumer, so that everything that touches the remote of the project (the poll, the work of the
-/// person, the annotations in the log) happens one thing at a time and in order, without locks. The races are solved by the queue.
+/// person, the annotations in the log) happens one thing at a time and in order. Permission withdrawal only cancels the active automatic read outside that queue; it never changes a snapshot or the log.
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
@@ -55,6 +55,9 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     private readonly Dictionary<string, DateTimeOffset> _lastPolled = new(StringComparer.Ordinal);
     private readonly List<PendingRemoteWork> _restored = [];
     private readonly ITimer? _pollTimer;
+    private readonly object _observationLock = new();
+    private CancellationTokenSource? _periodicObservation;
+    private Task? _periodicCancellation;
 
     // The interval the poll timer is set to (only the consumer reads and writes it): the one of the settings is read again at every round.
     private TimeSpan _pollEvery;
@@ -79,14 +82,19 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         Project = project;
         _services = services;
         _context = new FlowContext(this);
+        if (services.Policy is IRemoteSyncPermission permission)
+        {
+            permission.Changed += OnSyncPermissionChanged;
+        }
         _hint = restored.Repository;
         var now = services.Time.GetUtcNow();
 
-        // What the file says is read as not trusted: the cursors start without ETags (the first round asks without a condition, so the composed snapshot is the platform's), the
+        // What the file says is read as not trusted: the cursors start without ETags or snapshots (the first round reads the platform afresh), the
         // wait of the platform is cut to its cap, and an observation parked before the close is not written: it is asked for again.
         foreach (var follow in restored.Followed.Take(RemoteSyncLimits.MaxFollowed))
         {
-            _followed[follow.PullRequest.TraceId] = follow with { Cursor = new ObservationCursor(new Dictionary<ObservedResource, string>(), follow.Cursor.LastSnapshot) };
+            // A cached merged snapshot can skip the PR read in the adapter. Neither it nor a pending confirmation is evidence.
+            _followed[follow.PullRequest.TraceId] = follow with { Cursor = new ObservationCursor(new Dictionary<ObservedResource, string>(), null), PendingConfirmation = null };
         }
 
         var until = restored.RateLimitedUntil is { } wait && wait > now ? (wait > now + PublicationCodes.RateLimitCap ? now + PublicationCodes.RateLimitCap : wait) : (DateTimeOffset?)null;
@@ -193,6 +201,9 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         }
     }
 
+    /// <summary>Something is queued or running now (a stretch of git, a call of the platform, a poll); what is only parked does not count.</summary>
+    public bool IsBusy => Volatile.Read(ref _inFlight) > 0;
+
     /// <summary>How many things are parked, waiting for the project or for a moment to try again.</summary>
     public int ParkedCount => Volatile.Read(ref _parkedCount);
 
@@ -213,12 +224,32 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     public void Reject(RemoteWorkTicket ticket, UserText message) => SetStatus(ticket, RemoteWorkState.Failed, null, null, message);
 
     /// <summary>Runs something on the consumer, in its turn, with the context of a flow (to look at the project with the lease in hand and give back what it saw).</summary>
-    public Task<T> ExecAsync<T>(Func<FlowContext, Task<T>> work)
+    /// <remarks>
+    /// Whoever asks can stop waiting (<paramref name="ct"/>): the wait ends with the cancellation, but what the consumer is already doing (a stretch of git) is never cut, and it still lets the project
+    /// go when it ends. A piece of work whose caller gave up before its turn is not run. A mailbox that is closed (or closes before the turn of the work) answers <see cref="Executed{T}.Unavailable"/>
+    /// instead of throwing.
+    /// </remarks>
+    public async Task<Executed<T>> ExecAsync<T>(Func<FlowContext, Task<T>> work, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var done = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Post(new ExecMessage(async context => await work(context).ConfigureAwait(false), done));
-        return done.Task.ContinueWith(t => (T)t.GetAwaiter().GetResult()!, TaskScheduler.Default);
+        try
+        {
+            Post(new ExecMessage(async context => await work(context).ConfigureAwait(false), done, ct));
+        }
+        catch (ObjectDisposedException)
+        {
+            return Executed<T>.Unavailable;
+        }
+
+        // A caller that stopped waiting never observes a failure of the work: it is not an unobserved exception of the task.
+        _ = done.Task.ContinueWith(static t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        var result = await done.Task.WaitAsync(ct).ConfigureAwait(false);
+        return ReferenceEquals(result, ClosedAnswer) ? Executed<T>.Unavailable : new Executed<T>(true, (T)result!);
     }
+
+    /// <summary>What an <see cref="ExecMessage"/> that the close abandoned answers: told apart from any value the work could give.</summary>
+    private static readonly object ClosedAnswer = new();
 
     /// <summary>Annotates in the log from outside the consumer: true when it was written, false when the project was not free and it is parked (D-16: it does not count until then).</summary>
     public Task<bool> NoteFromOutsideAsync(string key, UserText? pending, Func<Task<bool>> record)
@@ -245,6 +276,8 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         }
 
         var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // The consumer may still be inside a slow call. Take authority away before putting the durable note in its queue.
+        AddRevocation(grantId);
         Post(new RevokeMessage(grantId, done));
         await done.Task.ConfigureAwait(false);
     }
@@ -257,7 +290,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         message.Done.TrySetResult();
     }
 
-    private void AddRevocation(string grantId) => _revocations = _revocations.Add(grantId);
+    private void AddRevocation(string grantId) => ImmutableInterlocked.Update(ref _revocations, ids => ids.Add(grantId));
 
     private async Task<bool> RecordRevocationAsync(string grantId)
     {
@@ -278,7 +311,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         // already withdrawn) is dropped without an entry.
         if (!HostingPolicyGate.ActiveGrants(log.Entries).Any(g => string.Equals(g.GrantId, grantId, StringComparison.Ordinal)))
         {
-            _revocations = _revocations.Remove(grantId);
+            ImmutableInterlocked.Update(ref _revocations, ids => ids.Remove(grantId));
             _dirty = true;
             return true;
         }
@@ -291,12 +324,17 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             HostingPolicyRevokedPayload.Revoking(grantId, "user"),
             null,
             CancellationToken.None).ConfigureAwait(false);
-        _revocations = _revocations.Remove(grantId);
+        ImmutableInterlocked.Update(ref _revocations, ids => ids.Remove(grantId));
         _dirty = true;
         return true;
     }
 
-    public Task SyncNowAsync() => Signal(done => new SyncMessage(done));
+    public Task<int> SyncNowAsync()
+    {
+        var done = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Post(new SyncMessage(done));
+        return done.Task;
+    }
 
     public Task FollowAsync(PullRequestRef pullRequest, string? run) => Signal(done => new FollowMessage(pullRequest, run, done));
 
@@ -383,6 +421,19 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         }
 
         return true;
+    }
+
+    /// <summary>A session check is not a successful sync. Only its outcome and date change; a working session also releases the sign-in stop.</summary>
+    public void NoteConnection(HostingOutcome outcome)
+    {
+        _health = Health with { LastOutcome = outcome, LastOutcomeAt = Time.GetUtcNow() };
+        if (outcome is HostingOutcome.Ok or HostingOutcome.SignInNeeded)
+        {
+            _signInStopped = outcome == HostingOutcome.SignInNeeded;
+        }
+
+        _dirty = true;
+        _services.Changed(Project.ProjectId);
     }
 
     public void NoteOutcome(HostingOutcome outcome)
@@ -486,6 +537,13 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 await StartFlowAsync(flow.Flow, flow.First).ConfigureAwait(false);
                 break;
             case ExecMessage exec:
+                if (exec.Caller.IsCancellationRequested)
+                {
+                    // Whoever asked stopped waiting before its turn: nothing is run (and so git is not launched) for nobody.
+                    exec.Done.TrySetCanceled(exec.Caller);
+                    break;
+                }
+
                 exec.Done.TrySetResult(await exec.Work(_context).ConfigureAwait(false));
                 break;
             case NoteMessage note:
@@ -512,7 +570,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                     await ObserveAsync(follow.PullRequest, manual: true).ConfigureAwait(false);
                 }
 
-                sync.Done.TrySetResult();
+                sync.Done.TrySetResult(_followed.Count);
                 break;
             case FollowMessage follow:
                 await FollowFromOutsideAsync(follow).ConfigureAwait(false);
@@ -550,7 +608,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 note.Done.TrySetException(ex);
                 break;
             case SyncMessage sync:
-                sync.Done.TrySetResult();
+                sync.Done.TrySetException(ex);
                 break;
             case FollowMessage follow:
                 follow.Done.TrySetResult();
@@ -562,6 +620,8 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 cancel.Done.TrySetResult();
                 break;
             case RevokeMessage revoke:
+                // The withdrawal already took effect on the caller's thread. Keep it across a close that skips its annotation.
+                _dirty = true;
                 revoke.Done.TrySetResult();
                 break;
             case FlushMessage flush:
@@ -580,13 +640,13 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 flow.First.TrySetResult(flow.Flow.Ticket);
                 break;
             case ExecMessage exec:
-                exec.Done.TrySetException(closed);
+                exec.Done.TrySetResult(ClosedAnswer);
                 break;
             case NoteMessage note:
                 note.Done.TrySetException(closed);
                 break;
             case SyncMessage sync:
-                sync.Done.TrySetResult();
+                sync.Done.TrySetException(closed);
                 break;
             case FollowMessage follow:
                 follow.Done.TrySetResult();
@@ -598,6 +658,8 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 cancel.Done.TrySetResult();
                 break;
             case RevokeMessage revoke:
+                // Save the pending withdrawal even when closing skips the queued log entry.
+                _dirty = true;
                 revoke.Done.TrySetResult();
                 break;
             case FlushMessage flush:
@@ -885,7 +947,15 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         if (_pollTimer is not null && _services.Policy is { Interval: var interval } && interval > TimeSpan.Zero && interval != _pollEvery)
         {
             _pollEvery = interval;
-            _pollTimer.Change(interval, interval);
+            try
+            {
+                _pollTimer.Change(interval, interval);
+            }
+            catch (ObjectDisposedException)
+            {
+                // The close disposed the timer between this round starting and now: nothing is polled any more.
+                return;
+            }
         }
 
         if (_services.Policy?.PeriodicSyncAllowed(Project.ProjectId) != true || _signInStopped)
@@ -964,7 +1034,67 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         }
 
         _followed.TryGetValue(pullRequest.TraceId, out var follow);
-        var result = await provider.ObserveAsync(pullRequest, follow?.Cursor, _stopping.Token).ConfigureAwait(false);
+        // The policy and the switch share one port in the desktop. Withdrawals cancel this automatic round immediately,
+        // without waiting behind it in the mailbox. A manual click keeps its own authorization.
+        using var periodic = manual ? null : CancellationTokenSource.CreateLinkedTokenSource(_stopping.Token);
+        if (periodic is not null)
+        {
+            lock (_observationLock)
+            {
+                if (_services.Policy?.PeriodicSyncAllowed(Project.ProjectId) != true)
+                {
+                    return null;
+                }
+
+                _periodicObservation = periodic;
+            }
+        }
+
+        HostingResult<PullRequestObservation> result;
+        try
+        {
+            result = await provider.ObserveAsync(pullRequest, follow?.Cursor, periodic?.Token ?? _stopping.Token).ConfigureAwait(false);
+            if (periodic is not null)
+            {
+                lock (_observationLock)
+                {
+                    periodic.Token.ThrowIfCancellationRequested();
+                    // Acceptance and withdrawal share a boundary. Once accepted, only the local annotation remains.
+                    _periodicObservation = null;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (periodic?.IsCancellationRequested == true && !_stopping.IsCancellationRequested)
+        {
+            // Withdrawal is not a connection failure and cannot advance the snapshot or its ETags.
+            return null;
+        }
+        finally
+        {
+            if (periodic is not null)
+            {
+                Task? cancellation;
+                lock (_observationLock)
+                {
+                    _periodicObservation = null;
+                    cancellation = _periodicCancellation;
+                    _periodicCancellation = null;
+                }
+
+                if (cancellation is not null)
+                {
+                    try
+                    {
+                        await cancellation.ConfigureAwait(false);
+                    }
+                    catch (AggregateException)
+                    {
+                        // A provider's cancellation callback cannot turn a withdrawal into a connection failure.
+                    }
+                }
+            }
+        }
+
         NoteOutcome(result.Outcome);
         SyncRateLimit(provider);
         if (result.Outcome != HostingOutcome.Ok || result.Value is not { } observation || observation.Snapshot.PullRequest != pullRequest)
@@ -989,6 +1119,23 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
         await AnnotateObservationOrParkAsync(observation.Snapshot, follow?.Run).ConfigureAwait(false);
         return observation.Snapshot;
+    }
+
+    private void OnSyncPermissionChanged(object? sender, string projectId)
+    {
+        if (_stopped || !string.Equals(projectId, Project.ProjectId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        lock (_observationLock)
+        {
+            if (_services.Policy?.PeriodicSyncAllowed(Project.ProjectId) != true)
+            {
+                // The token changes synchronously, but provider callbacks run away from the permission/UI thread.
+                _periodicCancellation ??= _periodicObservation?.CancelAsync();
+            }
+        }
     }
 
     private void SyncRateLimit(IHostingProvider provider)
@@ -1228,20 +1375,33 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     // ---- closing ----
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        lock (_closeLock)
         {
-            return;
-        }
+            if (_close is null)
+            {
+                // Stop admission synchronously; every caller then waits for the same drain and final save.
+                _stopped = true;
+                if (_services.Policy is IRemoteSyncPermission permission)
+                {
+                    permission.Changed -= OnSyncPermissionChanged;
+                }
+                _channel.Writer.TryComplete();
+                _pollTimer?.Dispose();
+                _retryTimer?.Dispose();
+                _close = Task.Run(CloseAsync);
+            }
 
+            return new ValueTask(_close);
+        }
+    }
+
+    private async Task CloseAsync()
+    {
         // The order of an orderly close: first no new work is accepted and what can be cancelled is (the reads of the platform, the poll, the timers); a stretch of git already running is the
         // only thing that is let finish (a push is not cut: git never gets a token). Only then the last attempt to write what is parked, with a short limit. What cannot be written is a
         // residual: the next observation records the fact, but not what approved it.
-        _stopped = true;
-        _channel.Writer.TryComplete();
-        _pollTimer?.Dispose();
-        _retryTimer?.Dispose();
         await _stopping.CancelAsync().ConfigureAwait(false);
         await _consumer.ConfigureAwait(false);
 
@@ -1259,10 +1419,12 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             await flush.ConfigureAwait(false);
         }
 
+        await SaveIfDirtyAsync().ConfigureAwait(false);
         _stopping.Dispose();
     }
 
-    private int _disposed;
+    private readonly object _closeLock = new();
+    private Task? _close;
 
     private sealed class Parked
     {
@@ -1308,7 +1470,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     private sealed record FlowMessage(RemoteFlow Flow, TaskCompletionSource<RemoteWorkTicket> First) : Message;
 
-    private sealed record ExecMessage(Func<FlowContext, Task<object?>> Work, TaskCompletionSource<object?> Done) : Message;
+    private sealed record ExecMessage(Func<FlowContext, Task<object?>> Work, TaskCompletionSource<object?> Done, CancellationToken Caller) : Message;
 
     private sealed record NoteMessage(string Key, UserText? Pending, Func<Task<bool>> Record, TaskCompletionSource<bool> Done) : Message;
 
@@ -1318,7 +1480,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     private sealed record ObserveMessage(PullRequestRef PullRequest, bool Manual) : Message;
 
-    private sealed record SyncMessage(TaskCompletionSource Done) : Message;
+    private sealed record SyncMessage(TaskCompletionSource<int> Done) : Message;
 
     private sealed record FollowMessage(PullRequestRef PullRequest, string? Run, TaskCompletionSource Done) : Message;
 
@@ -1329,6 +1491,12 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     private sealed record PollMessage : Message;
 
     private sealed record RetryMessage : Message;
+}
+
+/// <summary>What <see cref="ProjectRemoteMailbox.ExecAsync{T}"/> answers: the value the work gave, or that the mailbox was closed and the work did not run.</summary>
+internal readonly record struct Executed<T>(bool Available, T? Value)
+{
+    public static Executed<T> Unavailable => new(false, default);
 }
 
 /// <summary>The bounds of the local state, shared by the mailbox and the store.</summary>

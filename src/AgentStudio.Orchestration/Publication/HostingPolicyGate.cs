@@ -125,6 +125,13 @@ public sealed class HostingPolicyGate : IHostingUseGate
             }
         }
 
+        // Probing the platform or inspecting git can wait. Neither an old verdict nor a withdrawn grant may survive that wait.
+        checkedState = await CheckStateAsync(operation, ct).ConfigureAwait(false);
+        if (checkedState.Refusal is { } changed)
+        {
+            return Refuse(changed);
+        }
+
         if (HostingPolicy.CanBePersistent(operation.Kind))
         {
             var grant = checkedState.Grants.FirstOrDefault(g => g.Covers(operation.Kind, operation.Repository, operation.BaseBranch));
@@ -226,13 +233,15 @@ public sealed class HostingPolicyGate : IHostingUseGate
     public async Task<IReadOnlyList<HostingPolicyGrant>> GrantsAsync(ProjectContext project, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
+
+        // The pending withdrawals before the log, as in the gate: a withdrawal that moves from one to the other between the two reads is seen in the log.
+        var withdrawn = (await _mailboxes.OfAsync(project, ct).ConfigureAwait(false)).PendingRevocations;
         var log = await _recorder.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             throw new DecisionLogIntegrityException(project.ProjectId, log.Verification);
         }
 
-        var withdrawn = (await _mailboxes.OfAsync(project, ct).ConfigureAwait(false)).PendingRevocations;
         return [.. ActiveGrants(log.Entries).Where(g => !withdrawn.Contains(g.GrantId))];
     }
 
@@ -248,21 +257,18 @@ public sealed class HostingPolicyGate : IHostingUseGate
             return new Checked(UserText.Of(PublicationCodes.LogNotVerified), null, []);
         }
 
-        var mailbox = await _mailboxes.OfAsync(operation.Project, ct).ConfigureAwait(false);
-        var withdrawn = mailbox.PendingRevocations;
-        var grants = ActiveGrants(log.Entries).Where(g => !withdrawn.Contains(g.GrantId)).ToList();
         string? judged = null;
         if (HostingPolicy.RequiresApprovedVerdict(operation.Kind))
         {
             var readiness = await _delivery.CheckAsync(operation.Project, operation.Run, ct).ConfigureAwait(false);
             if (!readiness.Ready || readiness.Commit is null)
             {
-                return new Checked(UserText.Of(PublicationCodes.VerdictNotApproved), null, grants);
+                return new Checked(UserText.Of(PublicationCodes.VerdictNotApproved), null, []);
             }
 
             if (operation.Commit is null || !string.Equals(operation.Commit, readiness.Commit, StringComparison.Ordinal))
             {
-                return new Checked(UserText.Of(PublicationCodes.CommitNotJudged), null, grants);
+                return new Checked(UserText.Of(PublicationCodes.CommitNotJudged), null, []);
             }
 
             judged = readiness.Commit;
@@ -271,20 +277,38 @@ public sealed class HostingPolicyGate : IHostingUseGate
         {
             var stored = (await _verdicts.ListAsync(operation.Project.ProjectId, operation.Run.Value, ct).ConfigureAwait(false))
                 .GroupBy(v => v.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
+            // Listing verdict evidence can wait too: evaluate the judgement against the current verified log.
+            log = await _recorder.LoadAsync(operation.Project.ProjectId, LogLoad.Full, ct).ConfigureAwait(false);
+            if (!log.Verification.IsValid)
+            {
+                return new Checked(UserText.Of(PublicationCodes.LogNotVerified), null, []);
+            }
+
             var (commit, standing) = RemoteJudgement.VerdictInForce(WorkLog.Parse(log.Entries), log.Entries, operation.Run.Value, stored);
             if (standing is null || commit is null)
             {
-                return new Checked(UserText.Of(PublicationCodes.NoVerdict), null, grants);
+                return new Checked(UserText.Of(PublicationCodes.NoVerdict), null, []);
             }
 
             if (operation.Commit is not null && !string.Equals(operation.Commit, commit, StringComparison.Ordinal))
             {
-                return new Checked(UserText.Of(PublicationCodes.CommitNotJudged), null, grants);
+                return new Checked(UserText.Of(PublicationCodes.CommitNotJudged), null, []);
             }
 
             judged = commit;
         }
 
+        // Read authority after the awaited checks. A withdrawal only moves from the pending set to the log, never back: the pending set is read first and the log after it, so a
+        // withdrawal written between the two reads is in the log, and one not yet written is in the set. Read the other way round, it could be in neither (P93).
+        var mailbox = await _mailboxes.OfAsync(operation.Project, ct).ConfigureAwait(false);
+        var withdrawn = mailbox.PendingRevocations;
+        log = await _recorder.LoadAsync(operation.Project.ProjectId, LogLoad.Full, ct).ConfigureAwait(false);
+        if (!log.Verification.IsValid)
+        {
+            return new Checked(UserText.Of(PublicationCodes.LogNotVerified), null, []);
+        }
+
+        var grants = ActiveGrants(log.Entries).Where(g => !withdrawn.Contains(g.GrantId)).ToList();
         return new Checked(null, judged, grants);
     }
 

@@ -405,4 +405,9 @@ Quita los filtros para verlo todo.</value>
   <data name="Repository_Activity_Unreadable" xml:space="preserve">
     <value>No se pudo leer la actividad.</value>
   </data>
+  <data name="BackgroundRuns_Title" xml:space="preserve"><value>Ejecuciones reanudadas</value></data>
+  <data name="BackgroundRuns_Help" xml:space="preserve"><value>Aquí ves las ejecuciones en segundo plano de todos tus proyectos en esta sesión. Elige una para ver cómo va, revisar el resultado o abrir su ficha de PR.</value></data>
+  <data name="BackgroundRuns_ListName" xml:space="preserve"><value>Lista de ejecuciones reanudadas</value></data>
+  <data name="BackgroundRuns_Empty" xml:space="preserve"><value>Aquí verás las ejecuciones que sigan en segundo plano. Cerrar esta pestaña no las detiene.</value></data>
+  <data name="BackgroundRuns_RunName" xml:space="preserve"><value>Proyecto {0} · ejecución {1}</value></data>
 </root>

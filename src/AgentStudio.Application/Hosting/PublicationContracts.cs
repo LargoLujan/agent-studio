@@ -99,7 +99,8 @@ public sealed record PublicationPreview(
     RemoteGitInspection? Inspection,
     HostingCapabilities Capabilities,
     PullRequestText ProposedText,
-    PullRequestRef? Existing);
+    PullRequestRef? Existing,
+    bool CapabilitiesRead = true);
 
 /// <summary>What the person asks to publish: the run, the base branch, the text (the system's or the one the person edited) and whether it opens as a draft.</summary>
 public sealed record PublicationRequest(ProjectContext Project, RunId Run, RemoteBranch BaseBranch, PullRequestText Text, bool Draft);

@@ -235,11 +235,12 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
                     return;
                 }
 
+                // The state goes last: it is what a watcher reacts to (and a test polls), so the exit code and the text are already there when it changes.
                 ExitCode = _stopRequested ? null : code;
-                State = TerminalState.Exited;
                 StatusText = _stopRequested
                     ? Texts.Format("Terminal_Stopped", shell.DisplayName)
                     : Texts.Format("Terminal_ExitedWithCode", shell.DisplayName, code);
+                State = TerminalState.Exited;
             });
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException)
@@ -248,9 +249,9 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
             {
                 if (generation == Volatile.Read(ref _generation))
                 {
-                    State = TerminalState.Failed;
                     ErrorMessage = Texts.Format("Terminal_Interrupted", ex.Message);
                     StatusText = ErrorMessage;
+                    State = TerminalState.Failed;
                 }
             });
         }

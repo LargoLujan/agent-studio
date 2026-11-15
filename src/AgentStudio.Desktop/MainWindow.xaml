@@ -150,7 +150,7 @@
                 </xcad:DockingManager.LayoutItemContainerStyle>
 
                 <!-- Default layout (projects without a saved one): explorer left, documents centre with most of the room,
-                     terminal below; Auto Doctor and the journal folded on the right edge, where a click (on their tab, on their
+                     the lower panels closed until requested; Auto Doctor and the journal folded on the right edge, where a click (on their tab, on their
                      entry of the activity bar, or on the provider summary for Auto Doctor) opens them over the documents, and
                      the pin docks them. -->
                 <xcad:LayoutRoot>
@@ -238,7 +238,7 @@
                      for UI Automation, and a screen reader is told when it changes (Polite). The path of a project like
                      «C:\Personal Projects\Agent Studio» fits whole. Whoever uses only the keyboard cannot reach the tooltip of a
                      long message (docs/18 §3, V38). -->
-                <TextBlock x:Name="StatusMessageText" MaxWidth="180" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                <TextBlock x:Name="StatusMessageText" MaxWidth="180" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center"
                            ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"
                            Binding.TargetUpdated="OnStatusMessageUpdated">
                     <TextBlock.Style>

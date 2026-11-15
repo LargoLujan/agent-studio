@@ -43,6 +43,27 @@ public interface IAppSettingsStore
         settings.ValidatePreferences();
         Save(settings);
     }
+
+    /// <summary>
+    /// The one way to change a preference from what is stored: reads the settings, applies <paramref name="change"/>, validates and saves, as a single step
+    /// no other writer can slip into (docs/21 §10.9). Whoever reads with <see cref="Load"/>, changes and then calls <see cref="SavePreferences"/> can lose
+    /// what another writer saved in between; this cannot. A store that keeps a single copy does the three steps in a row.
+    /// </summary>
+    /// <param name="change">Gets the stored settings and returns them changed (the same instance when there is nothing to change: then nothing is written); it runs inside the store's lock, so it must be quick and must not call the store.</param>
+    /// <returns>What was saved.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The result breaks the rules of the preferences; nothing is saved.</exception>
+    AppSettings UpdatePreferences(Func<AppSettings, AppSettings> change)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+        var stored = Load();
+        var updated = change(stored);
+        if (!ReferenceEquals(updated, stored))
+        {
+            SavePreferences(updated);
+        }
+
+        return updated;
+    }
 }
 
 /// <summary>
@@ -72,26 +93,57 @@ public sealed class JsonAppSettingsStore(AppDataPaths paths, string? defaultSkil
     {
     }
 
+    // Every writer reads the file, changes its own fields and writes it back; this lock makes those three steps one, so two writers
+    // (the shell, the panels, the permissions) never undo each other (P80). Reads need none: the file is replaced atomically.
+    private readonly object _write = new();
+
     public AppSettings Load() => Sanitize(Read());
 
     public void Save(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        var stored = Read();
-        Write(settings.WithPreferencesOf(stored) with { MainWindowPlacement = stored.MainWindowPlacement });
+        lock (_write)
+        {
+            var stored = Read();
+            Write(settings.WithPreferencesOf(stored) with { MainWindowPlacement = stored.MainWindowPlacement });
+        }
     }
 
     public void SavePreferences(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
         settings.ValidatePreferences();
-        Write(Read().WithPreferencesOf(settings));
+        lock (_write)
+        {
+            Write(Read().WithPreferencesOf(settings));
+        }
+    }
+
+    public AppSettings UpdatePreferences(Func<AppSettings, AppSettings> change)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+        lock (_write)
+        {
+            var stored = Load();
+            var updated = change(stored);
+            if (ReferenceEquals(updated, stored))
+            {
+                return updated;
+            }
+
+            updated.ValidatePreferences();
+            Write(Read().WithPreferencesOf(updated));
+            return updated;
+        }
     }
 
     public void SaveWindowPlacement(WindowPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(placement);
-        Write(Read() with { MainWindowPlacement = placement });
+        lock (_write)
+        {
+            Write(Read() with { MainWindowPlacement = placement });
+        }
     }
 
     private void Write(AppSettings settings) => AtomicFile.WriteAllText(paths.SettingsFile, JsonSerializer.Serialize(settings, Options));

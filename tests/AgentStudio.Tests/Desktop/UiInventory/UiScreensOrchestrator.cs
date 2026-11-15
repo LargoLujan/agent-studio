@@ -17,6 +17,7 @@ using AgentStudio.Desktop.Orchestrator.Questions;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.Views.Orchestrator;
 using AgentStudio.Desktop.Views.Orchestrator.Questions;
+using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Tests.Desktop.Orchestrator;
 using AgentStudio.Tests.Domain.Orchestration;
@@ -52,6 +53,17 @@ internal static class UiScreensOrchestrator
 
     public static IReadOnlyList<UiScreen> All { get; } =
     [
+        UiScreens.Screen("Resumed runs, empty", () => UiScreens.Document(new BackgroundRunsDocumentViewModel())),
+        UiScreens.Screen("Resumed runs, with a monitor", () =>
+        {
+            var monitor = new RunMonitorViewModel(new FakeTimeProvider(T0), new InlineSynchronizationContext());
+            monitor.Attach(MonitorSamples.RunInProgress());
+            var document = new BackgroundRunsDocumentViewModel();
+            var row = new BackgroundRunItemViewModel(@"C:\work\calc", monitor);
+            document.Runs.Add(row);
+            document.SelectedRun = row;
+            return UiScreens.Document(document);
+        }, 1440, 1100),
         UiScreens.ScreenAsync("Orchestrator with the plan under review", async () =>
         {
             var document = await OpenDocumentAsync();

@@ -254,7 +254,7 @@
     <value>The files changed, grouped by area.</value>
   </data>
   <data name="Text_document_not_included_deployed" xml:space="preserve">
-    <value>Whether the change is deployed: Agent Studio deploys nothing and does not know.</value>
+    <value>Whether the change is deployed: Agent Studio deploys nothing. Only the milestone report says so, and only when GitHub reports it.</value>
   </data>
   <data name="Documents_NotIncluded" xml:space="preserve">
     <value>Not included: the state of each requirement by milestone and the pull requests. Also the files by area and whether it is deployed. The document says so in its annexes.</value>

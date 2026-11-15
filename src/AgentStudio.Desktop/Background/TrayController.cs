@@ -160,6 +160,7 @@ public sealed class TrayController : IDisposable
         _work.Changed += OnChanged;
         _exit.StateChanged += OnChanged;
         _exit.PendingExitCancelled += OnPendingExitCancelled;
+        _exit.Finishing += OnFinishing;
         Refresh();
         _tray.Show();
     }
@@ -203,7 +204,7 @@ public sealed class TrayController : IDisposable
     public void Refresh()
     {
         var statuses = _work.Active.Select(WorkStatus.Of).ToList();
-        ToolTip = TrayToolTip.Compose(statuses, _exit.State, _exit.AttemptsLeft, IsLocked, _time.LocalTimeZone);
+        ToolTip = TrayToolTip.Compose(statuses, _exit.State, _exit.AttemptsLeft, IsLocked, _time.LocalTimeZone, _exit.IsFinishing);
         _tray.SetToolTip(ToolTip);
         Notify();
     }
@@ -225,6 +226,7 @@ public sealed class TrayController : IDisposable
             _work.Changed -= OnChanged;
             _exit.StateChanged -= OnChanged;
             _exit.PendingExitCancelled -= OnPendingExitCancelled;
+            _exit.Finishing -= OnFinishing;
         }
 
         _tray.Dispose();
@@ -377,6 +379,9 @@ public sealed class TrayController : IDisposable
     private void OnNotificationClicked(object? sender, EventArgs e) => _exit.ShowWindow();
 
     private void OnPendingExitCancelled(object? sender, string notice) => _tray.Notify(new TrayNotification(Texts.Get("Background_Tray_NoLongerExits"), notice));
+
+    /// <summary>The exit waits for the mailbox of GitHub: the notice says it (nothing of the project), and the tooltip does too (<see cref="Refresh"/>).</summary>
+    private void OnFinishing(object? sender, string notice) => _tray.Notify(new TrayNotification(AttentionTitle, notice));
 
     private void OnChanged(object? sender, EventArgs e) => Refresh();
 

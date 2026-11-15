@@ -248,6 +248,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         [
             new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
             new("orchestrator", Texts.Get("Main_Activity_Orchestrator"), "\uE9F5", null, null, OpenOrchestratorCommand),
+            .. BackgroundRunActivities(),
             .. AgentActivities(),
             new("skills", Texts.Get("Main_Activity_Skills"), "", null, null, OpenSkillsCommand),
             .. BuilderToolActivities(),
@@ -385,6 +386,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <summary>The welcome tab follows the open project: with one, it offers the ways into it.</summary>
     partial void OnProjectPathChanged(string? value)
     {
+        InvalidateTools();
         _welcome?.ShowProject(value is null ? null : ProjectName, value is null ? null : ProjectPathDisplay);
         ShowSetupSuggestion(value);
 
@@ -659,10 +661,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.Monitor.Finished += (_, _) => OnRunFinished(document.ProjectRoot);
         document.RunHandedOff += OnRunHandedOff;
         document.ConfigureProjectRequested += OnConfigureProjectRequested;
+        document.PropertyChanged += OnToolsContextChanged;
 
         // Phase 10: «Publicar y abrir PR» beside «Entregar a mi rama», only where the section of pull requests exists.
-        document.Monitor.IsPublishAvailable = _repository is { PullRequests.IsAvailable: true };
-        document.Monitor.PublishRequested += (_, run) => _ = ShowPublishCardAsync(document, run);
+        OfferPublish(document.Monitor, document.ProjectRoot);
         if (SameProject(document.ProjectRoot, ProjectPath))
         {
             AttachPanels();
@@ -1125,11 +1127,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         }
 
         monitor.ResumeConsent = resumeConsent;
+        OfferPublish(monitor, root);
         _runsActive[monitor] = monitor.IsActive;
         monitor.PropertyChanged += OnMonitorPropertyChanged;
         monitor.Finished += (_, _) => OnRunFinished(root);
         _backgroundMonitors.Add(monitor);
         _backgroundRoots[monitor] = root;
+        _backgroundRuns.Add(root, monitor);
         _work?.TrackRun(root, monitor, () => project);
         StatusStrip.Track(monitor);
     }

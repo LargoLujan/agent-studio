@@ -10,5 +10,5 @@ internal sealed partial class RemoteTransport
 {
     /// <summary>A transport of a test: any scheme of lowercase letters and an address of its own for a repository. Never called by production code.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static RemoteTransport ForTests(string scheme, Func<RemoteRepository, string> address) => new(scheme, address);
+    internal static RemoteTransport ForTests(string scheme, Func<RemoteRepository, string> address) => new(scheme, address);
 }

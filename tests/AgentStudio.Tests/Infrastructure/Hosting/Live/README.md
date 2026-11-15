@@ -1,7 +1,8 @@
 # Prueba en vivo de GitHub por `gh`: guion
 
-Escrita, **no ejecutada**. Hace falta el OK del propietario (`docs/21` decisión 14) y un **repositorio privado de prueba que cree él**. Va con
-`Category=ProviderLive`, fuera de la suite y de la CI. Sin las variables de abajo, cada prueba de `GitHubLiveTests.cs` se salta.
+**Ejecutada el 2026-11-13 en dos tandas** contra `agent-studio-privado`; lo medido está en `docs/21` §13. Hace falta el OK del propietario para cada
+tanda (`docs/21` decisión 14) y un **repositorio privado de prueba que cree él**. Va con `Category=ProviderLive`, fuera de la suite y de la CI. Sin las
+variables de abajo, cada prueba de `GitHubLiveTests.cs` se salta.
 
 ```text
 AGENTSTUDIO_PROVIDER_TESTS=1
@@ -12,6 +13,18 @@ dotnet test --project tests/AgentStudio.Tests -- --filter-trait "Category=Provid
 Para las pruebas que miran o escriben en un PR: `AGENTSTUDIO_HOSTING_LIVE_PR=<número>` y, para escribir (solo un estado y un comentario, borrables),
 `AGENTSTUDIO_HOSTING_LIVE_WRITE=1` y `AGENTSTUDIO_HOSTING_LIVE_HEAD=<commit de cabeza de ese PR>`. Con `AGENTSTUDIO_CAPTURE_DIR` se guardan las notas
 (`evidence.log`): solo líneas de estado, nombres de cabeceras, códigos de salida y recuentos; nunca un cuerpo, una cuenta ni un token.
+
+**El camino entero de una publicación** (`A_commit_is_pushed_and_its_pull_request_lives_through_the_adapter`): el ejecutor remoto sube un commit por HTTPS
+y el adaptador abre el PR, lo busca, le cambia el texto, lo observa y lo termina. Además de `AGENTSTUDIO_HOSTING_LIVE_WRITE=1` pide:
+
+```text
+AGENTSTUDIO_HOSTING_LIVE_CLONE=<carpeta de un clon del repositorio de prueba>
+AGENTSTUDIO_HOSTING_LIVE_RUN=<id de ejecución sin rama en el remoto>      # la rama será agentstudio/run-<id>
+AGENTSTUDIO_HOSTING_LIVE_HEAD=<commit del clon que se publica>
+AGENTSTUDIO_HOSTING_LIVE_END=squash|rebase|merge|close                     # close cierra el PR y borra la rama
+```
+
+Cada vez gasta un id de ejecución y deja un PR fusionado o cerrado en el repositorio de prueba.
 
 ## Lo primero que hay que medir (por este orden)
 

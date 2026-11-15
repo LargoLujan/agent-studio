@@ -18,15 +18,22 @@ public sealed class DoctorToolsLocalTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
+    /// <summary>
+    /// What this test lets a real tool take. The 10 seconds a tool has and the 30 of the whole reading are what the panel promises a person (the tests of the
+    /// door with doubles check them); here the question is whether what a real tool says is understood, and how long a real <c>docker</c> or <c>wsl</c> takes on a
+    /// computer that is compiling is not what is being asked.
+    /// </summary>
+    private static readonly TimeSpan GuardPerTool = TimeSpan.FromMinutes(2);
+
     private DoctorToolRunner RealDoor() =>
-        new(new ExecutableLocator(roots: new FixedRoots(_temp.Combine("repo"))), new ProcessRunner(new FixedRoots(_temp.Combine("repo"))), DoctorFolders.Under(_temp.Combine("local")));
+        new(new ExecutableLocator(roots: new FixedRoots(_temp.Combine("repo"))), new ProcessRunner(new FixedRoots(_temp.Combine("repo"))), DoctorFolders.Under(_temp.Combine("local")), timeout: GuardPerTool);
 
     [Fact]
     public async Task Every_tool_of_the_catalog_answers_in_time_and_what_it_says_is_understood_or_it_is_not_there()
     {
         _temp.CreateDirectory("repo");
         await using var door = RealDoor();
-        var snapshotProvider = new ToolSnapshotProvider(door, new WebView2RegistryProbe());
+        var snapshotProvider = new ToolSnapshotProvider(door, new WebView2RegistryProbe(), budget: GuardPerTool * 10);
 
         var snapshot = await snapshotProvider.SnapshotAsync(_temp.Combine("repo"), CancellationToken.None);
 

@@ -136,3 +136,25 @@
 - **Escrituras dudosas.** Un «sin conexión», un «prohibido» o una respuesta ilegible no son un fallo seguro: se pregunta el estado antes (el PR existe, la rama ya no está) y se anota lo que de verdad pasó. Una lectura imposible tras ese intento deja el trabajo pendiente de sincronizar, y la siguiente vuelta lee antes de repetir.
 - **Fusionar.** Se relee el PR antes de pedir la aprobación, después de aprobar y otra vez dentro del flujo; si no se pudo leer, la cabeza no es el commit juzgado o la base no es la de la aprobación, no se fusiona. `RemoteChangeKind.BaseChanged` lo da el reconciliador.
 - **Pendientes visibles.** Lo aparcado de dar y retirar autorizaciones sale en `Pending` con el código `hosting.pending.annotation`.
+
+## Adenda · 2026-11-14 · caché restaurada y salud de sesión
+
+En la continuación aislada de los remates de Fase 10, el buzón arranca sin ETag, sin última foto del PR y sin confirmación pendiente procedentes del archivo local. Conservar una foto «fusionado» podía hacer que el adaptador omitiese la lectura del PR; por eso ninguna de esas fotos sirve de punto de partida tras reiniciar. Lo registrado sigue procediendo de una lectura nueva y del registro verificado.
+
+«Comprobar la conexión» comunica el resultado de la lectura de cuenta a la salud del buzón, por su consumidor. Actualiza el estado de sesión y su fecha, que comparten la cabecera y Auto Doctor, sin cambiar la fecha de última sincronización correcta ni crear evidencia de observación. Es información de pantalla, nunca una autorización.
+
+El cierre del servicio impide crear buzones nuevos y comparte su tarea de liberación entre quienes la esperan. La validación de desarrollo y sus límites se consignan en docs/18; estas decisiones no equivalen a evidencia de verificación independiente del producto.
+
+## Adenda · 2026-11-15 · retirada del permiso durante una observación automática
+
+**Contexto.** P94 detectó que retirar «Sincronizar con GitHub» no interrumpía las peticiones de una observación automática que ya estaba en marcha. Poner la retirada detrás de esa lectura en el buzón haría que llegase cuando ya hubiera terminado. Esta adenda introduce una excepción limitada a «Sin cerrojos nuevos» de la decisión 8.
+
+**Decisión.** Se admite un cerrojo estrecho por buzón para compartir la referencia al `CancellationTokenSource` de la observación automática activa, su tarea de cancelación y el límite entre aceptar su respuesta o retirarla. La notificación de cambio del permiso del proyecto puede cancelar ese token sin esperar al consumidor. `CancelAsync` marca el token en ese momento y ejecuta los callbacks fuera del hilo que retira el permiso; el consumidor espera su final antes de liberar el origen del token.
+
+La aceptación de la respuesta y la retirada se deciden bajo ese mismo cerrojo. Si gana la retirada, la respuesta se descarta aunque el proveedor ignore el token y termine después de una nueva autorización: no avanza la salud, el cursor, la foto ni el registro. Si la respuesta ya se había aceptado, puede completar su anotación local sin más red. La siguiente observación autorizada recibe un token nuevo y parte del cursor anterior a cualquier respuesta descartada.
+
+El clic manual conserva su autorización y su token independiente. La salud, las fotos, los cursores, las confirmaciones pendientes y las escrituras del registro siguen siendo responsabilidad exclusiva del consumidor del buzón. El callback del permiso solo solicita la cancelación; no aplica observaciones ni hace operaciones de git o del registro. El cierre retira la suscripción al permiso.
+
+**Alternativas descartadas.** Encolar la retirada detrás de la lectura no interrumpe la operación en curso. Cancelar también una lectura pedida manualmente quitaría una autorización que ese clic conserva. Extender el cerrojo a las observaciones, git o el registro duplicaría la función de la cola y no es necesario.
+
+**Consecuencias y comprobación.** El buzón mantiene un único consumidor para sus datos; la excepción permite que una retirada llegue a una lectura bloqueante. Una retirada no se presenta como un fallo de conexión. `RemoteSyncPermissionTests` cubre la cancelación activa, la respuesta tardía tras una nueva alta, la independencia del clic manual, la anotación de una respuesta ya aceptada, los callbacks que fallan y la retirada de la suscripción al cerrar. Los resultados reales de las comprobaciones de desarrollo se consignan en docs/18; estas pruebas no sustituyen el recorrido con la app ni acreditan una verificación independiente del producto.

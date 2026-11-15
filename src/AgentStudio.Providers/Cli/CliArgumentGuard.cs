@@ -69,7 +69,8 @@ public static partial class CliArgumentGuard
         return value;
     }
 
-    [GeneratedRegex(@"\A[A-Za-z0-9_][A-Za-z0-9_.:*-]*(\([^\x00-\x1f()]*\))?\z")]
+    // Include DEL and C1 controls as well as C0, while preserving ordinary Unicode in path specifiers.
+    [GeneratedRegex(@"\A[A-Za-z0-9_][A-Za-z0-9_.:*-]*(\([^\p{Cc}()]*\))?\z")]
     private static partial Regex ToolPattern();
 
     [GeneratedRegex(@"\A[A-Za-z0-9][A-Za-z0-9._-]*\z")]

@@ -366,4 +366,37 @@ Go back to the monitor to retry the task.</value>
 Note the ones that ask Windows Hello.
 Press "Give to an agent…" to go to its card: the change is approved as always.</value>
   </data>
+  <data name="Tools_Permissions_Title" xml:space="preserve"><value>Declared permissions</value></data>
+  <data name="Tools_Permissions_Note" xml:space="preserve"><value>This previews the template and profile. It does not measure this computer or change permissions.</value></data>
+  <data name="Tools_Permissions_Exposure" xml:space="preserve"><value>The prompt and data the agent reads may reach its provider. A push may include the journal and Markdown memory.</value></data>
+  <data name="Tools_Permissions_Agent" xml:space="preserve"><value>{0} · {1} · {2} · {3}</value></data>
+  <data name="Tools_Permissions_DefaultModel" xml:space="preserve"><value>Agent program default model</value></data>
+  <data name="Tools_Permissions_Write" xml:space="preserve"><value>task with file writes</value></data>
+  <data name="Tools_Permissions_Read" xml:space="preserve"><value>read-only task</value></data>
+  <data name="Tools_Permissions_ClaudeFiles" xml:space="preserve"><value>The program receives its working copy paths. This does not make the OS block reads outside the project.</value></data>
+  <data name="Tools_Permissions_ClaudeNetwork" xml:space="preserve"><value>It can use Bash or network tools. The OS does not block network access.</value></data>
+  <data name="Tools_Permissions_ClaudeNoNetworkTools" xml:space="preserve"><value>It receives no network tools. The OS does not enforce that restriction.</value></data>
+  <data name="Tools_Permissions_CodexFiles" xml:space="preserve"><value>Declared sandbox: {0}. These arguments do not guarantee reads stay within this project.</value></data>
+  <data name="Tools_Permissions_CodexNetwork" xml:space="preserve"><value>The sandbox declares network access.</value></data>
+  <data name="Tools_Permissions_CodexNoNetwork" xml:space="preserve"><value>Network access is disabled in the sandbox settings.</value></data>
+  <data name="Tools_Permissions_Unknown" xml:space="preserve"><value>These arguments do not establish the file access limits.</value></data>
+  <data name="Tools_Permissions_UnknownNetwork" xml:space="preserve"><value>These arguments do not establish network access.</value></data>
+  <data name="Tools_Permissions_Step" xml:space="preserve"><value>Verification · {0} · {1}</value></data>
+  <data name="Tools_Permissions_LowFiles" xml:space="preserve"><value>An isolated area with fewer permissions reduces where it can write. It does not block reads.</value></data>
+  <data name="Tools_Permissions_NoIsolation" xml:space="preserve"><value>No known restricted area: it may write with your permissions.</value></data>
+  <data name="Tools_Permissions_StepNetwork" xml:space="preserve"><value>These file limits do not block network access.</value></data>
+  <data name="Tools_Permissions_AgentData" xml:space="preserve"><value>The prompt and data this agent reads may reach the model provider ({0}). Its tool network settings do not prevent that transfer.</value></data>
+  <data name="Tools_Permissions_StepData" xml:space="preserve"><value>The verification process may read data and use the network. This view does not inspect what it sends.</value></data>
+  <data name="Tools_Publication_Title" xml:space="preserve"><value>Publication data and permissions</value></data>
+  <data name="Tools_Publication_Note" xml:space="preserve"><value>These are data categories and general rules, not a complete list of transfers. This view does not read project grants or authorize operations.</value></data>
+  <data name="Tools_Publication_Sync" xml:space="preserve"><value>Periodic GitHub sync needs the project's permission. Clicking sync allows a single read. That permission does not grant publication rights.</value></data>
+  <data name="Tools_Publication_Data_Commits" xml:space="preserve"><value>Sends the branch history and its files. They may include the journal and Markdown memory if those files were saved there.</value></data>
+  <data name="Tools_Publication_Data_Text" xml:space="preserve"><value>Sends the proposal title and body, along with the branches and destination repository.</value></data>
+  <data name="Tools_Publication_Data_Reviewers" xml:space="preserve"><value>Sends the account names requested as reviewers and may notify those people.</value></data>
+  <data name="Tools_Publication_Data_Verdict" xml:space="preserve"><value>Sends the standing and identifiers. The comment also includes judge model details. Neither publishes the judge's free text.</value></data>
+  <data name="Tools_Publication_Data_Operation" xml:space="preserve"><value>Sends the requested operation and identifiers of the affected repository, proposal or branch.</value></data>
+  <data name="Tools_Publication_StandingGrant" xml:space="preserve"><value>A matching standing grant can cover this operation. Otherwise a valid approval is required for this use. This view does not check whether a grant exists.</value></data>
+  <data name="Tools_Publication_PerUse" xml:space="preserve"><value>Requires a valid approval for this operation; a standing grant cannot cover it.</value></data>
+  <data name="Tools_Publication_Approved" xml:space="preserve"><value>The rule requires an approved verdict; all other checks must also pass.</value></data>
+  <data name="Tools_Publication_OtherChecks" xml:space="preserve"><value>The rule does not require an approved verdict for this operation. Other checks still apply.</value></data>
 </root>

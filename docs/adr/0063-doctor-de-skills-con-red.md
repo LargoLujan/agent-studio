@@ -87,3 +87,9 @@
   5. «Cancelar la comprobación» es un botón real (siempre visible, activo solo durante la tanda); cerrar la pantalla también la cancela. Una tanda cancelada deja las skills que faltaban sin comprobar.
   6. `DpapiCredentialVault.StoreAsync` borra el temporal si la escritura o el movimiento fallan o se cancelan.
   7. Cada script de la tarjeta es un enlace que lo abre en el editor de la app (`MainViewModel.OpenFileAsync`), tras volver a comprobar que sigue siendo un fichero normal dentro de `scripts/`, no un enlace. Sin ese mecanismo (una composición que no lo pasa) la lista sigue siendo texto.
+
+## Adenda · 2026-11-15 · Bóveda de proyecto y compatibilidad
+
+La implementación parcial de F7-7 aplica D-03 de docs/16 mediante un puerto y una fábrica de bóvedas ligadas al identificador estable del proyecto. La composición usa la carpeta itinerante de la app, con subcarpetas opacas y entropía DPAPI distinta por proyecto. No se leen, copian ni migran valores de la bóveda global del doctor: conserva su carpeta local, su formato, su entropía y el recorrido de Hello descrito arriba.
+
+El almacenamiento limita también los bytes que escribe y los que lee; rechaza los enlaces en las entradas del almacén de proyecto. No es una barrera frente a la misma cuenta de Windows, un administrador o un cambio concurrente de rutas. La fábrica no concede permiso de uso o revelado y esta tanda no añade un consumidor que lo eluda. Quedan pendientes los consumidores futuros y la comprobación completa del criterio F7-7; resultados y límites en [23](../23-fase-7-seguridad-y-pruebas.md).

@@ -36,12 +36,14 @@ internal static class HostingServices
         services.TryAddSingleton(new RemoteSyncStoreOptions(Path.Combine(folders.Local.BaseDirectory, "hosting")));
 
         // One value of the settings answers the switch of a project and the policy of the mailbox: without the permission there is no network in the background (D-02).
-        services.TryAddSingleton(provider => new AppSettingsRemoteSyncPermission(provider.GetRequiredService<IAppSettingsStore>()));
+        services.TryAddSingleton(provider => new AppSettingsRemoteSyncPermission(
+            provider.GetRequiredService<IAppSettingsStore>(),
+            provider.GetService<Microsoft.Extensions.Logging.ILogger<AppSettingsRemoteSyncPermission>>()));
         services.TryAddSingleton<IRemoteSyncPermission>(provider => provider.GetRequiredService<AppSettingsRemoteSyncPermission>());
         services.TryAddSingleton<IRemoteSyncPolicy>(provider => provider.GetRequiredService<AppSettingsRemoteSyncPermission>());
 
         services
-            .AddAgentStudioRemoteGit()
+            .AddAgentStudioRemoteGit(folders.Local.BaseDirectory)
             .AddAgentStudioGitHubHosting(folders.Local.BaseDirectory)
             .AddAgentStudioHostingProjections()
             .AddAgentStudioRemoteSyncStore()
@@ -65,7 +67,8 @@ internal static class HostingServices
             provider.GetService<IRemoteSyncPolicy>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System,
             provider.GetService<IAddressOpener>(),
-            provider.GetService<IRemoteSyncPermission>()));
+            provider.GetService<IRemoteSyncPermission>(),
+            provider.GetService<AgentStudio.Application.Decisions.IDecisionRecorder>()));
         return services;
     }
 }

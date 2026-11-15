@@ -20,7 +20,7 @@ public sealed class AppSettingsSkillsDoctorSetting(IAppSettingsStore store) : IS
 {
     public bool NetworkAllowed => store.Load().SkillsDoctorNetworkEnabled;
 
-    public void Set(bool allowed) => store.SavePreferences(store.Load() with { SkillsDoctorNetworkEnabled = allowed });
+    public void Set(bool allowed) => store.UpdatePreferences(stored => stored with { SkillsDoctorNetworkEnabled = allowed });
 }
 
 /// <summary>A composition without the settings of the app: the network is never allowed and the screen cannot change it.</summary>

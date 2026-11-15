@@ -164,8 +164,8 @@ public sealed record MetricBarReading
     }
 
     /// <summary>
-    /// The short line of the status bar: the value with the origin in one word, the level written when the colour says one
-    /// («sano», «crítico», «presupuesto agotado»: never the colour alone) and the age of the figure; without a value, only why.
+    /// The short line of the status bar: value, origin and age. An observation with an age keeps its exact origin in the detail.
+    /// A level is always written when the colour says one («sano», «crítico»); without a value, only why it is missing.
     /// </summary>
     public string CompactText
     {
@@ -176,7 +176,9 @@ public sealed record MetricBarReading
                 return ShortValueText ?? ValueText;
             }
 
-            var parts = new List<string> { $"{ValueText} {ShortOrigin}" };
+            // Keep an observation's age beside its figure; its full origin remains in the accessible name and tooltip.
+            var figure = !string.IsNullOrWhiteSpace(Age) && !IsEstimate ? ValueText : $"{ValueText} {ShortOrigin}";
+            var parts = new List<string> { figure };
             if (Level != MetricBarLevel.Neutral && !string.IsNullOrWhiteSpace(LevelText))
             {
                 parts.Add(LevelText);

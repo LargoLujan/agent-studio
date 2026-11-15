@@ -385,7 +385,9 @@ public sealed class RemoteViewsTests
 
         public RemoteSyncHealth Health(string projectId) => new(null, null, null);
 
-        public Task SyncNowAsync(ProjectContext project, CancellationToken ct) => throw new NotSupportedException();
+        public Task<int> SyncNowAsync(ProjectContext project, CancellationToken ct) => throw new NotSupportedException();
+
+        public Task NoteConnectionAsync(ProjectContext project, HostingOutcome outcome, CancellationToken ct) => throw new NotSupportedException();
 
         public Task FollowAsync(ProjectContext project, PullRequestRef pullRequest, RunId? run, CancellationToken ct) => throw new NotSupportedException();
 

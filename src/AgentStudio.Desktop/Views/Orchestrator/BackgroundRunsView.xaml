@@ -1,0 +1,58 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.BackgroundRunsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator">
+    <Grid Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="12">
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T BackgroundRuns_Title}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T BackgroundRuns_Help}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+        </StackPanel>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}"
+                 MaxHeight="180" Margin="12,0,12,8" AutomationProperties.Name="{l:T BackgroundRuns_ListName}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel ToolTip="{Binding ProjectRoot}" AutomationProperties.Name="{Binding AccessibleName}">
+                        <TextBlock Style="{StaticResource BodyText}" Text="{Binding ProjectName}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ProjectRoot}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Monitor.RunId}" Margin="0,0,12,0"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Monitor.PhaseLabel}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Grid.Row="2" Text="{l:T BackgroundRuns_Empty}" Margin="12" TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Runs.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <ContentControl Grid.Row="2" Content="{Binding SelectedMonitor}">
+            <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedMonitor}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+            <ContentControl.ContentTemplate>
+                <DataTemplate><views:RunMonitorView/></DataTemplate>
+            </ContentControl.ContentTemplate>
+        </ContentControl>
+    </Grid>
+</UserControl>

@@ -130,7 +130,10 @@ public sealed class WebView2RegistryProbe : IWebView2Probe
 /// and the scope of a run of the doctor (<see cref="IDoctorRunScope"/>): while a run is open, each question is asked once however many checks need
 /// it; outside a run, nothing is kept, so a later reading never sees an old answer.
 /// </summary>
-public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Probe webView2) : IInstalledToolInventory, IDoctorRunScope
+/// <param name="runner">The door that asks each tool.</param>
+/// <param name="webView2">The probe of the WebView2 runtime.</param>
+/// <param name="budget">The most a whole reading may take; <see cref="Budget"/> by default. Only a test over the real tools of a busy computer gives another.</param>
+public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Probe webView2, TimeSpan? budget = null) : IInstalledToolInventory, IDoctorRunScope
 {
     private readonly ConcurrentDictionary<string, Lazy<Task<ToolSnapshot>>> _run = new(StringComparer.OrdinalIgnoreCase);
     private volatile bool _runOpen;
@@ -166,14 +169,14 @@ public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Prob
         return lazy.Value.WaitAsync(ct);
     }
 
-    private sealed record Run(string? Root, CancellationToken Ct, System.Diagnostics.Stopwatch Clock)
+    private sealed record Run(string? Root, CancellationToken Ct, System.Diagnostics.Stopwatch Clock, TimeSpan Limit)
     {
-        public bool OverBudget => Clock.Elapsed > Budget;
+        public bool OverBudget => Clock.Elapsed > Limit;
     }
 
     private async Task<ToolSnapshot> ReadAllAsync(string? projectRoot, CancellationToken ct)
     {
-        var run = new Run(projectRoot, ct, System.Diagnostics.Stopwatch.StartNew());
+        var run = new Run(projectRoot, ct, System.Diagnostics.Stopwatch.StartNew(), budget ?? Budget);
 
         // The door answers one question at a time, in the order they are asked.
         var sdks = await ListAsync(DoctorTool.DotNetListSdks, ToolOutputParsers.DotNetSdks, run).ConfigureAwait(false);

@@ -9,6 +9,7 @@ using AgentStudio.Domain.Orchestration;
 using AgentStudio.Infrastructure.Diagnostics;
 using AgentStudio.Infrastructure.Git.Remote;
 using AgentStudio.Infrastructure.Processes;
+using AgentStudio.Infrastructure.Processes.Isolation;
 using AgentStudio.Tests.Infrastructure.Git;
 using AgentStudio.Tests.Integration.Phase5;
 using AgentStudio.Tests.TestSupport;
@@ -33,19 +34,21 @@ internal sealed class Phase10World : IAsyncDisposable
     /// <summary>The clock of the mailbox (only of the mailbox: the engine keeps its own): the parked work retries and the courtesy after letting the project go are measured on it, so a test moves it instead of waiting.</summary>
     public FakeTimeProvider Clock { get; }
 
-    private Phase10World(AppWorld app, string container, string bare, LocalRemoteHostingProvider platform, RecordingProcessRunner git, FakeTimeProvider clock)
+    private Phase10World(AppWorld app, string container, NativeLocalGit localGit, LocalRemoteHostingProvider platform, RecordingProcessRunner git, FakeTimeProvider clock)
     {
         Clock = clock;
         App = app;
         _container = container;
-        Bare = bare;
+        LocalGit = localGit;
         Platform = platform;
         Git = git;
     }
 
     public AppWorld App { get; }
 
-    public string Bare { get; }
+    public string Bare => LocalGit.Bare;
+
+    public NativeLocalGit LocalGit { get; }
 
     public LocalRemoteHostingProvider Platform { get; }
 
@@ -68,28 +71,34 @@ internal sealed class Phase10World : IAsyncDisposable
         var home = Path.Combine(container, "home");
         Directory.CreateDirectory(home);
         var bare = Path.Combine(container, "remote.git");
-        TempGitRepo.Git(container, "init", "-q", "--bare", bare);
+        var localGit = new NativeLocalGit(bare, home);
+        localGit.Run(container, "init", "-q", "--bare", bare);
         var scratch = Path.Combine(container, "platform");
-        var platform = new LocalRemoteHostingProvider(bare, scratch);
+        var platform = new LocalRemoteHostingProvider(localGit, scratch);
         var git = new RecordingProcessRunner(new ProcessRunner());
         var clock = new FakeTimeProvider(new DateTimeOffset(2026, 11, 13, 12, 0, 0, TimeSpan.Zero));
         var repo = Phase5Runs.Repo();
         try
         {
             // The user's repository names GitHub as its origin (it is never fetched from), and the base branch of the platform starts where the repository is.
-            TempGitRepo.Git(repo.Root, "remote", "add", "origin", "https://github.com/octo/hello.git");
-            TempGitRepo.Git(repo.Root, "push", "-q", bare, "HEAD:refs/heads/main");
-            var address = bare.Replace('\\', '/');
+            localGit.Run(repo.Root, "remote", "add", "origin", "https://github.com/octo/hello.git");
+            localGit.Run(repo.Root, "push", "-q", localGit.Address, "HEAD:refs/heads/main");
             var app = await AppWorld.OpenAsync(
                 repo,
                 configure: services =>
                 {
+                    // Test-owned paths: AppFolders does not redirect the factory's Windows Known Folder defaults.
+                    // Keep the real Low factory, labels and copy policy; only its root and lock belong to this fixture.
+                    services.Replace(ServiceDescriptor.Singleton<IIsolatedWorkAreaFactory>(new LowIntegrityWorkAreaFactory(
+                        new LowIntegrityWorkAreaOptions(
+                            Root: Path.Combine(container, "verify"),
+                            LockFile: Path.Combine(container, "verify.lock")))));
                     services.Replace(ServiceDescriptor.Singleton<IRemoteGitRunner>(provider => new RemoteGitRunner(
                         git,
                         new ExecutableLocator(roots: provider.GetService<IUntrustedRoots>()),
                         RemoteGitFolders.Under(Path.Combine(container, "local")),
                         provider.GetRequiredService<OrchestrationPaths>().WorktreeRoot,
-                        RemoteTransport.ForTests("file", _ => address),
+                        RemoteTransport.ForTests("ext", _ => localGit.Address),
                         () => Ambient(home))));
                     services.Replace(ServiceDescriptor.Singleton<IHostingProviders>(new LocalProviders(platform, Repository)));
                     services.Replace(ServiceDescriptor.Singleton(provider => new RemoteSyncService(
@@ -101,7 +110,7 @@ internal sealed class Phase10World : IAsyncDisposable
                         clock)));
                     configure?.Invoke(services);
                 });
-            return new Phase10World(app, container, bare, platform, git, clock);
+            return new Phase10World(app, container, localGit, platform, git, clock);
         }
         catch
         {
@@ -152,7 +161,7 @@ internal sealed class Phase10World : IAsyncDisposable
     /// <summary>The objects the bare folder holds under a branch.</summary>
     public string? BareRef(string branch)
     {
-        var text = TempGitRepo.Git(Bare, "for-each-ref", "--format=%(objectname)", "refs/heads/" + branch).Trim();
+        var text = LocalGit.Run(Bare, "for-each-ref", "--format=%(objectname)", "refs/heads/" + branch).Trim();
         return text.Length == 0 ? null : text;
     }
 

@@ -102,13 +102,13 @@ public sealed class RemoteGitInheritedEnvironmentTests : IDisposable
     }
 }
 
-/// <summary>The composition of the executor (docs/21 D-06): it has no parameters and always resolves the one transport of production.</summary>
+/// <summary>The composition of the executor (docs/21 D-06): the original registration remains available and always resolves the one transport of production.</summary>
 public sealed class RemoteGitCompositionTests
 {
     [Fact]
-    public void The_registration_has_no_parameter_and_resolves_one_executor_with_the_https_transport_of_production()
+    public void The_original_registration_remains_parameterless_and_resolves_one_executor_with_the_https_transport_of_production()
     {
-        var method = typeof(RemoteGitDependencyInjection).GetMethod(nameof(RemoteGitDependencyInjection.AddAgentStudioRemoteGit))!;
+        var method = typeof(RemoteGitDependencyInjection).GetMethod(nameof(RemoteGitDependencyInjection.AddAgentStudioRemoteGit), [typeof(IServiceCollection)])!;
         Assert.Single(method.GetParameters());
 
         using var provider = new ServiceCollection().AddAgentStudioRemoteGit().BuildServiceProvider();

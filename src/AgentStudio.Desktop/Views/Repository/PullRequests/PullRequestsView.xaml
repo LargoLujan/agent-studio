@@ -12,7 +12,7 @@
     <!-- «Repositorio y cambios › Peticiones de fusión (PR)» (docs/21 section 7.1 and 7.2): the remote and the session, what is pending, the pull requests the log follows,
          the detail of one with its actions, the cards that say what an action does before its button, and the permissions of publication. An action has a button only when its
          capability is declared and the state admits it. What the remote wrote (a title, a check, an environment) is drawn as data in a text block: never a link, never formatting.
-         Bindings only. -->
+         The view only reveals and focuses a newly opened card; publication stays behind its commands. -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Pr.BoolToVisibility"/>
 
@@ -123,14 +123,24 @@
                     <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="22,0,0,0" Text="{l:T Hosting_Sync_Permission_What}"/>
                 </StackPanel>
                 <WrapPanel Margin="0,6,0,0">
-                    <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,0" Content="{l:T Hosting_Header_SyncNow}" Command="{Binding SyncNowCommand}"/>
-                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Header_Check}" Command="{Binding CheckConnectionCommand}"/>
+                    <Button x:Name="SyncNowButton" Style="{StaticResource ToolbarButton}" Margin="0,0,8,6" Content="{l:T Hosting_Header_SyncNow}" Command="{Binding SyncNowCommand}"/>
+                    <Button x:Name="CheckConnectionButton" Style="{StaticResource ToolbarButton}" Content="{l:T Hosting_Header_Check}" Command="{Binding CheckConnectionCommand}"/>
                 </WrapPanel>
             </StackPanel>
         </Border>
 
-        <TextBlock Style="{StaticResource Pr.Warning}" Margin="0,8,0,0" Text="{Binding GuideText, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"
-                   Visibility="{Binding HasGuide, Converter={StaticResource Pr.BoolToVisibility}}"/>
+        <TextBlock x:Name="GuideText" Margin="0,8,0,0" Text="{Binding GuideText, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"
+                   Visibility="{Binding HasGuide, Converter={StaticResource Pr.BoolToVisibility}}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding GuideIsWarning}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
         <TextBlock Style="{StaticResource Pr.Warning}" Margin="0,4,0,0" Text="{Binding OtherRepositoryText, TargetNullValue=''}"
                    Visibility="{Binding HasOtherRepository, Converter={StaticResource Pr.BoolToVisibility}}"/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding Message, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"
@@ -168,8 +178,9 @@
         </StackPanel>
 
         <!-- The card of an action that is open: it shows what the action does before its button. -->
-        <Border Style="{StaticResource Card}" Padding="12" Margin="0,10,0,0" Visibility="{Binding HasCard, Converter={StaticResource Pr.BoolToVisibility}}">
-            <ContentControl Content="{Binding Card}" Focusable="False"/>
+        <Border x:Name="ActionCard" Style="{StaticResource Card}" Padding="12" Margin="0,10,0,0" Visibility="{Binding HasCard, Converter={StaticResource Pr.BoolToVisibility}}">
+            <ContentControl x:Name="ActionCardContent" Content="{Binding Card, NotifyOnTargetUpdated=True}" Focusable="False"
+                            TargetUpdated="OnCardUpdated" IsVisibleChanged="OnCardVisibilityChanged"/>
         </Border>
 
         <!-- The pull requests the log follows. -->
@@ -264,7 +275,9 @@
         <!-- «Permisos de publicación»: the standing permissions of this project. -->
         <StackPanel Margin="0,12,0,0" Visibility="{Binding Permissions.IsAvailable, Converter={StaticResource Pr.BoolToVisibility}}">
             <StackPanel Orientation="Horizontal">
-                <ToggleButton x:Name="PermissionsToggle" VerticalAlignment="Center" Padding="10,4" Content="{l:T Hosting_Permissions_Title}"/>
+                <ToggleButton x:Name="PermissionsToggle" Style="{StaticResource Expander.HeaderToggle}" VerticalAlignment="Center"
+                              Foreground="{StaticResource TextPrimaryBrush}" FontFamily="{StaticResource UiFont}" FontSize="13"
+                              Content="{l:T Hosting_Permissions_Title}"/>
                 <info:InfoButton InfoKey="Info_Hosting_Permissions" Margin="6,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel DataContext="{Binding Permissions}" Margin="0,6,0,0" Visibility="{Binding IsChecked, ElementName=PermissionsToggle, Converter={StaticResource Pr.BoolToVisibility}}">

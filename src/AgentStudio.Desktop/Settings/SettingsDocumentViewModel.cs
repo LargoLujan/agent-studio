@@ -192,35 +192,37 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         AppSettings saved;
         try
         {
-            var preferences = Context.Apply(_store.Load());
-            if (Unattended is not null)
+            // Read, apply every section and save as one step of the store, so a permission given or withdrawn at the same time is not undone (P80).
+            saved = _store.UpdatePreferences(stored =>
             {
-                preferences = Unattended.Apply(preferences);
-            }
+                var preferences = Context.Apply(stored);
+                if (Unattended is not null)
+                {
+                    preferences = Unattended.Apply(preferences);
+                }
 
-            if (Lock is not null)
-            {
-                preferences = Lock.Apply(preferences);
-            }
+                if (Lock is not null)
+                {
+                    preferences = Lock.Apply(preferences);
+                }
 
-            if (Memory is not null)
-            {
-                preferences = Memory.Apply(preferences);
-            }
+                if (Memory is not null)
+                {
+                    preferences = Memory.Apply(preferences);
+                }
 
-            if (Language is not null)
-            {
-                preferences = Language.Apply(preferences);
-            }
+                if (Language is not null)
+                {
+                    preferences = Language.Apply(preferences);
+                }
 
-            if (RemoteSync is not null)
-            {
-                preferences = RemoteSync.Apply(preferences);
-            }
+                if (RemoteSync is not null)
+                {
+                    preferences = RemoteSync.Apply(preferences);
+                }
 
-            preferences = Motion.Apply(preferences);
-            _store.SavePreferences(preferences);
-            saved = preferences;
+                return Motion.Apply(preferences);
+            });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

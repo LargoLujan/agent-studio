@@ -25,8 +25,8 @@ public sealed class ManagedExitTests
     private readonly FakeShellWindow _window = new();
     private readonly FakeAppShutdown _shutdown = new();
 
-    private ManagedExit Exit(Func<Task<bool>>? confirmLeaving = null) =>
-        new(_work, _prompt, _recorder, _window, _shutdown, confirmLeaving is null ? null : _ => confirmLeaving());
+    private ManagedExit Exit(Func<Task<bool>>? confirmLeaving = null, IRunExitRecorder? recorder = null) =>
+        new(_work, _prompt, recorder ?? _recorder, _window, _shutdown, confirmLeaving is null ? null : _ => confirmLeaving());
 
     private FakeWork Run(string id, ProjectContext project, int attempts = 0)
     {
@@ -379,13 +379,17 @@ public sealed class ManagedExitTests
     }
 
     [Fact]
-    public void The_end_of_the_session_is_written_as_session_ended_for_the_work_going_on()
+    public async Task The_end_of_the_session_is_written_as_session_ended_for_the_work_going_on()
     {
         Run("20261021-aaaaaa", ProjectA, attempts: 1);
         _work.Track(new FakeWork(BackgroundWorkKind.Debate, ProjectC, "deb-20261021-cccccc", pausable: false));
-        var exit = Exit();
+        var written = new ExitRecordingSignal(_recorder, expectedRecords: 2);
+        var exit = Exit(recorder: written);
 
         exit.RecordSessionEnded(TimeSpan.FromSeconds(5));
+
+        // The pool may start the writes after the bounded Windows wait has returned.
+        await written.Written.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         Assert.Equal(
             [("p-a", "20261021-aaaaaa", RunExitChoice.SessionEnded), ("p-c", "deb-20261021-cccccc", RunExitChoice.SessionEnded)],
@@ -490,13 +494,15 @@ public sealed class ManagedExitTests
     {
         Run("20261021-aaaaaa", ProjectA, attempts: 1);
         _prompt.Answer = ExitChoice.PauseAndExitWhenIdle;
-        var exit = Exit();
+        var written = new ExitRecordingSignal(_recorder, expectedRecords: 2);
+        var exit = Exit(recorder: written);
         await exit.ExitAsync();
         exit.CancelPendingExit();
 
         // Started after «No salir»: nobody chose anything for it.
         Run("20261021-cccccc", ProjectB, attempts: 1);
         exit.RecordSessionEnded(TimeSpan.FromSeconds(5));
+        await written.Written.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         Assert.Equal(
             [("p-a", "20261021-aaaaaa", RunExitChoice.PauseAndExitWhenIdle), ("p-b", "20261021-cccccc", RunExitChoice.SessionEnded)],

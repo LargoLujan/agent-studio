@@ -16,6 +16,8 @@ TestResults/
 .agentstudio/*.db-wal
 .agentstudio/evidence/
 .agentstudio/tmp/
+# Private development handoff context, queues and provider results (never commit conversation snapshots).
+.agentstudio/handoff/
 *.db
 *.db-shm
 *.db-wal

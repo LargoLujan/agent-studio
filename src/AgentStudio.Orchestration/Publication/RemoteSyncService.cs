@@ -19,6 +19,8 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
 {
     private readonly MailboxServices _services;
     private readonly ConcurrentDictionary<string, Lazy<Task<ProjectRemoteMailbox>>> _boxes = new(StringComparer.Ordinal);
+    private readonly object _lifetime = new();
+    private Task? _shutdown;
 
     internal RemoteSyncService(
         IDecisionRecorder recorder, IProjectActivity activity, IHostingProviders providers, IRemoteSyncStore store, IRemoteSyncPolicy? policy, TimeProvider time)
@@ -36,8 +38,14 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
     internal async Task<ProjectRemoteMailbox> OfAsync(ProjectContext project, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
-        var lazy = _boxes.GetOrAdd(project.ProjectId, _ => new Lazy<Task<ProjectRemoteMailbox>>(() => CreateAsync(project)));
-        var made = lazy.Value;
+        Lazy<Task<ProjectRemoteMailbox>> lazy;
+        Task<ProjectRemoteMailbox> made;
+        lock (_lifetime)
+        {
+            ObjectDisposedException.ThrowIf(_shutdown is not null, this);
+            lazy = _boxes.GetOrAdd(project.ProjectId, _ => new Lazy<Task<ProjectRemoteMailbox>>(() => CreateAsync(project)));
+            made = lazy.Value;
+        }
         try
         {
             return await made.WaitAsync(ct).ConfigureAwait(false);
@@ -65,8 +73,18 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
         return new ProjectRemoteMailbox(project, _services, state);
     }
 
-    public async Task SyncNowAsync(ProjectContext project, CancellationToken ct) =>
+    public async Task<int> SyncNowAsync(ProjectContext project, CancellationToken ct) =>
         await (await OfAsync(project, ct).ConfigureAwait(false)).SyncNowAsync().ConfigureAwait(false);
+
+    public async Task NoteConnectionAsync(ProjectContext project, HostingOutcome outcome, CancellationToken ct)
+    {
+        var box = await OfAsync(project, ct).ConfigureAwait(false);
+        await box.ExecAsync(_ =>
+        {
+            box.NoteConnection(outcome);
+            return Task.FromResult(true);
+        }, ct).ConfigureAwait(false);
+    }
 
     public async Task FollowAsync(ProjectContext project, PullRequestRef pullRequest, RunId? run, CancellationToken ct)
     {
@@ -88,6 +106,9 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
         }
     }
 
+    /// <summary>Some mailbox has something queued or running (a stretch of git, a call of the platform): the exit uses it to say that it waits (docs/21 D-25).</summary>
+    public bool IsBusy => _boxes.Values.Any(lazy => lazy.IsValueCreated && lazy.Value.IsCompletedSuccessfully && lazy.Value.Result.IsBusy);
+
     public IReadOnlyList<RemoteWorkStatus> Pending(string projectId) => Existing(projectId)?.Pending() ?? [];
 
     public RemoteSyncHealth Health(string projectId) => Existing(projectId)?.Health ?? new RemoteSyncHealth(null, null, null);
@@ -103,23 +124,29 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
     public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 
     /// <summary>When the app closes: each mailbox ends the stretch it is in (a <c>push</c> is not cut) and stops. No task is left behind.</summary>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        foreach (var lazy in _boxes.Values.ToList())
+        lock (_lifetime)
         {
-            if (lazy.IsValueCreated)
-            {
-                try
-                {
-                    await (await lazy.Value.ConfigureAwait(false)).DisposeAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-                {
-                    // the mailbox never opened: nothing to close
-                }
-            }
+            // Publishing the shared task closes admission before the asynchronous drain starts.
+            return new ValueTask(_shutdown ??= Task.Run(CloseAsync));
         }
+    }
 
+    private async Task CloseAsync()
+    {
+        // Start every close before awaiting any one mailbox: a slow push must not leave another project accepting writes.
+        await Task.WhenAll(_boxes.Values.Where(lazy => lazy.IsValueCreated).Select(async lazy =>
+        {
+            try
+            {
+                await (await lazy.Value.ConfigureAwait(false)).DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                // The mailbox never opened: nothing to close.
+            }
+        })).ConfigureAwait(false);
         _boxes.Clear();
     }
 }

@@ -125,7 +125,7 @@ public sealed class MainWindowTests
             var window = CreateWindow(ShellFactory.CreateMain(), new FileLayoutStore(new AppDataPaths(temp.Path)));
             var dock = Dock(window);
             var explorerPane = (LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent;
-            var terminalPane = (LayoutAnchorablePane)Panel(window, PanelIds.Terminal).Parent;
+            var terminalPane = (LayoutAnchorablePane)((ILayoutPreviousContainer)Panel(window, PanelIds.Terminal)).PreviousContainer!;
             var onTheRight = dock.Layout.RightSide.Children.SelectMany(g => g.Children).Select(a => a.ContentId).ToList();
             LayOut(window);
             var documents = Descendants<LayoutDocumentPaneControl>(dock).Single().ActualWidth;
@@ -174,6 +174,63 @@ public sealed class MainWindowTests
         Assert.Equal([false, false], onHover);
         Assert.Equal([340d, 420d], flyoutWidths);
         Assert.Equal(340, pinnedWidth, 0);
+    }
+
+    [Fact]
+    public async Task A_new_project_keeps_the_lower_panels_closed_and_remembers_when_the_person_opens_the_terminal()
+    {
+        using var temp = new TempDirectory();
+        var first = temp.CreateDirectory("first");
+        var second = temp.CreateDirectory("second");
+
+        var (closed, heightBefore, heightAfter, secondClosed, firstRestored) = await WpfHost.RunAsync(async () =>
+        {
+            var vm = ShellFactory.CreateMain();
+            var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            await vm.OpenProjectAsync(first);
+            LayOut(window);
+            var lower = new[] { PanelIds.Terminal, PanelIds.Problems, PanelIds.Output, PanelIds.Tests };
+            var initiallyClosed = lower.All(id => Panel(window, id).IsHidden);
+            var before = Descendants<LayoutDocumentPaneControl>(Dock(window)).Single().ActualHeight;
+
+            vm.ToggleTerminalCommand.Execute(null);
+            LayOutAgain(window);
+            var after = Descendants<LayoutDocumentPaneControl>(Dock(window)).Single().ActualHeight;
+            Assert.True(window.IsInView(Panel(window, PanelIds.Terminal)));
+
+            await vm.OpenProjectAsync(second);
+            var nextClosed = Panel(window, PanelIds.Terminal).IsHidden;
+            await vm.OpenProjectAsync(first);
+            return (initiallyClosed, before, after, nextClosed, Panel(window, PanelIds.Terminal).IsVisible);
+        });
+
+        Assert.True(closed);
+        Assert.True(heightBefore - heightAfter >= 160, "The closed terminal must leave its height to the documents.");
+        Assert.True(secondClosed);
+        Assert.True(firstRestored, "The saved project layout keeps the person's choice to show the terminal.");
+    }
+
+    [Fact]
+    public async Task A_long_project_path_stays_on_one_status_line_with_its_complete_tooltip()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("a long project folder with several words/a second long folder with several words/project");
+
+        var (height, lineHeight, tooltip, fullPath) = await WpfHost.RunAsync(async () =>
+        {
+            var vm = ShellFactory.CreateMain();
+            var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            await vm.OpenProjectAsync(project);
+            vm.StatusMessage = null;
+            LayOut(window);
+            var status = (TextBlock)window.FindName("StatusMessageText");
+            var singleLine = new TextBlock { Text = "Ag", FontFamily = status.FontFamily, FontSize = status.FontSize };
+            singleLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            return (status.ActualHeight, singleLine.DesiredSize.Height, status.ToolTip, vm.ProjectPathDisplay);
+        });
+
+        Assert.True(height <= lineHeight + 1, $"The path takes {height:F0}px instead of one {lineHeight:F0}px line.");
+        Assert.Equal(fullPath, tooltip);
     }
 
     /// <summary>
@@ -283,13 +340,13 @@ public sealed class MainWindowTests
         });
 
         Assert.False(bar);
-        Assert.Equal(9, buttons.Count);
+        Assert.Equal(10, buttons.Count);
         Assert.All(buttons, Assert.True);
 
         // A screen reader names each entry by its title (A1), not by the type behind it.
         Assert.Equal(
             [
-                "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
+                "Explorador", "Orquestador", Texts.Get("BackgroundRuns_Title"), Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
                 "Terminal", "Auto Doctor", "Historial (bitácora)",
             ],
             names);
@@ -323,7 +380,7 @@ public sealed class MainWindowTests
         });
 
         Assert.Equal(
-            ["Explorador", "Bienvenida | Calc.cs, con cambios sin guardar", $"Terminal | {Texts.Get("Panels_Problems_Title")} | {Texts.Get("Panels_Output_Title")} | {Texts.Get("Panels_Tests_Title")}"],
+            ["Explorador", "Bienvenida | Calc.cs, con cambios sin guardar"],
             tabs);
         Assert.Equal(["Auto Doctor", "Bitácora de hoy"], sideTabs);
 
@@ -502,8 +559,10 @@ public sealed class MainWindowTests
     /// The layout a project saved before Phase 13 has no panels «Problemas», «Salida» and «Pruebas» (the layout of the user of the
     /// demo project is one): restoring it brings them back in the pane of the terminal, so «Pruebas» of the activity bar always finds its panel.
     /// </summary>
-    [Fact]
-    public async Task ALayoutSavedBeforePhase13_GetsThePanelsOfTheRunInThePaneOfTheTerminal()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ALayoutSavedBeforePhase13_GetsThePanelsOfTheRunInThePaneOfTheTerminal(bool terminalWasOpen)
     {
         using var temp = new TempDirectory();
         var a = temp.CreateDirectory("a");
@@ -516,6 +575,12 @@ public sealed class MainWindowTests
             var vm = ShellFactory.CreateMain();
             var window = CreateWindow(vm, store);
             await vm.OpenProjectAsync(a);
+
+            if (terminalWasOpen)
+            {
+                vm.ToggleTerminalCommand.Execute(null);
+            }
+
             await vm.OpenProjectAsync(b);
 
             // What the layout of A looked like before Phase 13: the same tree without the three panels.
@@ -526,16 +591,29 @@ public sealed class MainWindowTests
 
             await vm.OpenProjectAsync(a);
             var visible = Anchorables(window).Where(x => x.IsVisible).Select(x => x.ContentId).Order().ToList();
-            var terminalPane = Panel(window, PanelIds.Terminal).Parent;
-            var together = runPanels.All(id => ReferenceEquals(Panel(window, id).Parent, terminalPane));
+            var terminalPanel = Panel(window, PanelIds.Terminal);
+            var terminalPane = terminalPanel.Parent as LayoutAnchorablePane ?? ((ILayoutPreviousContainer)terminalPanel).PreviousContainer;
+            var together = runPanels.All(id =>
+            {
+                var panel = Panel(window, id);
+                var pane = panel.Parent as LayoutAnchorablePane ?? ((ILayoutPreviousContainer)panel).PreviousContainer;
+                return ReferenceEquals(pane, terminalPane);
+            });
 
             // «Pruebas» of the activity bar shows it: the panel exists, so the request does something.
-            Panel(window, PanelIds.Tests).Hide();
+            if (Panel(window, PanelIds.Tests).IsVisible)
+            {
+                Panel(window, PanelIds.Tests).Hide();
+            }
+
             Toggle(vm, "tests");
             return (visible, together, Panel(window, PanelIds.Tests).IsVisible);
         });
 
-        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests], ids);
+        string[] expectedVisible = terminalWasOpen
+            ? [PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests]
+            : [PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal];
+        Assert.Equal(expectedVisible, ids);
         Assert.True(sameGroup);
         Assert.True(activated);
     }
@@ -585,7 +663,7 @@ public sealed class MainWindowTests
             return Anchorables(window).Where(a => a.IsVisible).Select(a => a.ContentId).Order().ToList();
         });
 
-        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests], ids);
+        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal], ids);
     }
 
     [Fact]
@@ -604,7 +682,7 @@ public sealed class MainWindowTests
             return Anchorables(window).Count(a => a.IsVisible);
         });
 
-        Assert.Equal(7, count);
+        Assert.Equal(3, count);
     }
 
     [Fact]

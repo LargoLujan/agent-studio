@@ -382,6 +382,7 @@ public sealed class ApprovalReviewAndIntegrationTests
         await using var run = await harness.StartAsync(F38Plan());
         await harness.WaitForStatusAsync(run, "R1", WorkTaskStatus.AwaitingApproval);
         await harness.WaitForPhaseAsync(run, RunPhase.AwaitingHuman);
+        await RunTestSupport.WaitUntilAsync(() => harness.Approvals.Requests.Count == 1, "review approval request");
         Assert.Equal("orchestration.review-escalation", Assert.Single(harness.Approvals.Requests).Action);
 
         hold.SetResult();

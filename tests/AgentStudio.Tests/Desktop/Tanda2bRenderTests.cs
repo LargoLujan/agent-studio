@@ -104,7 +104,7 @@ public sealed class Tanda2bRenderTests
         Assert.Empty(shown.Cut);
 
         // Nothing the revision of WP-F asked is lost: the origin, the level and the age go next to each figure.
-        Assert.Equal(["~1 % estimado · sano", "57 % exacto · hace 14 min", "18 % exacto · hace 14 min", "2 de 12 exacto"], shown.Texts);
+        Assert.Equal(["~1 % estimado · sano", "57 % · hace 14 min", "18 % · hace 14 min", "2 de 12 exacto"], shown.Texts);
     }
 
     /// <summary>
@@ -126,7 +126,7 @@ public sealed class Tanda2bRenderTests
         // text (its commit hash), so the limit is «at most», never «exactly».
         Assert.True(scale < 150 ? shown.Lines == 1 : shown.Lines <= 2, shown.Why($"{scale} %"));
         Assert.Empty(shown.Cut);
-        Assert.Equal(["~87 % estimado · compresión recomendada", "se reinició · sin dato", "57 % exacto · hace 14 min", "9 de 12 exacto"], shown.Texts);
+        Assert.Equal(["~87 % estimado · compresión recomendada", "se reinició · sin dato", "57 % · hace 14 min", "9 de 12 exacto"], shown.Texts);
     }
 
     /// <summary>

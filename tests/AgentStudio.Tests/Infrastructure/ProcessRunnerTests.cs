@@ -90,14 +90,16 @@ public sealed class ProcessRunnerTests : IDisposable
     [Fact]
     public async Task Kills_the_tree_and_reports_timeout()
     {
-        var spec = new ProcessSpec("cmd.exe", ["/c", "echo antes& ping -n 30 127.0.0.1"], Timeout: TimeSpan.FromSeconds(1));
+        // Three seconds leave the child time to write its line even on a loaded machine. The ping alone lasts about 29 s, so ending in
+        // well under that proves the tree was killed; the outer wait only turns a hang into a failure.
+        var spec = new ProcessSpec("cmd.exe", ["/c", "echo antes& ping -n 30 127.0.0.1"], Timeout: TimeSpan.FromSeconds(3));
         var watch = Stopwatch.StartNew();
 
-        var result = await _runner.RunAsync(spec, TestContext.Current.CancellationToken);
+        var result = await _runner.RunAsync(spec, TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         Assert.True(result.TimedOut);
         Assert.Equal(-1, result.ExitCode);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"Tardó {watch.Elapsed}");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), $"Tardó {watch.Elapsed}");
         Assert.Contains("antes", result.StandardOutput, StringComparison.Ordinal);
     }
 
@@ -108,9 +110,10 @@ public sealed class ProcessRunnerTests : IDisposable
         var spec = new ProcessSpec("cmd.exe", ["/c", "ping -n 30 127.0.0.1"]);
         var watch = Stopwatch.StartNew();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _runner.RunAsync(spec, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _runner.RunAsync(spec, cts.Token).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
 
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"Tardó {watch.Elapsed}");
+        // Well under the 29 s of the ping: the cancellation killed the tree instead of waiting for it.
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), $"Tardó {watch.Elapsed}");
     }
 
     [Theory]

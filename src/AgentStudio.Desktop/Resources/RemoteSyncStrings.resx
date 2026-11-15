@@ -44,6 +44,10 @@
     <value>Quitar el permiso de {0}</value>
     <comment>Name of the button for a screen reader: {0} is the folder of the project.</comment>
   </data>
+  <data name="RemoteSync_Projects_Missing" xml:space="preserve">
+    <value>{0} (la carpeta ya no existe)</value>
+    <comment>Row of the list: {0} is the folder the project had when the permission was given.</comment>
+  </data>
   <data name="RemoteSync_Sends_Title" xml:space="preserve">
     <value>Qué sale y qué no</value>
   </data>

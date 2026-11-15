@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows.Threading;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Coordination;
@@ -274,8 +275,11 @@ public sealed class AppCompositionTests
     }
 
     [Fact]
-    public async Task Switching_project_moves_the_orchestrator_services_to_the_new_root()
+    public Task Switching_project_moves_the_orchestrator_services_to_the_new_root() => WpfHost.RunAsync(async () =>
     {
+        // The factory creates UI-owned documents: repository loading and reloads resume on the same dispatcher.
+        Assert.IsType<DispatcherSynchronizationContext>(SynchronizationContext.Current);
+        var ui = Dispatcher.CurrentDispatcher;
         using var temp = new TempDirectory();
         var a = temp.CreateDirectory("a");
         var b = temp.CreateDirectory("b");
@@ -321,7 +325,12 @@ public sealed class AppCompositionTests
         Assert.Equal(projectA, tabOfA.Context.Project);
         Assert.Equal("Añadir Calc.Multiply(a, b)", Assert.Single(tabOfA.Context.Requirements!.Requirements).Statement);
         Assert.True(tabOfA.RequestPlanCommand.CanExecute(null));
-    }
+
+        // Keep the initial reads in the provider's lifetime without serializing them ahead of the project changes.
+        await Task.WhenAll(tabOfA.BuilderData, tabOfB.BuilderData);
+        Assert.True(ui.CheckAccess());
+        return true;
+    });
 
     [Fact]
     public async Task The_skills_index_of_the_settings_is_the_catalog_of_the_engine()
@@ -398,6 +407,7 @@ public sealed class AppCompositionTests
         Assert.IsType<AgentStudio.Desktop.Skills.HelloSkillsDoctorPresence>(provider.GetRequiredService<ISkillsDoctorPresence>());
         Assert.NotNull(provider.GetRequiredService<ISkillHealthBatchChecker>());
         Assert.NotNull(provider.GetRequiredService<ICredentialVault>());
+        Assert.NotNull(provider.GetRequiredService<IProjectCredentialVaults>());
 
         var backend = provider.GetRequiredService<AgentStudio.Desktop.Skills.SkillsBackend>();
         Assert.NotNull(backend.Doctor);
