@@ -26,10 +26,13 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDis
     private readonly Func<IReadOnlyDictionary<string, string>> _ambient;
     private readonly Func<bool> _storePythonInstalled;
     private readonly SerialQueue _queue = new();
+    private readonly TimeSpan _timeout;
 
     /// <param name="ambient">The environment variables the process has, to remove the ones that are not allowed; the ones of the current process by default.</param>
-    public DoctorToolRunner(IExecutableLocator locator, IProcessRunner runner, DoctorFolders folders, Func<IReadOnlyDictionary<string, string>>? ambient = null, Func<bool>? storePythonInstalled = null)
+    /// <param name="timeout">How long a tool has to answer; <see cref="Timeout"/> by default. Only a test over the real tools of a busy computer gives another.</param>
+    public DoctorToolRunner(IExecutableLocator locator, IProcessRunner runner, DoctorFolders folders, Func<IReadOnlyDictionary<string, string>>? ambient = null, Func<bool>? storePythonInstalled = null, TimeSpan? timeout = null)
     {
+        _timeout = timeout ?? Timeout;
         ArgumentNullException.ThrowIfNull(locator);
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(folders);
@@ -72,7 +75,7 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDis
             entry.Arguments,
             _folders.WorkingFolder,
             DoctorEnvironment.For(entry.Tool, _folders, _ambient()),
-            Timeout,
+            _timeout,
             StandardInput: null,
             MaxOutputCharacters: DoctorToolResult.MaxOutputLength);
         try

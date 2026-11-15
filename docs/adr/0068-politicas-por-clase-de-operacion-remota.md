@@ -104,3 +104,11 @@
 - **Canales del veredicto:** estado y comentario pasan la compuerta cada uno; sin la capacidad del estado de commit se publica el comentario (D-21), y solo se rechaza si no hay ningún canal.
 - **Un solo veredicto** para el estado, el commit, los requisitos y el modelo del juez: `RemoteJudgement.VerdictInForceWithVerdict`.
 - **Textos:** siguen la guía (versión guardada (commit), revisor independiente (juez), INFLESZ 55). El título del PR lleva el id de la ejecución (aceptado).
+
+## Adenda · 2026-11-14 · revalidación tras lecturas y retirada inmediata
+
+Abrir y fusionar un PR vuelven a pasar la compuerta, sin preguntar a la persona, después de las lecturas de la plataforma y antes de escribir. La aprobación del clic sigue atada a la misma operación. Si durante la lectura desapareció el veredicto válido o el permiso persistente, la escritura no empieza.
+
+La retirada de un permiso incorpora su id al conjunto inmutable de revocaciones pendientes antes de encolar la anotación. El consumidor puede seguir ocupado con un envío anterior; desde la petición el permiso deja de contar. Altas y bajas del conjunto son atómicas para conservar retiradas concurrentes. La anotación sigue siendo append-only y espera a que el proyecto esté libre; el archivo local solo puede conservar una retirada, nunca conceder autoridad.
+
+Como en cualquier comprobación anterior a una llamada externa, no hay una transacción distribuida entre el registro y GitHub. Una escritura que ya se ha enviado termina y se anota; la retirada impide los usos siguientes.

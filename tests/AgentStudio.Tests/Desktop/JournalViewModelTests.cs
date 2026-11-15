@@ -20,6 +20,9 @@ public sealed class JournalViewModelTests
 {
     private const string Root = @"C:\proyectos\calc";
 
+    /// <summary>The clock of the tests that move the time (the settle time of a burst): 10:00 of the 15th in the +02:00 zone, and it counts the waits the panel arms.</summary>
+    private static DrivenClock Driven() => new(new DateTimeOffset(2026, 10, 15, 8, 0, 0, TimeSpan.Zero), TimeSpan.FromHours(2));
+
     // 2026-10-15 23:30 UTC is already the 16th in the +02:00 local zone of FakeClock.
     private static FakeClock Clock(int hour = 10, int day = 15) =>
         new(new DateTimeOffset(2026, 10, day, hour, 0, 0, TimeSpan.FromHours(2)));
@@ -238,15 +241,18 @@ public sealed class JournalViewModelTests
     {
         var reader = new FakeStorageReader();
         var watcher = new FakeJournalWatcher();
-        using var journal = new JournalViewModel(Clock(), reader, watcher);
+        var clock = Driven();
+        using var journal = new JournalViewModel(clock, reader, watcher);
         await journal.SetProjectAsync(Root);
         Assert.Contains("Todavía no hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
         Assert.Equal(Root, Assert.Single(watcher.Watched).Root);
 
         reader.Files[Day] = "# 2026-10-15\n- Ejecutor · empezó\n";
+        var seen = clock.Timers;
         watcher.Change();
 
-        await WaitUntilAsync(() => journal.Text == "# 2026-10-15\n- Ejecutor · empezó\n");
+        // The settle time is the clock's: the panel reads once its wait is woken, however busy the machine is.
+        await clock.AdvanceWhileAsync(() => journal.Text == "# 2026-10-15\n- Ejecutor · empezó\n" && journal.StatusMessage is null, JournalViewModel.SettleTime, seen);
         Assert.Null(journal.StatusMessage);
         Assert.All(reader.Reads, r => Assert.Equal((Root, Day), r));
     }
@@ -260,35 +266,44 @@ public sealed class JournalViewModelTests
     {
         var reader = new FakeStorageReader { Files = { [Day] = "1" } };
         var watcher = new FakeJournalWatcher();
-        using var journal = new JournalViewModel(Clock(), reader, watcher);
+        var clock = Driven();
+        using var journal = new JournalViewModel(clock, reader, watcher);
         await journal.SetProjectAsync(Root);
         Assert.Single(reader.Reads);
 
+        var seen = clock.Timers;
         for (var i = 0; i < 10; i++)
         {
             watcher.Change();
         }
 
-        await WaitUntilAsync(() => reader.Reads.Count == 2);
+        await clock.AdvanceWhileAsync(() => reader.Reads.Count >= 2, JournalViewModel.SettleTime, seen);
 
         using var gate = new SemaphoreSlim(0);
         reader.Gate = gate;
         reader.Files[Day] = "2";
+        seen = clock.Timers;
         watcher.Change();
-        await WaitUntilAsync(() => reader.Reads.Count == 3);
+        await clock.AdvanceWhileAsync(() => reader.Reads.Count >= 3, JournalViewModel.SettleTime, seen);
         reader.Gate = null;
         reader.Files[Day] = "3";
+        seen = clock.Timers;
         for (var i = 0; i < 5; i++)
         {
             watcher.Change();
         }
 
         gate.Release();
-        await WaitUntilAsync(() => journal.Text == "3");
-        await Task.Delay(JournalViewModel.SettleTime * 3, TestContext.Current.CancellationToken);
+        await clock.AdvanceWhileAsync(() => reader.Reads.Count >= 4 && journal.Text == "3", JournalViewModel.SettleTime, seen);
 
+        // The five changes were all queued before the read in course ended, so they are one read more: the fourth.
         Assert.Equal(4, reader.Reads.Count);
         Assert.Equal("3", journal.Text);
+
+        // And nothing more is waiting: a read asked now (it goes through the same queue) is the fifth, and no surplus one came before it.
+        clock.Advance(JournalViewModel.LongestSettle * 2);
+        await journal.RefreshCommand.ExecuteAsync(null);
+        Assert.Equal(5, reader.Reads.Count);
     }
 
     /// <summary>The day is read off the UI thread, and shown on it.</summary>
@@ -382,13 +397,15 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(Root);
         Assert.Equal("el 15", journal.Text);
 
+        // Before midnight the panel still reads the 15th: a read asked now goes through the same queue as any the check would have made, so when it
+        // ends the check has had its say.
         clock.Advance(TimeSpan.FromSeconds(29));
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+        await journal.RefreshCommand.ExecuteAsync(null);
         Assert.Equal("el 15", journal.Text);
 
         clock.Advance(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => journal.Text == "el 16");
-        Assert.Equal([Day, "bitacora/2026-10-16.md"], reader.Reads.Select(r => r.Path));
+        Assert.Equal([Day, Day, "bitacora/2026-10-16.md"], reader.Reads.Select(r => r.Path));
     }
 
     /// <summary>
@@ -406,10 +423,10 @@ public sealed class JournalViewModelTests
         Assert.Contains("Todavía no hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
 
         temp.WriteFile("calc/.agentstudio/bitacora/2026-10-15.md", "# 2026-10-15\n- Ejecutor · empezó\n");
-        await WaitUntilAsync(() => journal.Text == "# 2026-10-15\n- Ejecutor · empezó\n", seconds: 15);
+        await WaitUntilAsync(() => journal.Text == "# 2026-10-15\n- Ejecutor · empezó\n");
 
         File.AppendAllText(temp.Combine("calc", ".agentstudio", "bitacora", "2026-10-15.md"), "  - Resultado · Succeeded\n");
-        await WaitUntilAsync(() => journal.Text.EndsWith("  - Resultado · Succeeded\n", StringComparison.Ordinal), seconds: 15);
+        await WaitUntilAsync(() => journal.Text.EndsWith("  - Resultado · Succeeded\n", StringComparison.Ordinal));
         Assert.Null(journal.StatusMessage);
     }
 
@@ -436,7 +453,7 @@ public sealed class JournalViewModelTests
 
             File.WriteAllText(Path.Combine(data, "bitacora", "2026-10-15.md"), $"# 2026-10-15\n- ciclo {cycle}\n");
 
-            await WaitUntilAsync(() => journal.Text.Contains($"ciclo {cycle}", StringComparison.Ordinal), seconds: 15);
+            await WaitUntilAsync(() => journal.Text.Contains($"ciclo {cycle}", StringComparison.Ordinal));
         }
     }
 
@@ -464,7 +481,9 @@ public sealed class JournalViewModelTests
     /// burst of changes 150 ms apart is read once it ends, with its last change. The times are measured, not assumed, so a
     /// loaded machine that spaces the changes more only gives longer quiet spells.
     /// </summary>
+    // Measurement: the times are those of the machine, so the CI leaves it out; the deterministic versions are the burst test above and the one below.
     [Fact]
+    [Trait("Category", "Measurement")]
     public async Task A_burst_of_changes_is_read_once_after_the_last_change()
     {
         var reader = new FakeStorageReader { Files = { [Day] = "0" } };
@@ -513,17 +532,24 @@ public sealed class JournalViewModelTests
     {
         var reader = new FakeStorageReader { Files = { [Day] = "0" } };
         var watcher = new FakeJournalWatcher();
-        using var journal = new JournalViewModel(Clock(), reader, watcher);
+        var clock = Driven();
+        using var journal = new JournalViewModel(clock, reader, watcher);
         await journal.SetProjectAsync(Root);
-        var started = System.Diagnostics.Stopwatch.StartNew();
 
-        while (started.Elapsed < TimeSpan.FromSeconds(10) && reader.Reads.Count < 2)
+        // A change comes in each of the waits of the panel (once its timer exists, before the time moves), so the burst never goes quiet: the panel
+        // waits the longest it may, one spell after another, and then reads.
+        var spells = (int)(JournalViewModel.LongestSettle / JournalViewModel.SettleTime);
+        var start = clock.Timers;
+        watcher.Change();
+        for (var spell = 1; spell <= spells; spell++)
         {
+            await clock.WaitForTimerAfterAsync(start + spell - 1);
             watcher.Change();
-            await Task.Delay(100, TestContext.Current.CancellationToken);
+            clock.Advance(JournalViewModel.SettleTime);
         }
 
-        Assert.True(reader.Reads.Count >= 2, "A burst of changes without end was never read.");
+        await WaitUntilAsync(() => reader.Reads.Count >= 2);
+        Assert.Equal(spells, clock.Timers - start);
     }
 
     /// <summary>
@@ -536,7 +562,8 @@ public sealed class JournalViewModelTests
         var first = LongDay(entries: 400);
         var reader = new FakeStorageReader { Files = { [Day] = first } };
         var watcher = new FakeJournalWatcher();
-        using var journal = new JournalViewModel(Clock(), reader, watcher);
+        var clock = Driven();
+        using var journal = new JournalViewModel(clock, reader, watcher);
         await journal.SetProjectAsync(Root);
         journal.TogglePlainTextCommand.Execute(null);
         Assert.Equal(first, journal.PlainText);
@@ -546,8 +573,9 @@ public sealed class JournalViewModelTests
 
         var second = first + "- **09:00:00** · P-0401 · Ejecutor · claude-code/haiku · #prompt · «petición 401»\n";
         reader.Files[Day] = second;
+        var seen = clock.Timers;
         watcher.Change();
-        await WaitUntilAsync(() => journal.Text == second);
+        await clock.AdvanceWhileAsync(() => journal.Text == second, JournalViewModel.SettleTime, seen);
 
         Assert.Equal(first, journal.PlainText);
         Assert.Equal(0, plainChanges);
@@ -568,8 +596,9 @@ public sealed class JournalViewModelTests
         // Back in the readable view, the latest entries are there.
         var fourth = third + "- **09:00:00** · P-0403 · Ejecutor · claude-code/haiku · #prompt · «petición 403»\n";
         reader.Files[Day] = fourth;
+        seen = clock.Timers;
         watcher.Change();
-        await WaitUntilAsync(() => journal.Text == fourth);
+        await clock.AdvanceWhileAsync(() => journal.Text == fourth, JournalViewModel.SettleTime, seen);
         journal.TogglePlainTextCommand.Execute(null);
 
         // Without a UI thread the day is shown on the thread that read it: its readable part follows its text there.
@@ -600,7 +629,8 @@ public sealed class JournalViewModelTests
         Assert.True(done(), "The folder could not be deleted or made again.");
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition, int seconds = 5)
+    /// <summary>Polls until the panel shows what the test waits for; the seconds are only the guard of a hang, not a limit on the panel.</summary>
+    private static async Task WaitUntilAsync(Func<bool> condition, int seconds = 60)
     {
         var until = DateTime.UtcNow.AddSeconds(seconds);
         while (!condition() && DateTime.UtcNow < until)

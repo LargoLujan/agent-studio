@@ -234,7 +234,7 @@ public sealed class MainViewModelTests
         // Phase 13: «Agentes» (the layer Team of the orchestrator), «Herramientas» (a screen) and «Pruebas» (the panel of tests).
         Assert.Equal(
             [
-                "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
+                "Explorador", "Orquestador", Texts.Get("BackgroundRuns_Title"), Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
                 "Terminal", "Auto Doctor", "Historial (bitácora)",
             ],
             vm.Activities.Select(a => a.Title));
@@ -243,6 +243,12 @@ public sealed class MainViewModelTests
         Assert.Equal(PanelIds.Tests, byId["tests"].PanelId);
         Assert.Null(byId["agents"].PanelId);
         Assert.Null(byId["tools"].PanelId);
+
+        // The new activity opens the implemented empty view even before a run has resumed.
+        Assert.Null(byId["background-runs"].PanelId);
+        byId["background-runs"].Command.Execute(null);
+        Assert.Same(vm.BackgroundRuns, vm.ActiveContent);
+        Assert.Empty(vm.BackgroundRuns.Runs);
 
         // Phase 4 delivered the skills screen: it opens a tab, not a panel.
         Assert.Null(byId["skills"].PanelId);

@@ -363,6 +363,56 @@ internal static class Phase8Runs
         await RestingAsync(run);
     }
 
+    /// <summary>Waits for the quota/paused loop's pending alarm, not a quiet interval of wall time. No workers may still be running.</summary>
+    public static async Task<long?> QuotaAlarmAsync(IOrchestrationRun run, Phase8Clock clock, long after = 0, TimeSpan? guard = null)
+    {
+        using var limit = new CancellationTokenSource(guard ?? Guard);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Ct, limit.Token);
+        try
+        {
+            while (!run.Completion.IsCompleted)
+            {
+                var alarms = clock.Time.ReadAlarms();
+                var snapshot = run.Snapshot();
+                // These quota cases use the default heartbeat; Memory's shorter busy poll is not a loop alarm.
+                var due = RunContext.DefaultHeartbeat;
+                if (snapshot.Phase == RunPhase.WaitingForQuota)
+                {
+                    var until = snapshot.Tasks.Select(t => Phase8Log.UntilOf(t.BlockReason)).OfType<DateTimeOffset>().Order().FirstOrDefault();
+                    due = until - clock.Now < due ? until - clock.Now : due;
+                }
+
+                if ((snapshot.Phase is RunPhase.WaitingForQuota or RunPhase.Paused) && snapshot.Tasks.All(t => t.Status != WorkTaskStatus.Running)
+                    && due > TimeSpan.Zero && alarms.Active.FirstOrDefault(a => a.Sequence > after && a.DueTime == due) is { } alarm
+                    && ReferenceEquals(snapshot, run.Snapshot()) && !alarms.Changed.IsCompleted)
+                {
+                    return alarm.Sequence;
+                }
+
+                await Task.WhenAny(alarms.Changed, run.Completion).WaitAsync(cancellation.Token);
+            }
+
+            return null;
+        }
+        catch (OperationCanceledException) when (limit.IsCancellationRequested && !Ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("The quota loop did not arm its next alarm.\n" + Describe(run.Snapshot()));
+        }
+    }
+
+    /// <summary>Moves an armed quota/paused loop and waits for its next alarm or its end, using only clock signals.</summary>
+    public static async Task QuotaTurnAsync(IOrchestrationRun run, Phase8Clock clock, Action move)
+    {
+        var alarm = await QuotaAlarmAsync(run, clock);
+        if (alarm is null)
+        {
+            return;
+        }
+
+        move();
+        await QuotaAlarmAsync(run, clock, alarm.Value);
+    }
+
     /// <summary>The end of a run; on timeout the message has its snapshot and its log.</summary>
     public static async Task<RunResult> EndAsync(Phase4App app, IOrchestrationRun run)
     {

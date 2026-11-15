@@ -47,6 +47,50 @@ public sealed class RemoteSyncAttachmentTests
     }
 
     [Fact]
+    public async Task The_safety_net_of_the_exit_does_not_wait_again_after_the_managed_exit_waited()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var rig = new PublicationRig();
+        await rig.JudgeAsync();
+        rig.Observed(HostingP0Data.Open());
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        rig.Provider.MergeHold = _ => release.Task;
+        rig.Provider.Observe = (_, _) =>
+            new HostingResult<PullRequestObservation>(HostingOutcome.Ok, PublicationRig.Observation(rig.Trace.Count("gh:merge") > 0 ? Merged() : HostingP0Data.Open()));
+        var merging = rig.Service.MergeAsync(PublicationRig.Project, HostingP0Data.PullRequest, MergeMethod.Squash, CancellationToken.None);
+        await rig.Provider.MergeEntered.Task.WaitAsync(TimeSpan.FromSeconds(30), ct);
+        var attachment = new RemoteSyncAttachment(null, rig.Sync, null);
+        Assert.True(attachment.IsBusy);
+
+        // The managed exit waits (here, a wait that runs out while the merge is still out, which is logged and left to the end of the process)…
+        await attachment.ShutdownAsync(TimeSpan.FromMilliseconds(50)).WaitAsync(TimeSpan.FromSeconds(30), ct);
+
+        // …and OnExit, the safety net, does not wait again for the sixty seconds it is given: it returns while the merge is still held.
+        var safetyNet = Task.Run(() => attachment.ShutdownBlocking(TimeSpan.FromSeconds(60)), ct);
+        await safetyNet.WaitAsync(TimeSpan.FromSeconds(30), ct);
+        Assert.False(release.Task.IsCompleted);
+
+        release.SetResult();
+        await merging.WaitAsync(TimeSpan.FromSeconds(30), ct);
+        await rig.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task The_managed_exit_and_the_safety_net_share_one_wait()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var rig = new PublicationRig();
+        var attachment = new RemoteSyncAttachment(null, rig.Sync, null);
+
+        var first = attachment.ShutdownAsync(TimeSpan.FromSeconds(60));
+        var second = attachment.ShutdownAsync(TimeSpan.FromSeconds(1));
+        await first.WaitAsync(TimeSpan.FromSeconds(30), ct);
+
+        Assert.Same(first, second);
+        Assert.False(attachment.IsBusy);
+    }
+
+    [Fact]
     public void Without_a_mailbox_the_blocking_shutdown_returns_at_once()
     {
         var attachment = new RemoteSyncAttachment(null, null, null);

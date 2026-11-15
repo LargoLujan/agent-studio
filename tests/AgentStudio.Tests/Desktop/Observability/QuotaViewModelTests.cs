@@ -80,7 +80,7 @@ public sealed class QuotaViewModelTests
 
         var bar = Assert.Single(quota.Claude.Windows).Bar!;
         Assert.Equal(47, bar.Value!.Value, 6);
-        Assert.Equal("47 % exacto · hace 12 min", bar.CompactText);
+        Assert.Equal("47 % · hace 12 min", bar.CompactText);
         Assert.EndsWith("vista hace 12 min", bar.Text, StringComparison.Ordinal);
         Assert.Equal("se reinicia hoy a las 12:00", bar.Detail);
     }

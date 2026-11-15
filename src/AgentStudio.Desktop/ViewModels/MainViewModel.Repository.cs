@@ -1,5 +1,6 @@
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
+using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Repository;
 using AgentStudio.Domain.Orchestration;
 using CommunityToolkit.Mvvm.Input;
@@ -54,7 +55,7 @@ public sealed partial class MainViewModel
     /// shows the card of publication of the run. The screen follows the open project, so a run of another project says to open that one first; nothing is published
     /// here, and a failure is shown in the status bar, never thrown into the dispatcher.
     /// </summary>
-    private async Task ShowPublishCardAsync(OrchestratorDocumentViewModel document, RunId run)
+    private async Task ShowPublishCardAsync(string projectRoot, RunId run)
     {
         if (_repository is null)
         {
@@ -63,7 +64,7 @@ public sealed partial class MainViewModel
 
         try
         {
-            if (!SameProject(document.ProjectRoot, ProjectPath))
+            if (!SameProject(projectRoot, ProjectPath))
             {
                 StatusMessage = Texts.Get("RemoteSync_Publish_OtherProject");
                 return;
@@ -78,6 +79,16 @@ public sealed partial class MainViewModel
         {
             StatusMessage = Texts.Format("RemoteSync_Publish_Failed", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// «Publicar y abrir PR» on a monitor the shell composes, the one of a document or the one of a run resumed on its own (P77): offered only where the section of
+    /// pull requests exists; the monitor itself adds the rest of the conditions (the run finished, a run to publish). Asking opens the card of <paramref name="projectRoot"/>.
+    /// </summary>
+    private void OfferPublish(RunMonitorViewModel monitor, string projectRoot)
+    {
+        monitor.IsPublishAvailable = _repository is { PullRequests.IsAvailable: true };
+        monitor.PublishRequested += (_, run) => _ = ShowPublishCardAsync(projectRoot, run);
     }
 
     /// <summary>«Ir a…» of Auto Doctor: opens «Repositorio y cambios» on the section of pull requests.</summary>

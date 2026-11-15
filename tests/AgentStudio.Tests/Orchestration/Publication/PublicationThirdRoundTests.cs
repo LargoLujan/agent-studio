@@ -100,11 +100,15 @@ public sealed class PublicationThirdRoundTests
 
         // The signal that the consumer is inside the long call: the provider double completes it on entering. Nothing is assumed about how fast the consumer runs.
         await rig.Provider.ObserveEntered.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        var providerToken = rig.Provider.LastObserveToken;
 
         await rig.DisposeAsync();
 
-        // The click ends with the close: its task is awaited (its continuation runs on the pool, so it may not have run yet when the close returns); the ceiling only turns a hang into a failure.
-        await sync.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        // Closing cancels the read; the click must report that cancellation rather than a successful empty result.
+        var cancelled = await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => sync.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+        Assert.Equal(providerToken, cancelled.CancellationToken);
+        Assert.True(providerToken.IsCancellationRequested);
         Assert.True(rig.Log.Count(DecisionKind.HostingOperationPerformed) > before, "nothing parked was written at the close; trace: " + string.Join(",", rig.Trace.Events));
         Assert.Null(rig.Activity.Current("p1"));
     }

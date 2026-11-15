@@ -1,8 +1,10 @@
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Repository.PullRequests;
 using AgentStudio.Domain.Hosting;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using Microsoft.Extensions.Time.Testing;
 
@@ -115,7 +117,10 @@ internal sealed class FakeProvider : IHostingProvider
 
     public Task<HostingAvailability> ProbeAsync(CancellationToken ct) => Task.FromResult(Availability);
 
-    public Task<HostingResult<RemoteLogin>> ReadAccountAsync(RemoteRepository repository, CancellationToken ct) => Task.FromResult(Account);
+    // A provider that ignores cancellation can still complete after the project changed.
+    public TaskCompletionSource<HostingResult<RemoteLogin>>? AccountAnswer { get; set; }
+
+    public Task<HostingResult<RemoteLogin>> ReadAccountAsync(RemoteRepository repository, CancellationToken ct) => AccountAnswer?.Task ?? Task.FromResult(Account);
 
     public Task<HostingResult<RemoteRepositoryFacts>> ReadRepositoryAsync(RemoteRepository repository, string? etag, CancellationToken ct)
     {
@@ -207,6 +212,8 @@ internal sealed class FakeSync : IRemoteSync
 
     public int SyncNows { get; private set; }
 
+    public int FollowedCount { get; set; } = 1;
+
     public List<PullRequestRef> Unfollowed { get; } = [];
 
     public event EventHandler<string>? Changed;
@@ -217,7 +224,7 @@ internal sealed class FakeSync : IRemoteSync
     /// <summary>When set, «Sincronizar ahora» waits for it and ignores its token: the answer of a port that ends after the person changed project.</summary>
     public TaskCompletionSource? HoldSyncRaw { get; set; }
 
-    public async Task SyncNowAsync(ProjectContext project, CancellationToken ct)
+    public async Task<int> SyncNowAsync(ProjectContext project, CancellationToken ct)
     {
         SyncNows++;
         if (HoldSyncRaw is { } raw)
@@ -229,9 +236,17 @@ internal sealed class FakeSync : IRemoteSync
         {
             await hold.Task.WaitAsync(ct);
         }
+
+        return FollowedCount;
     }
 
     public Task FollowAsync(ProjectContext project, PullRequestRef pullRequest, RunId? run, CancellationToken ct) => Task.CompletedTask;
+
+    public Task NoteConnectionAsync(ProjectContext project, HostingOutcome outcome, CancellationToken ct)
+    {
+        HealthNow = HealthNow with { LastOutcome = outcome, LastOutcomeAt = PrData.Now };
+        return Task.CompletedTask;
+    }
 
     public Task UnfollowAsync(ProjectContext project, PullRequestRef pullRequest, CancellationToken ct)
     {
@@ -447,6 +462,44 @@ internal sealed class FakeSyncPolicy(bool allowed) : IRemoteSyncPolicy
     public TimeSpan Interval => TimeSpan.FromMinutes(5);
 }
 
+/// <summary>Started runs come from the project's verified log, independently of any local branch name.</summary>
+internal sealed class FakeRunLog : IDecisionRecorder
+{
+    public Dictionary<string, DecisionLog> Logs { get; } = new(StringComparer.Ordinal);
+
+    public bool Verifies { get; set; } = true;
+
+    public Func<string, CancellationToken, Task<DecisionLogState>>? Read { get; set; }
+
+    public void Start(string projectId, string run)
+    {
+        if (!Logs.TryGetValue(projectId, out var log))
+        {
+            log = new DecisionLog();
+            Logs.Add(projectId, log);
+        }
+
+        log.Append(PrData.Now, new Actor(ActorKind.System, "orchestrator"), DecisionKind.RunStarted, "started",
+            DecisionPayloadSerializer.Serialize(new RunStartedPayload("plan", "requirements", PrData.Sha('a'), null, "verification", [], null) { RunId = run }));
+    }
+
+    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
+    {
+        if (Read is { } read)
+        {
+            return read(projectId, cancellationToken);
+        }
+
+        var entries = Logs.TryGetValue(projectId, out var log) ? log.Entries : [];
+        return Task.FromResult(new DecisionLogState(entries, Verifies ? DecisionLogVerification.Valid : new DecisionLogVerification(false, 1, "broken")));
+    }
+
+    public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
+
+    public Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Everything a test of the section needs, composed the way the shell composes it.</summary>
 internal sealed class PrWorld
 {
@@ -455,6 +508,8 @@ internal sealed class PrWorld
     public FakeProjector Projector { get; } = new();
 
     public FakeSync Sync { get; } = new();
+
+    public FakeRunLog RunLog { get; } = new();
 
     public FakePublication Publication { get; } = new();
 
@@ -470,6 +525,7 @@ internal sealed class PrWorld
 
     public PrWorld(RemoteRepository? repository = null, bool withProvider = true, bool syncAllowed = true, bool withRemote = true, bool withPermission = false)
     {
+        RunLog.Start(PrData.Project.ProjectId, "20261113-aa");
         Permission = withPermission ? new FakePermission() : null;
         Providers = new FakeProviders(withProvider ? Provider : null, withRemote ? repository ?? PrData.Repository : null);
         Model = new PullRequestsViewModel(
@@ -481,7 +537,8 @@ internal sealed class PrWorld
             new FakeSyncPolicy(syncAllowed),
             PrData.Clock(),
             Opener,
-            Permission);
+            Permission,
+            RunLog);
     }
 
     /// <summary>Reads the section for the project, selects the row of the pull request and waits for its detail.</summary>

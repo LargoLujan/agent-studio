@@ -481,4 +481,37 @@ Fíjate en las que piden Windows Hello.
 Pulsa «Dar a un agente…» para ir a su ficha: el cambio se aprueba como siempre.</value>
     <comment>Information button.</comment>
   </data>
+  <data name="Tools_Permissions_Title" xml:space="preserve"><value>Permisos declarados</value></data>
+  <data name="Tools_Permissions_Note" xml:space="preserve"><value>Esta es una vista previa de la plantilla y del perfil. No mide el equipo ni cambia permisos.</value></data>
+  <data name="Tools_Permissions_Exposure" xml:space="preserve"><value>El prompt y los datos que lea el agente pueden llegar a su proveedor. Un push puede incluir la bitácora y la memoria en Markdown.</value></data>
+  <data name="Tools_Permissions_Agent" xml:space="preserve"><value>{0} · {1} · {2} · {3}</value></data>
+  <data name="Tools_Permissions_DefaultModel" xml:space="preserve"><value>modelo por defecto del programa</value></data>
+  <data name="Tools_Permissions_Write" xml:space="preserve"><value>tarea con escritura</value></data>
+  <data name="Tools_Permissions_Read" xml:space="preserve"><value>tarea de solo lectura</value></data>
+  <data name="Tools_Permissions_ClaudeFiles" xml:space="preserve"><value>El programa recibe las rutas de su copia de trabajo. Eso no impide que lea fuera del proyecto.</value></data>
+  <data name="Tools_Permissions_ClaudeNetwork" xml:space="preserve"><value>Puede usar Bash o herramientas de red. El sistema no bloquea la red.</value></data>
+  <data name="Tools_Permissions_ClaudeNoNetworkTools" xml:space="preserve"><value>No recibe herramientas de red. El sistema no impone ese bloqueo.</value></data>
+  <data name="Tools_Permissions_CodexFiles" xml:space="preserve"><value>Zona aislada: {0}. No prueba que solo pueda leer este proyecto.</value></data>
+  <data name="Tools_Permissions_CodexNetwork" xml:space="preserve"><value>Los ajustes de esta zona permiten el acceso a la red.</value></data>
+  <data name="Tools_Permissions_CodexNoNetwork" xml:space="preserve"><value>La red está desactivada en los ajustes de esta zona.</value></data>
+  <data name="Tools_Permissions_Unknown" xml:space="preserve"><value>Estos argumentos no permiten comprobar los límites de acceso a ficheros.</value></data>
+  <data name="Tools_Permissions_UnknownNetwork" xml:space="preserve"><value>Estos argumentos no permiten comprobar el acceso a la red.</value></data>
+  <data name="Tools_Permissions_Step" xml:space="preserve"><value>Verificación · {0} · {1}</value></data>
+  <data name="Tools_Permissions_LowFiles" xml:space="preserve"><value>Zona aislada con menos permisos: reduce dónde puede escribir. No bloquea las lecturas.</value></data>
+  <data name="Tools_Permissions_NoIsolation" xml:space="preserve"><value>No consta una zona con menos permisos. Puede escribir con tus permisos.</value></data>
+  <data name="Tools_Permissions_StepNetwork" xml:space="preserve"><value>Estos límites no bloquean la red.</value></data>
+  <data name="Tools_Permissions_AgentData" xml:space="preserve"><value>El prompt y los datos que lea este agente pueden llegar al proveedor del modelo ({0}). Los ajustes de red de sus herramientas no impiden ese envío.</value></data>
+  <data name="Tools_Permissions_StepData" xml:space="preserve"><value>El proceso de pruebas puede leer datos y usar la red. Esta vista no comprueba lo que envía.</value></data>
+  <data name="Tools_Publication_Title" xml:space="preserve"><value>Datos y permisos de publicación</value></data>
+  <data name="Tools_Publication_Note" xml:space="preserve"><value>Estos son algunos datos que pueden salir y las reglas para publicarlos. Esta vista no lee los permisos del proyecto ni los da.</value></data>
+  <data name="Tools_Publication_Sync" xml:space="preserve"><value>La app pide permiso del proyecto para leer GitHub por sí sola. Un clic en sincronizar permite una lectura. Ese permiso no permite publicar.</value></data>
+  <data name="Tools_Publication_Data_Commits" xml:space="preserve"><value>Envía el historial de la rama y sus ficheros. Pueden incluir la bitácora y la memoria en Markdown si se guardaron ahí.</value></data>
+  <data name="Tools_Publication_Data_Text" xml:space="preserve"><value>Envía el título y el texto de la propuesta, junto con las ramas y el repositorio de destino.</value></data>
+  <data name="Tools_Publication_Data_Reviewers" xml:space="preserve"><value>Envía las cuentas a las que se pide revisión y puede avisar a esas personas.</value></data>
+  <data name="Tools_Publication_Data_Verdict" xml:space="preserve"><value>Envía el estado y los identificadores. El comentario añade datos del modelo del juez; no publica su texto libre.</value></data>
+  <data name="Tools_Publication_Data_Operation" xml:space="preserve"><value>Envía lo que se pide hacer y qué repositorio, propuesta o rama afecta.</value></data>
+  <data name="Tools_Publication_StandingGrant" xml:space="preserve"><value>Puede usar un permiso para futuros usos que coincida. Si no lo hay, necesita tu aprobación para este uso. Aquí no se comprueba si lo hay.</value></data>
+  <data name="Tools_Publication_PerUse" xml:space="preserve"><value>Hace falta tu aprobación para este uso. No admite un permiso para futuros usos.</value></data>
+  <data name="Tools_Publication_Approved" xml:space="preserve"><value>La regla pide un veredicto aprobado. Los demás controles también deben pasar.</value></data>
+  <data name="Tools_Publication_OtherChecks" xml:space="preserve"><value>La regla no pide un veredicto aprobado para este uso. Los demás controles siguen.</value></data>
 </root>

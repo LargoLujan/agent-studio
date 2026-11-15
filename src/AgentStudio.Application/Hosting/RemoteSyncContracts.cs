@@ -45,8 +45,11 @@ public sealed record RemoteSyncHealth(DateTimeOffset? LastGoodSync, HostingOutco
 /// </summary>
 public interface IRemoteSync
 {
-    /// <summary>The click of the person: allowed even with the periodic poll off.</summary>
-    Task SyncNowAsync(ProjectContext project, CancellationToken ct);
+    /// <summary>The click of the person: allowed even with the periodic poll off. Returns how many pull requests the mailbox followed when it handled the click.</summary>
+    Task<int> SyncNowAsync(ProjectContext project, CancellationToken ct);
+
+    /// <summary>Updates session health from the person's connection check. This is display information, never an observation or an authorization.</summary>
+    Task NoteConnectionAsync(ProjectContext project, HostingOutcome outcome, CancellationToken ct);
 
     Task FollowAsync(ProjectContext project, PullRequestRef pullRequest, RunId? run, CancellationToken ct);
 
@@ -85,7 +88,7 @@ public interface IRemoteSyncPermission
 
     Task SetAsync(string projectId, bool allowed, CancellationToken ct);
 
-    /// <summary>Raised with the id of the project when its permission changed.</summary>
+    /// <summary>Raised with the project id as soon as its stored permission changes, so an automatic read already in flight can be cancelled.</summary>
     event EventHandler<string>? Changed;
 }
 

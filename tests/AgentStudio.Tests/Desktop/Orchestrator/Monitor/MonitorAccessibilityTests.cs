@@ -98,9 +98,10 @@ public sealed class MonitorAccessibilityTests
         return (peer.GetName(), range is not null, range?.Value ?? double.NaN, range?.Minimum ?? double.NaN, range?.Maximum ?? double.NaN, peer.GetAutomationControlType());
     }
 
+    /// <summary>Polls until the monitor read the events; the minute is only the guard of a hang, not a limit on the monitor.</summary>
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
-        for (var i = 0; i < 400 && !condition(); i++)
+        for (var i = 0; i < 12_000 && !condition(); i++)
         {
             await Task.Delay(5, TestContext.Current.CancellationToken);
         }
@@ -108,7 +109,110 @@ public sealed class MonitorAccessibilityTests
         Assert.True(condition(), "The monitor did not read the events in time.");
     }
 
+    /// <summary>
+    /// The burst of F13-7 without a clock: a thousand events over forty nodes are applied, and the monitor says nothing until its timer is due; the time
+    /// then moves by hand, so what is counted is the grouped changes (at most four a second, never closer than 250 ms) and not how fast the machine is.
+    /// </summary>
     [Fact]
+    public void A_burst_of_events_over_forty_nodes_is_grouped_into_at_most_four_changes_a_second_whatever_the_machine()
+    {
+        const int Nodes = 40;
+        const int Bursts = 8;
+        var tasks = Enumerable.Range(1, Nodes).Select(i => View("T" + i, "exec" + i, WorkTaskStatus.Running)).ToArray();
+        var (monitor, run, ui, time) = Open(tasks);
+        monitor.Roster = [.. Enumerable.Range(1, Nodes).Select(i => AgentDef("exec" + i, "Ejecutor " + i))];
+        var changes = new List<DateTimeOffset>();
+        monitor.Changed += (_, _) => changes.Add(time.GetUtcNow());
+        ui.RunAll();
+        var started = time.GetUtcNow();
+        var rng = new Random(13);
+        var applied = 0;
+
+        for (var burst = 1; burst <= Bursts; burst++)
+        {
+            var events = new List<OrchestrationEvent>();
+            for (var round = 0; round < 4; round++)
+            {
+                for (var node = 1; node <= Nodes; node++)
+                {
+                    events.Add(Step("T" + node, rng.Next(1_000, 150_000)));
+                }
+            }
+
+            // The last event of the burst tells the monitor read it all: the status of T40 alternates, and that is what the loop below waits for.
+            var (from, to) = burst % 2 == 1 ? (WorkTaskStatus.Running, WorkTaskStatus.Blocked) : (WorkTaskStatus.Blocked, WorkTaskStatus.Running);
+            events.Add(Move("T40", from, to, "end of burst " + burst));
+            run.Emit([.. events]);
+            applied += events.Count;
+
+            var last = monitor.Tasks.Single(t => t.Id.Value == "T40");
+            var deadline = Stopwatch.GetTimestamp() + (60 * Stopwatch.Frequency);
+            while (last.Status != to)
+            {
+                ui.RunAll();
+                Assert.True(Stopwatch.GetTimestamp() < deadline, "The monitor did not read the burst (the clock of the guard is the real one).");
+                Thread.Yield();
+            }
+
+            if (burst == 1)
+            {
+                // A burst is not a repaint by itself: with the time still, nothing was published however many events were applied.
+                Assert.Empty(changes);
+            }
+
+            time.Advance(TimeSpan.FromMilliseconds(100));
+            ui.RunAll();
+        }
+
+        time.Advance(TimeSpan.FromSeconds(1));
+        ui.RunAll();
+
+        var elapsed = time.GetUtcNow() - started;
+        Assert.True(applied > 1_000, "The burst must be a thousand events at least.");
+        Assert.InRange(changes.Count, 1, (int)Math.Ceiling(elapsed.TotalSeconds * 4) + 1);
+        for (var i = 1; i < changes.Count; i++)
+        {
+            Assert.True(changes[i] - changes[i - 1] >= LiveProjection.MinimumInterval, $"Two grouped changes came {(changes[i] - changes[i - 1]).TotalMilliseconds:0} ms apart (the least is 250 ms).");
+        }
+
+        Assert.Equal(Nodes, monitor.AgentCards.Count);
+    }
+
+    /// <summary>
+    /// The lists of the agents and of the tasks virtualize and recycle, so a repaint costs what is in view and not the forty nodes: what the layout of the
+    /// burst test below measures in milliseconds is, here, only the structure that makes it cheap.
+    /// </summary>
+    [Fact]
+    public void The_lists_of_the_agents_and_of_the_tasks_virtualize_so_a_repaint_costs_what_is_in_view()
+    {
+        const int Nodes = 40;
+        // The monitor is filled before any view is bound to it, so nothing changes under a binding from another thread.
+        var tasks = Enumerable.Range(1, Nodes).Select(i => View("T" + i, "exec" + i, WorkTaskStatus.Running)).ToArray();
+        var (monitor, run, ui, time) = Open(tasks);
+        monitor.Roster = [.. Enumerable.Range(1, Nodes).Select(i => AgentDef("exec" + i, "Ejecutor " + i))];
+        run.Emit(Enumerable.Range(1, Nodes).Select(i => (OrchestrationEvent)Step("T" + i, 1_000 * i)).ToArray());
+        Pump(ui, Nodes);
+        Settle(time, ui);
+        Assert.Equal(Nodes, monitor.AgentCards.Count);
+
+        var (virtualizing, realized) = WpfHost.Run(() =>
+        {
+            OrchestratorTheme.EnsureLoaded();
+            var view = new RunMonitorView { DataContext = monitor };
+            OffscreenRender.Render(view, 1440, 900);
+            var lists = new[] { "Agentes", "Tareas de la ejecución" }.Select(name => Descendants<ItemsControl>(view).First(i => AutomationProperties.GetName(i) == name)).ToList();
+            var all = lists.All(list => VirtualizingPanel.GetIsVirtualizing(list) && VirtualizingPanel.GetVirtualizationMode(list) == VirtualizationMode.Recycling);
+            return (all, Descendants<Border>(view).Select(b => b.DataContext).OfType<AgentCardViewModel>().Distinct().Count());
+        });
+
+        Assert.True(virtualizing, "The lists of the agents and of the tasks virtualize, so a repaint costs what is in view.");
+        Assert.InRange(realized, 1, Nodes - 1);
+    }
+
+    // Measurement: wall-clock times of this machine, so the CI leaves it out (the deterministic versions are the two tests above, which count the
+    // grouped changes with a clock the test moves and check the virtualization). On a busy machine the thread that is preempted is not the monitor's doing.
+    [Fact]
+    [Trait("Category", "Measurement")]
     public async Task A_burst_of_events_over_forty_nodes_never_blocks_the_ui_thread_for_more_than_fifty_milliseconds_and_repaints_four_times_a_second_at_most()
     {
         const int Nodes = 40;

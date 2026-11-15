@@ -152,6 +152,9 @@
   <data name="Hosting_Sync_Asked" xml:space="preserve">
     <value>Sync requested. It will show here in a few seconds.</value>
   </data>
+  <data name="Hosting_Sync_Empty" xml:space="preserve">
+    <value>You do not follow any pull requests to sync yet.</value>
+  </data>
   <data name="Hosting_Unfollowed" xml:space="preserve">
     <value>You no longer follow this pull request.</value>
   </data>

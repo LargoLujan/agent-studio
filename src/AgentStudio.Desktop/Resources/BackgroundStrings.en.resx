@@ -67,6 +67,12 @@
   <data name="Background_Exit_PendingCancelled" xml:space="preserve">
     <value>You opened Agent Studio, so it will no longer exit when the attempts in progress finish. Runs stay paused until you resume them.</value>
   </data>
+  <data name="Background_Exit_Finishing" xml:space="preserve">
+    <value>Finishing pending work with GitHub…</value>
+  </data>
+  <data name="Background_Tooltip_Finishing" xml:space="preserve">
+    <value>finishing pending work with GitHub</value>
+  </data>
   <data name="Background_Count_Work_One" xml:space="preserve">
     <value>{0} job in progress</value>
   </data>

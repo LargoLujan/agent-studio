@@ -180,11 +180,11 @@ public sealed class RemoteJourneyLocalToolsTests
     }
 
     /// <summary>What the mailbox says it did with the requests (for the message of an assertion).</summary>
-    private static string Why(Phase10World world, RemoteWorkStatus? status) =>
+    internal static string Why(Phase10World world, RemoteWorkStatus? status) =>
         $"{status?.State} {status?.Reason} {status?.Message?.Code} / activity: {world.Activity.Current(world.Project.ProjectId)} / platform: {string.Join(",", world.Platform.Calls)}";
 
     /// <summary>The publication is work of the mailbox: the ticket comes back when it is queued. This waits until the mailbox has nothing queued or running (its own test door, no wall clock) and gives back what became of the ticket.</summary>
-    private static async Task<RemoteWorkStatus?> PublishAsync(Phase10World world, PublicationRequest request)
+    internal static async Task<RemoteWorkStatus?> PublishAsync(Phase10World world, PublicationRequest request)
     {
         var ticket = await world.Publication.PublishAsync(request, Ct);
         await world.SettleAsync();
@@ -192,7 +192,7 @@ public sealed class RemoteJourneyLocalToolsTests
     }
 
     /// <summary>The view of the pull request once the mailbox has settled (it was observed by the click of «Sincronizar ahora» and written with the project taken); with a message that says what the mailbox and the log hold when it is not what the test expects.</summary>
-    private static async Task<PullRequestView> ViewAsync(Phase10World world, PullRequestRef pull, Func<PullRequestView, bool> ready)
+    internal static async Task<PullRequestView> ViewAsync(Phase10World world, PullRequestRef pull, Func<PullRequestView, bool> ready)
     {
         await world.SettleAsync();
         var views = await world.App.Get<IPullRequestProjector>().ListAsync(world.Project, Ct);

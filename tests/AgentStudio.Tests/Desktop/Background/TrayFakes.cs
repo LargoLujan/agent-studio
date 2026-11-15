@@ -1,3 +1,5 @@
+using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Background;
 
 namespace AgentStudio.Tests.Desktop.Background;
@@ -61,6 +63,33 @@ internal sealed class FakeFolderOpener : IFolderOpener
     public List<string> Opened { get; } = [];
 
     public void Open(string folder) => Opened.Add(folder);
+}
+
+/// <summary>Signals after the delegated recorder completes the expected number of writes.</summary>
+internal sealed class ExitRecordingSignal(IRunExitRecorder recorder, int expectedRecords) : IRunExitRecorder
+{
+    private readonly TaskCompletionSource _written = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _completed;
+
+    public Task Written => _written.Task;
+
+    public async Task RecordAsync(ProjectContext project, string workId, RunExitChoice choice, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await recorder.RecordAsync(project, workId, choice, cancellationToken).ConfigureAwait(false);
+            if (Interlocked.Increment(ref _completed) >= expectedRecords)
+            {
+                _written.TrySetResult();
+            }
+        }
+        catch (Exception error)
+        {
+            // The waiter sees the write failure, even when ManagedExit catches it for its log.
+            _written.TrySetException(error);
+            throw;
+        }
+    }
 }
 
 /// <summary>Finds an entry of a menu by the start of its text, down its submenus.</summary>

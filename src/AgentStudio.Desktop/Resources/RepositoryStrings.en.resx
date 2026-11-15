@@ -405,4 +405,9 @@ Clear the filters to see everything.</value>
   <data name="Repository_Activity_Unreadable" xml:space="preserve">
     <value>The activity could not be read.</value>
   </data>
+  <data name="BackgroundRuns_Title" xml:space="preserve"><value>Resumed runs</value></data>
+  <data name="BackgroundRuns_Help" xml:space="preserve"><value>Background runs from all your projects in this session. Select one to view its status, review its result, or open its pull request card.</value></data>
+  <data name="BackgroundRuns_ListName" xml:space="preserve"><value>List of resumed runs</value></data>
+  <data name="BackgroundRuns_Empty" xml:space="preserve"><value>Runs that continue in the background will appear here. Closing this tab does not stop them.</value></data>
+  <data name="BackgroundRuns_RunName" xml:space="preserve"><value>Project {0} · run {1}</value></data>
 </root>

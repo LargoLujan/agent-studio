@@ -115,7 +115,9 @@ public partial class App : System.Windows.Application
             if (_host is not null)
             {
                 // Phase 10: the mailbox of GitHub ends the stretch it is in (a push is not cut in half) before anything else goes; the container
-                // would only dispose it when the host does, with nothing left to wait for it. It blocks, and it comes before the first await of this
+                // would only dispose it when the host does, with nothing left to wait for it. The managed exit (the tray, closing the window) already
+                // waited for it without freezing the window, and then this returns at once: it is the safety net for what does not go through there
+                // (the end of the session of Windows, an exit before the tray exists). It blocks, and it comes before the first await of this
                 // method: WPF does not wait for an async void, so whatever comes after an await that does not complete at once may never run.
                 _host.Services.GetService<RemoteSyncAttachment>()?.ShutdownBlocking(HostingServices.ShutdownWait);
 

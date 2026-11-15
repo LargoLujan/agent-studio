@@ -254,7 +254,7 @@
     <value>Los ficheros cambiados, agrupados por zona.</value>
   </data>
   <data name="Text_document_not_included_deployed" xml:space="preserve">
-    <value>Si el cambio está desplegado: Agent Studio no despliega nada y no lo sabe.</value>
+    <value>Si el cambio está desplegado: Agent Studio no despliega nada. Solo el informe del hito lo dice, y solo cuando GitHub lo informa.</value>
   </data>
   <data name="Documents_NotIncluded" xml:space="preserve">
     <value>No incluido: el estado por requisito de los hitos y las solicitudes de cambio. Tampoco los ficheros por zona ni si está desplegado. El documento lo dice en sus anexos.</value>

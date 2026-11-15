@@ -833,7 +833,13 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     private async Task WatchHealthAsync()
     {
         DiscountSleep();
-        var health = _graph.Analyze(Now, _ctx.StallThreshold);
+
+        // The time is read before the signs of life are taken in: a sign registered before the clock reached this time is counted, and one registered
+        // later belongs to a later time. Read the other way round, a clock that jumps between the two (a machine that wakes, a test that moves a fake
+        // clock while this thread is not running) would find silent a task that spoke just before the jump.
+        var now = Now;
+        ApplyHeartbeats();
+        var health = _graph.Analyze(now, _ctx.StallThreshold);
         foreach (var id in health.StalledTasks)
         {
             if (_inFlight.TryGetValue(id, out var flight) && flight.Cause == StopCause.None)

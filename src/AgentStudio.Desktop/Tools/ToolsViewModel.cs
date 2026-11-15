@@ -74,6 +74,12 @@ public sealed partial class ToolsViewModel : ObservableObject
     /// <summary>What each agent of the template may use, in a task that writes and one that only reads, as its launch says it.</summary>
     public IReadOnlyList<AgentToolSet> AgentSets { get; private set; } = [];
 
+    /// <summary>Declared permissions from those same launch arguments; this view performs no confinement measurement.</summary>
+    public ObservableCollection<EffectivePermissionReading> PermissionReadings { get; } = [];
+
+    /// <summary>Categories of published data and the operation policy; no project's grants are loaded here.</summary>
+    public ObservableCollection<PublicationPermissionReading> PublicationReadings { get; } = [];
+
     [ObservableProperty]
     private bool _hasAgents;
 
@@ -102,6 +108,18 @@ public sealed partial class ToolsViewModel : ObservableObject
         }
 
         AgentSets = sets;
+        PermissionReadings.Clear();
+        foreach (var reading in EffectivePermissionReading.Read(roster, sets, profile, _texts))
+        {
+            PermissionReadings.Add(reading);
+        }
+
+        PublicationReadings.Clear();
+        foreach (var reading in PublicationPermissionReading.Read(_texts))
+        {
+            PublicationReadings.Add(reading);
+        }
+
         HasAgents = roster.Count > 0;
         Groups.Clear();
         Groups.Add(ClaudeGroup(roster, sets));

@@ -10,6 +10,7 @@ using AgentStudio.Desktop.Tools;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Cli.Codex;
@@ -262,6 +263,131 @@ public sealed class ToolsViewModelTests
 
         Assert.Equal(["Bash"], asked);
         Assert.Equal("Dar Bash a un agente", model.Groups[0].Rows.First(r => r.Name == "Bash").GiveName);
+    }
+
+    [Fact]
+    public void The_permission_reading_does_not_turn_a_tool_restriction_into_a_network_firewall()
+    {
+        var model = new ToolsViewModel(English);
+        model.Load([Agent("exec", "Worker", ProviderId.ClaudeCode, "Read", "Bash")], null);
+
+        Assert.Equal(2, model.PermissionReadings.Count);
+        var writing = Assert.Single(model.PermissionReadings, r => r.Title.EndsWith("task with file writes", StringComparison.Ordinal));
+        var reading = Assert.Single(model.PermissionReadings, r => r.Title.EndsWith("read-only task", StringComparison.Ordinal));
+        Assert.Contains("Bash", writing.Network, StringComparison.Ordinal);
+        Assert.Contains("OS does not block", writing.Network, StringComparison.Ordinal);
+        Assert.Contains("no network tools", reading.Network, StringComparison.Ordinal);
+        Assert.Contains("OS does not enforce", reading.Network, StringComparison.Ordinal);
+        Assert.Contains("outside the project", reading.Files, StringComparison.Ordinal);
+        Assert.Contains("model-x", writing.Title, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_missing_network_argument_is_unknown_in_the_permission_reading_not_a_claim_of_denial()
+    {
+        var model = new ToolsViewModel(English);
+        model.Load([Agent("exec", "Worker", ProviderId.CodexCli, "Read", "Write")], null);
+
+        var writing = Assert.Single(model.PermissionReadings, r => r.Title.EndsWith("task with file writes", StringComparison.Ordinal));
+        var reading = Assert.Single(model.PermissionReadings, r => r.Title.EndsWith("read-only task", StringComparison.Ordinal));
+        Assert.Contains("workspace-write", writing.Files, StringComparison.Ordinal);
+        Assert.Contains("disabled", writing.Network, StringComparison.Ordinal);
+        Assert.Contains("read-only", reading.Files, StringComparison.Ordinal);
+        Assert.Contains("do not establish", reading.Network, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_profile_reading_keeps_low_integrity_residuals_and_marks_other_values_as_not_known_low()
+    {
+        var profile = new VerificationProfile("dotnet", [
+            new VerificationStep("low", "Build", "dotnet", ["build"], EvidenceKind.BuildLog, TestReportFormat.None, null, TimeSpan.FromMinutes(1)),
+            new VerificationStep("plain", "Test", "dotnet", ["test"], EvidenceKind.TestRun, TestReportFormat.None, null, TimeSpan.FromMinutes(1), ProcessIsolation.None),
+            new VerificationStep("unknown", "Future", "tool", [], EvidenceKind.BuildLog, TestReportFormat.None, null, TimeSpan.FromMinutes(1), (ProcessIsolation)999),
+        ]);
+        var model = new ToolsViewModel(English);
+        model.Load([], profile);
+
+        Assert.Equal(3, model.PermissionReadings.Count);
+        Assert.Contains("does not block reads", model.PermissionReadings[0].Files, StringComparison.Ordinal);
+        Assert.All(model.PermissionReadings, row => Assert.Contains("not block network", row.Network, StringComparison.Ordinal));
+        Assert.All(model.PermissionReadings, row => Assert.Contains("does not inspect what it sends", row.OutboundData, StringComparison.Ordinal));
+        Assert.All(model.PermissionReadings.Skip(1), row => Assert.Contains("No known restricted area", row.Files, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Reloading_the_project_replaces_permission_readings_without_changing_launch_permissions()
+    {
+        var model = new ToolsViewModel(English);
+        var agent = Agent("exec", "Worker", ProviderId.GeminiCli, "Read");
+        model.Load([agent], null);
+        Assert.Equal(2, model.PermissionReadings.Count);
+        Assert.All(model.PermissionReadings, row => Assert.Contains("do not establish", row.Files, StringComparison.Ordinal));
+        Assert.All(model.AgentSets, set => Assert.Empty(set.Arguments));
+
+        model.Load([], null);
+        Assert.Empty(model.PermissionReadings);
+        Assert.Empty(model.AgentSets);
+    }
+
+    [Fact]
+    public void Disabling_codex_tool_network_does_not_claim_to_stop_the_prompt_reaching_its_provider()
+    {
+        var model = new ToolsViewModel(English);
+        model.Load([Agent("exec", "Worker", ProviderId.CodexCli, "Read")], null);
+
+        Assert.Contains(model.PermissionReadings, row => row.Network.Contains("disabled", StringComparison.Ordinal));
+        Assert.All(model.PermissionReadings, row =>
+        {
+            Assert.Contains("may reach the model provider (openai)", row.OutboundData, StringComparison.Ordinal);
+            Assert.Contains("do not prevent that transfer", row.OutboundData, StringComparison.Ordinal);
+            Assert.Contains(row.OutboundData, row.AccessibleName, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void Publication_shows_every_operation_policy_without_turning_it_into_a_project_grant()
+    {
+        var model = new ToolsViewModel(English);
+        model.Load([], null);
+
+        Assert.Equal(Enum.GetValues<HostingOperationKind>(), model.PublicationReadings.Select(row => row.Operation));
+        Assert.All(model.PublicationReadings, row =>
+        {
+            Assert.Equal(HostingPolicy.CanBePersistent(row.Operation), row.CanUseStandingGrant);
+            Assert.Equal(HostingPolicy.RequiresApprovedVerdict(row.Operation), row.RequiresApprovedVerdict);
+            Assert.Contains(row.Data, row.AccessibleName, StringComparison.Ordinal);
+            Assert.Contains(row.Approval, row.AccessibleName, StringComparison.Ordinal);
+            Assert.Contains(row.Verdict, row.AccessibleName, StringComparison.Ordinal);
+        });
+        var reviewers = Assert.Single(model.PublicationReadings, row => row.Operation == HostingOperationKind.RequestReviewers);
+        Assert.False(reviewers.CanUseStandingGrant);
+        Assert.Contains("valid approval for this operation", reviewers.Approval, StringComparison.Ordinal);
+        var push = Assert.Single(model.PublicationReadings, row => row.Operation == HostingOperationKind.PushRunBranch);
+        Assert.True(push.RequiresApprovedVerdict);
+        Assert.Contains("does not check whether a grant exists", push.Approval, StringComparison.Ordinal);
+        var status = Assert.Single(model.PublicationReadings, row => row.Operation == HostingOperationKind.PublishVerdictStatus);
+        Assert.False(status.RequiresApprovedVerdict);
+        Assert.Contains("Other checks still apply", status.Verdict, StringComparison.Ordinal);
+
+        model.Load([], null);
+        Assert.Equal(Enum.GetValues<HostingOperationKind>().Length, model.PublicationReadings.Count);
+    }
+
+    [Fact]
+    public void Publication_data_categories_and_policy_texts_are_available_in_both_languages()
+    {
+        foreach (var language in new[] { "es", "en" })
+        {
+            var model = new ToolsViewModel(new ResourceTextProvider(CultureInfo.GetCultureInfo(language)));
+            model.Load([], null);
+            Assert.All(model.PublicationReadings, row =>
+            {
+                Assert.False(string.IsNullOrWhiteSpace(row.Title));
+                Assert.False(string.IsNullOrWhiteSpace(row.Data));
+                Assert.DoesNotContain("Tools_", row.AccessibleName, StringComparison.Ordinal);
+                Assert.DoesNotContain("Hosting_Op_", row.Title, StringComparison.Ordinal);
+            });
+        }
     }
 
     [Fact]

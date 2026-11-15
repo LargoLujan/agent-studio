@@ -640,7 +640,9 @@ public partial class MainWindow : Window
     private void EnsureRunPanels()
     {
         var anchorables = DockManager.Layout.Descendents().OfType<LayoutAnchorable>().ToList();
-        var pane = anchorables.FirstOrDefault(a => a.ContentId == PanelIds.Terminal)?.Parent as LayoutAnchorablePane
+        var terminal = anchorables.FirstOrDefault(a => a.ContentId == PanelIds.Terminal);
+        var pane = terminal?.Parent as LayoutAnchorablePane
+            ?? (terminal as ILayoutPreviousContainer)?.PreviousContainer as LayoutAnchorablePane
             ?? anchorables.Select(a => a.Parent).OfType<LayoutAnchorablePane>().FirstOrDefault();
         if (pane is null)
         {
@@ -654,7 +656,13 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            pane.Children.Add(new LayoutAnchorable { ContentId = id, Title = Texts.Get(titleKey), CanFloat = true, Content = content });
+            var panel = new LayoutAnchorable { ContentId = id, Title = Texts.Get(titleKey), CanFloat = true, Content = content };
+            pane.Children.Add(panel);
+            if (terminal?.IsHidden == true)
+            {
+                // Restoring an older layout must keep the person's lower pane closed.
+                panel.Hide();
+            }
         }
     }
 
@@ -846,7 +854,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Remembers the XAML layout so a project without saved layout (or with a corrupt one) gets it back.</summary>
+    /// <summary>Remembers the default layout with the lower panels closed; a saved project layout keeps its own choice.</summary>
     private void CaptureDefaultLayout()
     {
         if (_layoutCaptured)
@@ -857,6 +865,15 @@ public partial class MainWindow : Window
         foreach (var anchorable in DockManager.Layout.Descendents().OfType<LayoutAnchorable>())
         {
             _panelContent[anchorable.ContentId] = anchorable.Content;
+        }
+
+        // A new project starts with room for its documents. Each panel still opens from its activity or shortcut.
+        var lowerPanels = DockManager.Layout.Descendents().OfType<LayoutAnchorable>()
+            .Where(panel => panel.ContentId == PanelIds.Terminal || RunPanels.Any(run => run.Id == panel.ContentId))
+            .ToList();
+        foreach (var panel in lowerPanels)
+        {
+            panel.Hide();
         }
 
         _defaultLayout = Serialize();

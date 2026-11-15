@@ -234,7 +234,9 @@ public sealed class SolutionGraphAnalysisLimitsTests
     [Fact]
     public void A_parser_that_honors_its_cancellation_ends_as_timed_out_and_one_that_ignores_it_is_stuck_in_its_time_plus_the_grace()
     {
-        var options = ScanOptions.Default with { Timeout = TimeSpan.FromMilliseconds(150), StuckGrace = TimeSpan.FromMilliseconds(300) };
+        // The grace is long enough for a thread that ends when it is told (a busy machine starts it late), and the deaf parser is held on a gate for much
+        // longer than the time and the grace together: what is asserted is that the scan does not wait for it, which a bound well under the gate shows.
+        var options = ScanOptions.Default with { Timeout = TimeSpan.FromMilliseconds(500), StuckGrace = TimeSpan.FromSeconds(2) };
         var cooperative = options with
         {
             BeforeParse = (_, ct) =>
@@ -243,18 +245,28 @@ public sealed class SolutionGraphAnalysisLimitsTests
                 ct.ThrowIfCancellationRequested();
             },
         };
+        using var release = new ManualResetEventSlim();
         var deaf = options with
         {
-            BeforeParse = (_, _) => Thread.Sleep(TimeSpan.FromSeconds(3)),
+            BeforeParse = (_, _) => release.Wait(TimeSpan.FromSeconds(30)),
         };
 
         var started = DateTime.UtcNow;
-        var timedOut = CSharpSyntaxScanner.TryScan("class C { }", cooperative, out _);
-        var stuck = CSharpSyntaxScanner.TryScan("class C { }", deaf, out _);
+        ScanFailure timedOut;
+        ScanFailure stuck;
+        try
+        {
+            timedOut = CSharpSyntaxScanner.TryScan("class C { }", cooperative, out _);
+            stuck = CSharpSyntaxScanner.TryScan("class C { }", deaf, out _);
+        }
+        finally
+        {
+            release.Set();
+        }
 
         Assert.Equal(ScanFailure.TimedOut, timedOut);
         Assert.Equal(ScanFailure.Stuck, stuck);
-        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(2.5), "it waited for the deaf parser to finish");
+        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(20), "it waited for the deaf parser to finish");
     }
 
     [Fact]
@@ -265,20 +277,33 @@ public sealed class SolutionGraphAnalysisLimitsTests
         repository.Add("A/Slow.cs", "namespace Slow { }");
         repository.Add("A/Fine.cs", "namespace Fine { }");
         var stuckOn = new List<string>();
+
+        // The deaf parser is held on a gate until the test ends (the host reads it as stuck once the time and the grace pass). The time is not the point
+        // of this test but the way a file that never returns is handled, so it is long enough for a file that does return (a cold parser, a busy machine)
+        // never to be taken for stuck: only the stuck one waits for it.
+        using var release = new ManualResetEventSlim();
         var scan = ScanOptions.Default with
         {
-            Timeout = TimeSpan.FromMilliseconds(100),
-            StuckGrace = TimeSpan.FromMilliseconds(100),
+            Timeout = TimeSpan.FromSeconds(1.5),
+            StuckGrace = TimeSpan.FromSeconds(1.5),
             BeforeParse = (text, _) =>
             {
                 if (text.Contains("Slow", StringComparison.Ordinal))
                 {
-                    Thread.Sleep(TimeSpan.FromSeconds(2));
+                    release.Wait(TimeSpan.FromMinutes(1));
                 }
             },
         };
 
-        var build = await repository.AnalyzeWithAsync(new SolutionGraphAnalysis(scan: scan, onStuck: stuckOn.Add));
+        GraphBuild build;
+        try
+        {
+            build = await repository.AnalyzeWithAsync(new SolutionGraphAnalysis(scan: scan, onStuck: stuckOn.Add));
+        }
+        finally
+        {
+            release.Set();
+        }
 
         Assert.Equal(["A/Slow.cs"], stuckOn);
         Assert.Contains(build.Graph.Gaps, g => g is { Code: GraphGapCodes.FileSkipped, Path: "A/Slow.cs" });

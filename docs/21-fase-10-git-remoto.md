@@ -2339,7 +2339,7 @@ Dónde el diseño y el código chocaron al escribir las pantallas, qué dato no 
 - `AppSettings` (el permiso por proyecto y el intervalo, también en `WithPreferencesOf`) y la sección «Git remoto» de
   Ajustes.
 - «Publicar y abrir PR» junto a «Entregar» en el monitor de la ejecución.
-- El nombre de la actividad nueva en la bandeja y en la pantalla de bloqueo.
+- La exclusión de `RemoteOperation` del trabajo que se lista en la bandeja y en el bloqueo, conforme a D-25; no se crea una categoría ni una clave de trabajo remoto.
 - `tests/AgentStudio.Tests/Integration/Phase10/**`: la app compuesta con `AddAgentStudioApp`, un remoto local y git
   real, en dos montajes:
   - con `LocalRemoteHostingProvider` (el proveedor de prueba que hace de plataforma con git real, §9): publicar → PR →
@@ -2378,9 +2378,13 @@ Dónde el diseño y el código chocaron al componer los cinco paquetes, los fall
   Al salir, `App.OnExit` espera `RemoteSyncService.DisposeAsync()` antes que a lo demás (el buzón termina el tramo en curso, un `push` no se corta a medias), con un tope de 170 s; el contenedor lo vuelve a liberar al final y ya no hay nada.
   **Corregido tras la revisión de la integración:** esa espera era un `await` dentro de un `OnExit` que es `async void`, y WPF no espera a un `async void`: el proceso podía terminar con el `push` a medias. Ahora es una llamada que bloquea
   (`RemoteSyncAttachment.ShutdownBlocking`, en un hilo del grupo; nada del cierre del buzón necesita el hilo de la interfaz) y va antes del primer `await`. Con un envío en curso, la ventana se queda sin responder hasta que termine o venza el tope:
-  que la salida gestionada lo espere antes, con su aviso, queda como pendiente ([P78](18-peticiones-y-pendientes.md)). Prueba: `Desktop/Services/RemoteSyncAttachmentTests` (una fusión retenida: la salida no vuelve hasta que termina y queda anotada).
+  que la salida gestionada lo espere antes, con su aviso, quedó como pendiente ([P78](18-peticiones-y-pendientes.md)) y su espera se implementó el 2026-11-13 (la medición con un push real sigue pendiente): la salida gestionada espera al buzón sin bloquear la interfaz y `OnExit` es la red de seguridad
+  (ver el remate al final de este apartado). Prueba: `Desktop/Services/RemoteSyncAttachmentTests` (una fusión retenida: la salida no vuelve hasta que termina y queda anotada).
 - **Más ajustes de esa revisión:** el intervalo del sondeo se vuelve a leer en cada vuelta y el temporizador se ajusta sin reiniciar la app (`RemoteMailboxTests.AChangeOfTheIntervalInTheSettingsAppliesFromTheNextRoundWithoutARestart`); la prueba de «un día sin permiso» afirma
   ahora que abrir el buzón y seguir un PR tampoco lanzan nada; y lo que la persona acaba de pedir no espera la cortesía del buzón (P70). Lo que se deja apuntado: P78 a P81.
+- **Remate de la salida y del buzón (2026-11-13, P78 y P79).** La salida gestionada (`ManagedExit` + `ExitFarewell`) espera al buzón sin bloquear la interfaz, tras anotar la elección y pausar las ejecuciones y antes de terminar la app, con el mismo tope de 170 s y un aviso en la bandeja
+  («Terminando lo pendiente con GitHub…», desde la revisión del 2026-11-15, porque una lectura en curso también cuenta; la ventana se oculta mientras espera) solo si el buzón tiene algo en marcha; `RemoteSyncAttachment.ShutdownAsync` espera una sola vez y `App.OnExit` queda como red de seguridad. `ProjectRemoteMailbox.ExecAsync` recibe el token de quien pregunta y devuelve `Executed<T>` (un buzón cerrado
+  responde «no disponible», `hosting.refused.closing`); los flujos miran `Closing` justo antes de cada escritura. Pruebas: `PublicationClosingTests`, `ManagedExitFarewellTests`, `RemoteSyncAttachmentTests`.
 - **Fallo de paquete, tocado por necesidad (WP3, `Orchestration/Publication/RemoteSyncService.cs`).** `RemoteSyncService` solo era `IAsyncDisposable`, y `ServiceProvider.Dispose()` lanza si un singleton solo lo es: todas las pruebas y hosts que
   componen la app y la liberan de forma síncrona (veinte ficheros de pruebas) fallaban en cuanto resolvían el buzón, que llega por `MainViewModel`, por Auto Doctor y por la pantalla del repositorio. Se añadió `IDisposable` (una línea más un método que
   bloquea sobre `DisposeAsync`), en un commit aparte para que el dueño del paquete lo conserve o lo cambie. **Pedido:** que WP3 lo mantenga.
@@ -2403,6 +2407,25 @@ Dónde el diseño y el código chocaron al componer los cinco paquetes, los fall
   no de la interfaz); que el cierre en orden espere de verdad a un `push` (el tope de 170 s no se midió); la prueba en vivo (decisión 14); y todo lo de §13 que no tocó a la integración.
 - **No se hizo (no era de este encargo):** el nombre de la actividad nueva en la bandeja y en la pantalla de bloqueo (D-25 dice que no se enseña como trabajo), los textos de los códigos de rechazo de los dos adaptadores, `ClientDocumentBuilder` (sigue diciendo que
   el despliegue no está incluido), `docs/08`, el README y `CLAUDE.md`.
+- **Remate de ajustes, botón y pruebas (2026-11-13).** Una línea por punto de [docs/18](18-peticiones-y-pendientes.md):
+  - **P80:** `IAppSettingsStore.UpdatePreferences(Func<AppSettings, AppSettings>)` es el único camino de «leer, cambiar y guardar»; `JsonAppSettingsStore` lo ejecuta (y `Save`, `SavePreferences` y `SaveWindowPlacement`) bajo un cierre, y un cambio que devuelve la misma instancia no escribe. Lo usan el permiso, el del doctor de skills y «Guardar» de Ajustes. Miembro nuevo con implementación por defecto: no rompe a los almacenes de una copia. Prueba: `SettingsWritersTests`.
+  - **P76:** `NoteProject` guarda la carpeta en el permiso ya dado cuando la app abre el proyecto; «Git remoto» dice «(la carpeta ya no existe)» de una carpeta que no está y la baja funciona igual.
+  - **P77:** `MainViewModel.OfferPublish` pone el botón en los monitores de documento y en los de `FollowInBackground`. Ninguna vista dibuja hoy `BackgroundMonitors`: el botón está en el monitor, pero falta una pantalla que los enseñe.
+  - **P75:** `RemoteBoardJourneyLocalToolsTests` (hito con requisitos y ejecución real enlazada): «Integrado» por el PR y «Hecho» con su motivo cuando se fusionó otra cabeza, el informe del cierre y «desplegado» solo con un despliegue que informa la plataforma de prueba (`LocalRemoteHostingProvider.ReportDeployment` y `PushToHead`).
+  - **P81:** `PublishButtonTests` y las pruebas de la sección en `SettingsWritersTests`; `RemoteTransport.ForTests` pasa a `internal` (el ensamblado ya da `InternalsVisibleTo` a las pruebas).
+  - **P74 (parte documental; quedan textos de rechazo y bandeja):** el recurso `Text_document_not_included_deployed` dice que solo el informe del hito dice «desplegado», y solo cuando GitHub lo informa.
+
+#### Conciliación del día 0 · 2026-11-15
+
+Las notas de las entregas del 13 de noviembre se conservan como historial. El estado técnico actualizado es el de este apartado y [docs/18 §4.4](18-peticiones-y-pendientes.md#44-pendientes-reales).
+
+- **P74, ya en la base:** `HostingTexts.KnownCodes` y los recursos en ambos idiomas cubren los códigos catalogados de los adaptadores. `ProjectActivityWork` y `ProjectsWorkInProgress` excluyen `RemoteOperation`, como pide D-25. La corrección del texto de despliegue del documento de cliente y sus referencias también estaban incorporadas; no quedan como implementación pendiente de este punto.
+- **P77:** «Ejecuciones reanudadas» hace alcanzables los monitores propios de `FollowInBackground`, con su proyecto, ruta y ejecución. Reutiliza el mismo monitor, conserva los terminados y permite cerrar la vista sin detenerlos. El botón de publicar mantiene sus condiciones y la comprobación de proyecto; el recorrido con la ventana real sigue pendiente.
+- **P85 y P89:** el clic de sincronizar comunica la lista seguida vacía sin inventar una sincronización buena; la oferta de publicación cruza las ramas locales con los inicios de ejecución del registro verificado del proyecto. Sin registro válido no se ofrecen ejecuciones nuevas.
+- **P87, P88 y P90:** la ficha nueva se lleva a la vista y prepara su destino de foco; el diseño predeterminado empieza con los paneles inferiores cerrados y los diseños guardados se conservan. La ruta de estado ocupa una línea. La guía vacía es neutral, los problemas conservan aviso y la cuota compacta mantiene la antigüedad y la procedencia en el detalle. El foco efectivo en Windows y el aspecto con la ventana real siguen pendientes.
+- **P94:** retirar «Sincronizar con GitHub» cancela la lectura automática en curso; una respuesta retirada no actualiza foto, cursor, salud ni registro, aunque llegue después de una nueva alta. El clic manual conserva su autorización y una respuesta ya aceptada puede completar su anotación local sin más red.
+
+Estas propuestas están en una copia aislada para revisión y aplicación humanas. Las comprobaciones automáticas se consignan con sus resultados reales en docs/18. Se mantienen pendientes P78 con un push real autorizado, P81 y las comprobaciones humanas del día 0; esta nota no cierra la Fase 10 ni la semana de uso de docs/22.
 
 ### 10.10 Orden y dependencias
 
@@ -2494,10 +2517,32 @@ cuatro pruebas de `Infrastructure/Hosting/Live/GitHubLiveTests`, que pasan). Lo 
 - **El veredicto:** `POST …/statuses/{sha}` da 201 con una descripción en castellano y estado `pending`; el comentario se
   crea con 201, y la segunda publicación lo lee por su identificador (`GET …/issues/comments/{id}`), comprueba que es el
   suyo y lo edita con `PATCH` (200). Ninguna orden lleva `review`.
-- **Sigue sin medir:** las tres formas de fusión y `merge_commit_sha`, un revert desde la web, un force-push en la línea de
-  tiempo, los despliegues, cerrar un PR y borrar su rama, las reglas activas, los límites (429 y el secundario), `gh` sin
-  conexión o sin sesión, y el `push` por HTTPS del ejecutor remoto. Van en la prueba en vivo del final de la integración,
-  con la app compuesta.
+**Medido en vivo el 2026-11-13, segunda tanda** (día 0 de [22](22-semana-de-uso-real-y-plan-revisado.md), con tu OK y sobre
+el mismo repositorio; la prueba nueva `A_commit_is_pushed_and_its_pull_request_lives_through_the_adapter`, cuatro veces, y
+la de observar, tres; todas pasan). Todo va por el código que usa la app: el ejecutor remoto y el adaptador.
+
+- **El `push` por HTTPS del ejecutor remoto.** Con tu ayudante de credenciales y el entorno recortado de D-06,
+  `PushRunBranchAsync` sube el commit a `refs/heads/agentstudio/run-<id>` y el `ls-remote` de después lo confirma, cuatro
+  veces de cuatro y sin pedir nada por pantalla. La inspección acepta la configuración de un clon normal (ningún rechazo,
+  sin LFS). `GIT_ALLOW_PROTOCOL=https` junto a `protocol.https.allow=always` deja pasar HTTPS.
+- **Abrir, buscar y cambiar el PR.** `GET …/pulls?head=<cuenta>:<rama>&state=all` da lista vacía antes y el PR después;
+  `POST …/pulls` da 201 y `PATCH …/pulls/{n}` da 200.
+- **Las tres formas de fusión.** `PUT …/pulls/{n}/merge` con `sha` da 200 a la primera, recién abierto el PR. El modo que
+  la app deduce al observar coincide con el pedido en las tres: squash (1 commit de resultado), rebase (2 commits de
+  resultado para 2 originales) y commit de fusión (1). `merge_commit_sha` se lee con `merged: true`.
+- **Un revert hecho por GitHub** (la mutación `revertPullRequest`, la misma del botón de la web; el PR de revert se fusionó
+  con commit de fusión). El commit lleva `This reverts commit <sha>.` y la app lo cuenta: 1 revert. Lo ve en la **segunda**
+  vuelta del PR revertido, la de «ya fusionado», que lee los commits de la base desde una hora antes; la primera
+  observación de un PR ya fusionado no mira la base.
+- **Un push forzado.** `issues/{n}/timeline` trae `head_ref_force_pushed`: la app cuenta 1 tras un
+  `push --force-with-lease` a la rama de un PR abierto.
+- **Cerrar y borrar.** Cerrar es `PATCH …/pulls/{n}` (200). `GET …/branches/agentstudio/run-<id>` (200) y
+  `DELETE …/git/refs/heads/agentstudio/run-<id>` (204) llevan **la barra literal**. Después `ls-remote` ya no encuentra la
+  rama y la observación dice que la rama de cabeza no está.
+- **Sigue sin medir:** las reglas activas; los despliegues con datos (`deployments?sha=` responde 200 con la lista vacía);
+  pedir revisores (hace falta otra cuenta); los límites (429 y el secundario); `gh` sin conexión o sin sesión; un
+  repositorio renombrado; y las pantallas de la app con un PR publicado por ella, que piden Windows Hello y son tuyas
+  ([22](22-semana-de-uso-real-y-plan-revisado.md) §3.1).
 
 - **`gh api`:**
   - la forma exacta de la salida con `-i` en Windows (versión de HTTP en la línea de estado, fin de línea, orden de las

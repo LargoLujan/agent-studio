@@ -121,8 +121,22 @@ public sealed class MetricBarsTests
         Assert.Equal("47 % · exacto · informado por el programa del agente · vista hace 12 min", quota.Text);
 
         // V38: in the status bar the age is shorter, so the bars of a run fit in one line; the reader and the tooltip keep it whole.
-        Assert.Equal("47 % exacto · hace 12 min", quota.CompactText);
+        Assert.Equal("47 % · hace 12 min", quota.CompactText);
         Assert.Contains("vista hace 12 min", quota.AccessibleName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_old_quota_keeps_its_age_and_origin_without_implying_that_the_exact_observation_is_current()
+    {
+        var exact = MetricBars.Quota("Claude 7 días", MetricValue<double>.Exact(0.40, "claude rate_limit_event"), "vista hace 4 días");
+        var estimate = MetricBars.Quota("Cuota", MetricValue<double>.EstimatedBySystem(0.40, "estimate"), "vista hace 4 días");
+
+        Assert.Equal("40 % · hace 4 días", exact.CompactText);
+        Assert.Equal(40, exact.Value);
+        Assert.Equal(MetricOrigin.ReportedByProvider, exact.OriginKind);
+        Assert.Contains("exacto · informado por el programa del agente", exact.AccessibleName, StringComparison.Ordinal);
+        Assert.Contains("vista hace 4 días", exact.AccessibleName, StringComparison.Ordinal);
+        Assert.Equal("~40 % estimado · hace 4 días", estimate.CompactText);
     }
 
     [Fact]

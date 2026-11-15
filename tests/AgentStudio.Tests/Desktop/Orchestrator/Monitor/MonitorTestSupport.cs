@@ -93,7 +93,8 @@ internal static class MonitorTestSupport
     /// <summary>Waits until the monitor has read <paramref name="count"/> events and then applies them on the queue, as the UI thread would.</summary>
     public static void Pump(QueueSynchronizationContext ui, int count)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
+        // A guard against a hang, not a limit on the monitor: a busy machine may take a long while to give the reader its turn.
+        var deadline = DateTime.UtcNow.AddSeconds(60);
         while (ui.Pending < count && DateTime.UtcNow < deadline)
         {
             Thread.Yield();

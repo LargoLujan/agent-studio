@@ -40,6 +40,9 @@
   <data name="RemoteSync_Projects_RemoveName" xml:space="preserve">
     <value>Remove the permission of {0}</value>
   </data>
+  <data name="RemoteSync_Projects_Missing" xml:space="preserve">
+    <value>{0} (the folder no longer exists)</value>
+  </data>
   <data name="RemoteSync_Sends_Title" xml:space="preserve">
     <value>What goes out and what does not</value>
   </data>

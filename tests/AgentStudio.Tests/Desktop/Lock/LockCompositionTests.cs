@@ -97,11 +97,22 @@ public sealed class LockCompositionTests
         await container.GetRequiredService<InterfaceLock>().LockAsync(LockReason.Manual, TestContext.Current.CancellationToken);
 
         // Composed, the screen follows the lock on the UI thread: the dispatcher of the shared WPF test application, when a
-        // test before this one created it. It refreshes there, so the text comes a moment later.
-        for (var i = 0; i < 1000 && screen.RunningText != "Sigue en marcha: 1 ejecución y 1 auditoría."; i++)
+        // test before this one created it. It refreshes there, so the text comes when that dispatcher gets to it: the test waits
+        // for the change of the text itself, and a minute is only the guard of a hang (the dispatcher may be busy with another test).
+        var shown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        screen.PropertyChanged += (_, e) =>
         {
-            await Task.Delay(5, TestContext.Current.CancellationToken);
+            if (e.PropertyName == nameof(LockScreenViewModel.RunningText) && screen.RunningText == "Sigue en marcha: 1 ejecución y 1 auditoría.")
+            {
+                shown.TrySetResult();
+            }
+        };
+        if (screen.RunningText == "Sigue en marcha: 1 ejecución y 1 auditoría.")
+        {
+            shown.TrySetResult();
         }
+
+        await shown.Task.WaitAsync(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
 
         Assert.Equal("Sigue en marcha: 1 ejecución y 1 auditoría.", screen.RunningText);
     }

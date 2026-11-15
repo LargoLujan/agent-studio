@@ -45,7 +45,7 @@ El boceto es el diseño de referencia. Lo que tiene hoy la ventana (tanda 1, 202
 debajo.
 
 - **Barra lateral izquierda**, de arriba abajo: Explorador, Orquestador (Fase 3, [sección 3](#3-orquestador-visual)),
-  **Agentes** (Fase 13: el orquestador en la capa «Equipo»), **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)),
+  **Ejecuciones reanudadas**, **Agentes** (Fase 13: el orquestador en la capa «Equipo»), **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)),
   **Herramientas** y **Pruebas** (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)),
   **Consumo** y **Memoria** (Fase 4,
   [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Repositorio** (Fase 9,
@@ -53,20 +53,21 @@ debajo.
   `Ctrl+Shift+D`), **Terminal** (`Ctrl+Ñ`; en un teclado de EE. UU., `` Ctrl+` ``, que es la misma tecla), Auto Doctor,
   Historial · bitácora (la **bitácora** del día, [11](11-bitacora.md)) y, la última, **Ajustes**
   ([sección 5.2](#52-consumo-cuota-y-ajustes-documentos-consumo-y-ajustes)).
-  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Repositorio, Debates y Ajustes abren un documento en el centro. Explorador,
+  - Orquestador, Ejecuciones reanudadas, Agentes, Skills, Herramientas, Consumo, Memoria, Repositorio, Debates y Ajustes abren un documento en el centro. Explorador,
     Pruebas, Terminal, Auto Doctor e Historial muestran u ocultan su panel.
   - **Agentes** abre la pestaña del orquestador del proyecto (o la trae al frente) y la deja en la capa «Equipo», donde se
     añaden, configuran y quitan los agentes con el inspector de cada uno. **Herramientas** abre una pestaña con lo que puede
     usar cada agente de la plantilla del proyecto abierto, y su «Dar a un agente…» lleva a esa capa con el inspector.
     **Pruebas** muestra u oculta el panel de abajo del mismo nombre. Sus títulos salen de los recursos
     (`IntegrationStrings`, castellano de España e inglés).
+  - **Ejecuciones reanudadas** abre los monitores propios que el shell conserva para los proyectos de esta sesión. Cada fila identifica proyecto, ruta y ejecución; seleccionarla muestra el monitor existente. Los terminados siguen accesibles para revisar o abrir su ficha de publicación. Cerrar la pestaña mantiene la ejecución y el monitor. Para publicar desde un proyecto distinto del abierto, primero se indica qué proyecto hay que abrir. Implementación técnica de P77; pendiente el recorrido con la ventana real.
   - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Auto Graph tiene la suya (entre
     «Trabajo» y «Debates», [sección 8.3](#83-auto-graph-fase-6-wp-g)); Git tendrá entrada cuando llegue la suya.
   - El anillo de foco va en el botón que tiene el teclado, nunca alrededor de toda la barra.
 - **Pestañas de abajo.** Junto a «Terminal», en el mismo grupo, «Problemas», «Salida» y «Pruebas» (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)):
   siguen al monitor de la ejecución del proyecto abierto (con otro proyecto, o sin ejecución, quedan vacíos, nunca con lo del
   anterior). «Problemas» recibe además los hallazgos del lienzo, y «Salida» sigue a lo que seleccionas en él (una tarea o un
-  agente). Un diseño de paneles guardado antes de la Fase 13 los recupera en el grupo de «Terminal».
+  agente). En un proyecto sin diseño guardado los paneles inferiores empiezan cerrados y se abren desde su entrada o atajo. Un diseño guardado conserva la elección de la persona; si es anterior a la Fase 13, los paneles recuperados se añaden al grupo de «Terminal» y siguen cerrados cuando el terminal estaba cerrado.
 - **Mostrar y ocultar un panel.** La entrada de la barra lateral (o su atajo) muestra el panel si no está a la vista
   (cerrado, plegado en un lado o en una pestaña detrás de otra), lo activa y le da el teclado. Solo lo oculta si ya se
   ve. Así una Terminal cerrada vuelve con su entrada o con `Ctrl+Ñ`. Al ocultar un panel que tenía el teclado, el teclado
@@ -129,21 +130,20 @@ debajo.
   la barra superior) los abre por encima de los documentos. Con la chincheta se fijan en una columna a la derecha de los
   documentos.
 - **Distribución por defecto** (la de un proyecto sin diseño guardado): el Explorador a la izquierda (240 px), los
-  documentos en el centro con casi todo el espacio, la Terminal debajo (180 px) y Auto Doctor y la bitácora plegados a la
-  derecha.
+  documentos en el centro con casi todo el espacio, los paneles inferiores cerrados y Auto Doctor y la bitácora plegados a
+  la derecha. Al abrir la Terminal, ocupa por defecto 180 px de alto debajo de los documentos.
 - Todos los paneles se redimensionan, ocultan, desacoplan y reordenan (AvalonDock). El diseño se guarda por proyecto
   en `.agentstudio/layout.xml`.
 - **La ventana recuerda su sitio:** el tamaño, la posición y si estaba maximizada se guardan al salir de verdad (no al
   ocultarla en la bandeja) y se recuperan al arrancar, si caen en un monitor conectado. Si no, la ventana se abre
   centrada con su tamaño por defecto.
-- **Barra de estado:** a la izquierda, el último mensaje de la app o, si no hay ninguno, la ruta del proyecto (420 px como
-  mucho, cortado con «…»; entero en su tooltip); a la derecha, la versión y el commit del que se compiló la app («v1.0.0 ·
+- **Barra de estado:** a la izquierda, el último mensaje de la app o, si no hay ninguno, la ruta del proyecto (una sola línea de 180 px como mucho, recortada con «…»; texto completo en su tooltip); a la derecha, la versión y el commit del que se compiló la app («v1.0.0 ·
   87f7a07»), para saber qué compilación está instalada. En medio, desde la tanda 2 (2026-11-03), **las barras en tiempo
   real**, siempre a la vista ([18](18-peticiones-y-pendientes.md), P3):
 
   ```text
-  Contexto · T1 [███░] ~62 % estimado · sano   Claude 5 h [██░░] 47 % exacto · vista hace 12 min
-  Claude 7 días [█░░░] 18 % exacto · vista hace 12 min   Presupuesto [██░░] 5 de 12 exacto
+  Contexto · T1 [███░] ~62 % estimado · sano   Claude 5 h [██░░] 47 % · hace 12 min
+  Claude 7 días [█░░░] 18 % · hace 12 min   Presupuesto [██░░] 5 de 12 exacto
   ```
 
   - **Contexto:** el de la tarea en curso. Con varias, el de la más llena, y lo dice: «Contexto · T1, la más llena de 3».
@@ -153,9 +153,7 @@ debajo.
     no hay lectura).
   - **Presupuesto:** las ejecuciones de agente usadas frente al máximo de la ejecución en curso (la más gastada, si hay
     varias). Sin ejecución en curso no sale.
-  - **Cada barra en corto:** la cifra con su origen en una palabra («exacto», «estimado», «no expuesto»), el nivel escrito
-    cuando el color dice uno («sano», «crítico», «presupuesto agotado») y la antigüedad junto a la cifra («vista hace
-    12 min»). El color nunca va solo.
+  - **Cada barra en corto:** la cifra, su origen en una palabra cuando corresponde, el nivel escrito cuando el color dice uno («sano», «crítico», «presupuesto agotado») y la antigüedad junto a la cifra («hace 12 min»). Una observación con antigüedad omite «exacto» en esta línea compacta; las estimaciones conservan su marca. El tooltip y el nombre accesible mantienen la procedencia completa. El color nunca va solo.
   - **Una ventana de la cuota cuyo reinicio ya pasó** no enseña la cifra de antes como si fuera de ahora: la barra sale
     vacía y dice «se reinició a las 15:00, sin dato nuevo».
   - **El tooltip** da el detalle de cada barra, una línea por barra. Si la ventana es estrecha, las barras pasan a una
@@ -197,6 +195,10 @@ La app vive en la bandeja mientras no salgas: cerrar la ventana ya no corta lo q
   lector de pantalla) es siempre «Agent Studio», también después de reiniciarse Explorer.
 - **Los avisos** dicen que una ejecución terminó, que pide una aprobación o que dejó de esperar cuota, o que un debate
   terminó, sin nada del proyecto. Un clic en el aviso abre la ventana.
+- **Al salir con una publicación en curso** (Fase 10), la salida espera, sin congelar la ventana, a que GitHub termine lo que el
+  buzón estaba enviando o leyendo (un `push` no se corta a medias, hasta 170 s): la ventana se oculta, la bandeja avisa
+  «Terminando lo pendiente con GitHub…» y el tooltip dice «terminando lo pendiente con GitHub». Va después de anotar tu elección y
+  de pausar las ejecuciones; sin nada en curso no avisa.
 
 ```text
   Abrir Agent Studio                                 ┌ Estado del trabajo ─────────────────── [Abrir Agent Studio] ┐
@@ -1161,6 +1163,8 @@ flowchart LR
     Doctor --> Main
     Main --> Editor["Editor + Diff de cambios propuestos"]
     Main --> Orq["Orquestador visual"]
+    Main --> BackgroundRuns["Ejecuciones reanudadas<br/>proyecto · ruta · ejecución"]
+    BackgroundRuns -->|"seleccionar ejecución"| Tasks
     Main --> Agents["Gestión de agentes"]
     Main -->|"Ctrl+Shift+D"| Debate["Debates<br/>historial · filtro por modo"]
     Main --> Graph["Auto Graph"]

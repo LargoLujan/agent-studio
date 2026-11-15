@@ -47,6 +47,10 @@
         <orchestratorViews:OrchestratorView/>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type vm:BackgroundRunsDocumentViewModel}">
+        <orchestratorViews:BackgroundRunsView/>
+    </DataTemplate>
+
     <!-- Phase 4 (docs/14 section 9): the skills catalog, the usage with the quota, and the memory with the daily summary. -->
     <DataTemplate DataType="{x:Type skills:SkillsDocumentViewModel}">
         <skillsViews:SkillsView/>

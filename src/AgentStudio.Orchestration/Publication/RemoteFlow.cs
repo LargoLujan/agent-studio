@@ -116,6 +116,7 @@ public static class PublicationCodes
     public const string NotApproved = "hosting.refused.not-approved";
     public const string ApprovalMismatch = "hosting.refused.approval-mismatch";
     public const string StateChanged = "hosting.refused.state-changed";
+    public const string Closing = "hosting.refused.closing";
     public const string NeedsApproval = "hosting.refused.needs-approval";
     public const string ProjectBusy = "hosting.refused.project-busy";
     public const string NoRemote = "hosting.refused.no-remote";

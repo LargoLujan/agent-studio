@@ -58,7 +58,9 @@ public sealed class PublicationService : IPublicationService
     public async Task<RemoteGitInspection?> InspectAsync(ProjectContext project, CancellationToken ct)
     {
         var box = await _mailboxes.OfAsync(project, ct).ConfigureAwait(false);
-        return await box.ExecAsync(async context =>
+
+        // The wait ends with ct, never the stretch of git the mailbox is already in; a mailbox that is closed answers «nothing to inspect».
+        var inspected = await box.ExecAsync(async context =>
         {
             using var taken = context.TakeNow();
             if (taken is null)
@@ -68,7 +70,8 @@ public sealed class PublicationService : IPublicationService
 
             var repository = await _providers.IdentifyAsync(project, "origin", CancellationToken.None).ConfigureAwait(false);
             return repository is null ? null : await _git.InspectAsync(project, repository, CancellationToken.None).ConfigureAwait(false);
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+        return inspected.Available ? inspected.Value : null;
     }
 
     public async Task<PublicationPreview> PreviewAsync(ProjectContext project, RunId run, RemoteBranch? baseBranch, CancellationToken ct)
@@ -82,7 +85,7 @@ public sealed class PublicationService : IPublicationService
         }
 
         // The part of git, with the project in hand: with it busy nothing is launched.
-        var local = await box.ExecAsync(async context =>
+        var located = await box.ExecAsync(async context =>
         {
             using var taken = context.TakeNow();
             if (taken is null)
@@ -137,7 +140,12 @@ public sealed class PublicationService : IPublicationService
             {
                 return new Located(false, repository, inspection, remote, HistoryFailed: true);
             }
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+        if (!located.Available || located.Value is not { } local)
+        {
+            return NotReady(UserText.Of(PublicationCodes.Closing), null, null, empty);
+        }
+
         if (local.Busy)
         {
             return NotReady(UserText.Of(PublicationCodes.ProjectBusy), null, null, empty);
@@ -205,7 +213,7 @@ public sealed class PublicationService : IPublicationService
             return Rejected(box, ticket, UserText.Of(PublicationCodes.StateChanged));
         }
 
-        var identified = await box.ExecAsync(async context =>
+        var identifying = await box.ExecAsync(async context =>
         {
             using var taken = context.TakeNow();
             if (taken is null)
@@ -220,7 +228,12 @@ public sealed class PublicationService : IPublicationService
             }
 
             return new Located(false, repository);
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+        if (!identifying.Available || identifying.Value is not { } identified)
+        {
+            return Rejected(box, ticket, UserText.Of(PublicationCodes.Closing));
+        }
+
         if (identified.Busy)
         {
             return Rejected(box, ticket, UserText.Of(PublicationCodes.ProjectBusy));
@@ -372,7 +385,7 @@ public sealed class PublicationService : IPublicationService
         var branch = RemoteBranch.ForRun(run);
 
         // The head of the branch on the remote is read just before (the API of deletion admits no condition, so a minimal window remains: it is a residual of ADR-0067).
-        var read = await box.ExecAsync(async context =>
+        var reading = await box.ExecAsync(async context =>
         {
             using var taken = context.TakeNow();
             if (taken is null)
@@ -389,7 +402,12 @@ public sealed class PublicationService : IPublicationService
             context.Trust(repository);
             var head = await _git.ReadBranchAsync(project, repository, branch, CancellationToken.None).ConfigureAwait(false);
             return new Located(false, repository, Commit: head.Reached ? head.Commit : null);
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+        if (!reading.Available || reading.Value is not { } read)
+        {
+            return Rejected(box, ticket, UserText.Of(PublicationCodes.Closing));
+        }
+
         if (read.Busy)
         {
             return Rejected(box, ticket, UserText.Of(PublicationCodes.ProjectBusy));
@@ -478,7 +496,7 @@ public sealed class PublicationService : IPublicationService
     }
 
     private static PublicationPreview NotReady(UserText reason, RemoteRepository? repository, RemoteGitInspection? inspection, PullRequestText text) =>
-        new(false, reason, repository, null, null, 0, null, null, inspection, HostingCapabilities.None, text, null);
+        new(false, reason, repository, null, null, 0, null, null, inspection, HostingCapabilities.None, text, null, CapabilitiesRead: false);
 
     private static RemoteWorkTicket NewTicket(HostingOperationKind kind, PullRequestRef? pullRequest) => new(Guid.NewGuid().ToString("N"), kind, pullRequest);
 

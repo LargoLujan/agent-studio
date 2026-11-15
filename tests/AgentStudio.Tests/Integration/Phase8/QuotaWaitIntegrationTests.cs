@@ -59,12 +59,13 @@ public sealed class QuotaWaitIntegrationTests
         Assert.Equal((AttemptOutcome.RateLimited, new AttemptEndSnapshot(AttemptEndClass.WindowQuota, "five_hour", Phase8Clock.FiveHourReset)), (limited.Status, limited.End));
 
         // The reset came, the margin did not: nothing is checked, nothing is launched.
-        await Phase8Runs.TurnAsync(run, () => clock.AdvanceTo(Phase8Clock.FiveHourReset));
-        await Phase8Runs.TurnAsync(run, () => clock.AdvanceTo(relaunchAt - TimeSpan.FromSeconds(1)));
+        await Phase8Runs.QuotaTurnAsync(run, clock, () => clock.AdvanceTo(Phase8Clock.FiveHourReset));
+        await Phase8Runs.QuotaTurnAsync(run, clock, () => clock.AdvanceTo(relaunchAt - TimeSpan.FromSeconds(1)));
         Assert.Equal((RunPhase.WaitingForQuota, WorkTaskStatus.Blocked, 1), (run.Snapshot().Phase, run.Snapshot().View("T1").Status, run.Snapshot().View("T1").Attempt));
         Assert.Single(world.Claude.Launches);
         Assert.Equal(0, world.ClaudeProbe.Calls);
 
+        await Phase8Runs.QuotaAlarmAsync(run, clock);
         clock.AdvanceTo(relaunchAt);
         var result = await Phase8Runs.SucceededAsync(app, run);
 
@@ -138,6 +139,7 @@ public sealed class QuotaWaitIntegrationTests
         var waiting = Phase8Log.Until(relaunchAt);
         await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.WaitingForQuota && s.View("T1").BlockReason == waiting, waiting);
         world.ClaudeProbe.State = AuthenticationState.NotAuthenticated; // the session expired meanwhile
+        await Phase8Runs.QuotaAlarmAsync(run, clock);
         clock.AdvanceTo(relaunchAt);
         await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.AwaitingHuman, "the run waiting for a person");
 
@@ -192,6 +194,7 @@ public sealed class QuotaWaitIntegrationTests
             var expected = Phase8Log.Until(at + wait, estimated: true);
             await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.WaitingForQuota && s.View("C1").BlockReason == expected, expected);
             blocks.Add(expected);
+            await Phase8Runs.QuotaAlarmAsync(run, clock);
             clock.Advance(wait);
             at += wait;
         }
@@ -266,19 +269,20 @@ public sealed class QuotaWaitIntegrationTests
             if (blocks.Count == 2)
             {
                 // The first check found a reset already past: it waits ahead, and with the clock still it checks no more.
-                Assert.True(await Phase8Runs.RestsWithinAsync(run, TimeSpan.FromSeconds(10)), "The loop did not rest after a check that found the limit still on.");
+                Assert.NotNull(await Phase8Runs.QuotaAlarmAsync(run, clock, guard: TimeSpan.FromSeconds(10)));
                 Assert.Equal((3, 2), ((await Phase8Log.OfAsync<AccessCheckedPayload>(app, run.Id)).Count, world.CodexQuota.Calls));
             }
 
             if (blocks.Count < waits.Count)
             {
+                await Phase8Runs.QuotaAlarmAsync(run, clock);
                 clock.AdvanceTo(at);
             }
         }
 
         // Three checks in a row found the limit on: the run waits for a person, and no amount of time checks again.
         await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.Paused, "the pause for a person");
-        await Phase8Runs.TurnAsync(run, () => clock.AdvanceTo(at + TimeSpan.FromHours(2)));
+        await Phase8Runs.QuotaTurnAsync(run, clock, () => clock.AdvanceTo(at + TimeSpan.FromHours(2)));
         Assert.Equal((RunPhase.Paused, 1, 4), (run.Snapshot().Phase, run.Snapshot().AgentRunsUsed, world.CodexQuota.Calls)); // the checks spent no launch
         Assert.Single(world.CodexExec.Launches);
 
@@ -345,18 +349,19 @@ public sealed class QuotaWaitIntegrationTests
         await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.WaitingForQuota && s.View("T1").BlockReason == bounded, bounded);
 
         // One second before the reset: still waiting, nothing checked and nothing launched again.
-        await Phase8Runs.TurnAsync(run, () => clock.AdvanceTo(Phase8Clock.FiveHourReset - TimeSpan.FromSeconds(1)));
+        await Phase8Runs.QuotaTurnAsync(run, clock, () => clock.AdvanceTo(Phase8Clock.FiveHourReset - TimeSpan.FromSeconds(1)));
         Assert.Equal((WorkTaskStatus.Blocked, 1), (run.Snapshot().View("T1").Status, run.Snapshot().View("T1").Attempt));
         Assert.Single(world.Claude.Launches);
         Assert.Equal(0, world.ClaudeProbe.Calls);
 
         // The reset: the session is checked and the task goes again, and its next limit is three days away.
+        await Phase8Runs.QuotaAlarmAsync(run, clock);
         clock.AdvanceTo(Phase8Clock.FiveHourReset);
         var paused = Phase8Log.Until(Phase8Clock.WeeklyReset);
         await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.Paused && s.View("T1").BlockReason == paused, paused);
 
         // Past the reset of the weekly window, the run is still in pause: nothing relaunches by itself.
-        await Phase8Runs.TurnAsync(run, () => clock.AdvanceTo(Phase8Clock.WeeklyReset + TimeSpan.FromDays(1)));
+        await Phase8Runs.QuotaTurnAsync(run, clock, () => clock.AdvanceTo(Phase8Clock.WeeklyReset + TimeSpan.FromDays(1)));
         Assert.Equal((RunPhase.Paused, WorkTaskStatus.Blocked, 2), (run.Snapshot().Phase, run.Snapshot().View("T1").Status, run.Snapshot().View("T1").Attempt));
         Assert.Equal(2, world.Claude.Launches.Count);
         Assert.Equal(1, world.ClaudeProbe.Calls);
@@ -402,10 +407,11 @@ public sealed class QuotaWaitIntegrationTests
         await using var run = await Phase8Runs.StartAsync(app, clock, Phase8Runs.Single("C1", "ejecutorCodex"), Phase8Runs.NoSteps(), new RunOptions());
         var cooldown = Phase8Log.Until(Start + TimeSpan.FromMinutes(5));
         await Phase8Runs.UntilAsync(app, run, s => s.Phase == RunPhase.WaitingForQuota && s.View("C1").BlockReason == cooldown, cooldown);
-        await Phase8Runs.TurnAsync(run, () => clock.Advance(TimeSpan.FromMinutes(5) - TimeSpan.FromSeconds(1)));
+        await Phase8Runs.QuotaTurnAsync(run, clock, () => clock.Advance(TimeSpan.FromMinutes(5) - TimeSpan.FromSeconds(1)));
         Assert.Equal((WorkTaskStatus.Blocked, 1), (run.Snapshot().View("C1").Status, run.Snapshot().View("C1").Attempt));
         Assert.Single(world.CodexExec.Launches);
 
+        await Phase8Runs.QuotaAlarmAsync(run, clock);
         clock.Advance(TimeSpan.FromSeconds(1));
         await Phase8Runs.SucceededAsync(app, run);
 

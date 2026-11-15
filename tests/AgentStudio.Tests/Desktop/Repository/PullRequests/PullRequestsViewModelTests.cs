@@ -1,3 +1,4 @@
+using System.IO;
 using System.Globalization;
 using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Localization;
@@ -550,9 +551,13 @@ public sealed class PullRequestsViewModelTests
     public async Task Checking_the_connection_says_the_account_or_the_reason()
     {
         var world = WorldWith(OpenView());
+        world.Sync.HealthNow = new RemoteSyncHealth(null, null, null);
         await world.Model.SetProjectAsync(PrData.Project);
         await world.Model.CheckConnectionCommand.ExecuteAsync(null);
         Assert.Equal(Texts.Format("Hosting_Connection_Ok", "octo"), world.Model.Message);
+        Assert.Equal(HostingOutcome.Ok, world.Sync.HealthNow.LastOutcome);
+        Assert.Null(world.Sync.HealthNow.LastGoodSync);
+        Assert.DoesNotContain(Texts.Get("Hosting_Header_SessionUnchecked"), world.Model.SessionText ?? string.Empty, StringComparison.Ordinal);
 
         world.Provider.Account = new HostingResult<RemoteLogin>(HostingOutcome.RateLimited, null, null, PrData.Now.AddMinutes(30));
         await world.Model.CheckConnectionCommand.ExecuteAsync(null);
@@ -565,6 +570,33 @@ public sealed class PullRequestsViewModelTests
         world.Provider.Account = new HostingResult<RemoteLogin>(HostingOutcome.InvalidAnswer, null, null, null, "account.login-invalid");
         await world.Model.CheckConnectionCommand.ExecuteAsync(null);
         Assert.Equal(Texts.Get("Text_account_login_invalid"), world.Model.Error);
+    }
+
+    [Fact]
+    public async Task A_connection_failure_from_the_previous_project_does_not_replace_the_current_message()
+    {
+        var world = WorldWith(OpenView());
+        await world.Model.SetProjectAsync(PrData.Project);
+        var answer = new TaskCompletionSource<HostingResult<RemoteLogin>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        world.Provider.AccountAnswer = answer;
+        var checking = world.Model.CheckConnectionCommand.ExecuteAsync(null);
+        Assert.True(world.Model.IsBusy);
+
+        await world.Model.SetProjectAsync(new AgentStudio.Application.Projects.ProjectContext("p-2", @"C:\work\other"));
+        await world.Model.SyncNowCommand.ExecuteAsync(null);
+        var currentMessage = world.Model.Message;
+        Assert.NotNull(currentMessage);
+        var currentWork = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        world.Sync.HoldSyncRaw = currentWork;
+        var syncing = world.Model.SyncNowCommand.ExecuteAsync(null);
+        answer.SetException(new IOException("The old connection failed."));
+        await checking;
+
+        Assert.Null(world.Model.Error);
+        Assert.True(world.Model.IsBusy);
+        currentWork.SetResult();
+        await syncing;
+        Assert.Equal(currentMessage, world.Model.Message);
     }
 
     // ---- The card of publication ----
@@ -625,11 +657,13 @@ public sealed class PullRequestsViewModelTests
     {
         var world = new PrWorld();
         world.Publication.Preview = world.Publication.Preview with { Ready = false, NotReadyReason = new UserText("delivery.no-integration") };
+        world.Publication.Preview = world.Publication.Preview with { Capabilities = HostingCapabilities.None, CapabilitiesRead = false };
         await world.Model.SetProjectAsync(PrData.Project);
         await world.Model.ShowPublishCardAsync(new AgentStudio.Domain.Orchestration.RunId("r-1"));
         var card = (PublishCardViewModel)world.Model.Card!;
 
         Assert.False(card.ShowsConfirm);
+        Assert.DoesNotContain(card.Lines, line => line.Text == Texts.Get("Hosting_Publish_NoOpen"));
         Assert.Contains(card.Lines, l => l.IsWarning && l.Text.StartsWith(Texts.Format("Hosting_Publish_NotReady", string.Empty), StringComparison.Ordinal));
     }
 
@@ -668,7 +702,9 @@ public sealed class PullRequestsViewModelTests
         // A card asked for anyway shows what the preview says, and its button needs the capability of the preview.
         world.Publication.Preview = world.Publication.Preview with { Capabilities = PrData.Capabilities(PrData.Reads) };
         await world.Model.ShowPublishCardAsync(new AgentStudio.Domain.Orchestration.RunId("r-1"));
-        Assert.False(((PublishCardViewModel)world.Model.Card!).ShowsConfirm);
+        var card = Assert.IsType<PublishCardViewModel>(world.Model.Card);
+        Assert.False(card.ShowsConfirm);
+        Assert.Contains(card.Lines, line => line.Text == Texts.Get("Hosting_Publish_NoOpen"));
     }
 
     [Fact]

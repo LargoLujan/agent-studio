@@ -106,7 +106,8 @@ public static class TrayToolTip
     /// <param name="attemptsLeft">While waiting to exit, the attempts still running (null: some work cannot tell).</param>
     /// <param name="locked">The interface is locked (D-13): the work goes on, and the tooltip says it is locked.</param>
     /// <param name="zone">The zone of the times shown.</param>
-    public static string Compose(IReadOnlyList<WorkStatus> active, ExitState exit, int? attemptsLeft, bool locked, TimeZoneInfo zone)
+    /// <param name="finishing">The exit waits for the mailbox of GitHub to end the stretch it is in (docs/21 D-25): it says so instead of «saliendo».</param>
+    public static string Compose(IReadOnlyList<WorkStatus> active, ExitState exit, int? attemptsLeft, bool locked, TimeZoneInfo zone, bool finishing = false)
     {
         ArgumentNullException.ThrowIfNull(active);
         ArgumentNullException.ThrowIfNull(zone);
@@ -129,7 +130,7 @@ public static class TrayToolTip
         }
         else if (exit == ExitState.Exiting)
         {
-            parts.Add((Texts.Get("Background_Tooltip_Exiting"), 2));
+            parts.Add((Texts.Get(finishing ? "Background_Tooltip_Finishing" : "Background_Tooltip_Exiting"), 2));
         }
 
         var going = active.Where(w => w.IsActive).ToList();

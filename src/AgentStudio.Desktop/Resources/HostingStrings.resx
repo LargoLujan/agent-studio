@@ -162,6 +162,9 @@
   <data name="Hosting_Sync_Asked" xml:space="preserve">
     <value>Pedido hecho. Lo verás aquí en unos segundos.</value>
   </data>
+  <data name="Hosting_Sync_Empty" xml:space="preserve">
+    <value>Todavía no sigues ninguna petición de fusión que sincronizar.</value>
+  </data>
   <data name="Hosting_Unfollowed" xml:space="preserve">
     <value>Dejas de seguir esta petición de fusión.</value>
   </data>

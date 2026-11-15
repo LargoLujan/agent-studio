@@ -16,6 +16,7 @@ using AgentStudio.Infrastructure;
 using AgentStudio.Infrastructure.Git;
 using AgentStudio.Infrastructure.Models;
 using AgentStudio.Infrastructure.Persistence;
+using AgentStudio.Infrastructure.Security;
 using AgentStudio.Infrastructure.Skills;
 using AgentStudio.Memory;
 using AgentStudio.Observability;
@@ -77,6 +78,7 @@ internal static class PlatformServices
             .AddAgentStudioProviders()
             .AddCodexQuotaReader(provider => () => CodexQuotaReadEnabled(provider))
             .AddAgentStudioSecurity()
+            .AddAgentStudioProjectCredentialVaults(Path.Combine(folders.Roaming.BaseDirectory, "vault"))
             .AddSingleton(paths)
             .AddAgentStudioGit(new GitWorktreeOptions(paths.WorktreeRoot))
             .AddAgentStudioPersistence()

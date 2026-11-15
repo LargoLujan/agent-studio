@@ -95,6 +95,11 @@ public sealed partial class MainViewModel
         }
 
         var orchestrator = await EnsureOrchestratorAsync(root);
+        if (!SameProject(root, ProjectPath))
+        {
+            return;
+        }
+
         if (_tools is null)
         {
             _tools = new ToolsDocumentViewModel(new ToolsViewModel());
@@ -105,11 +110,40 @@ public sealed partial class MainViewModel
         AddDocument(_tools);
     }
 
+    private void OnToolsContextChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(OrchestratorDocumentViewModel.Context)
+            && sender is OrchestratorDocumentViewModel document
+            && SameProject(document.ProjectRoot, ProjectPath))
+        {
+            InvalidateTools();
+        }
+    }
+
+    /// <summary>Never retain a permissions preview from a previous project, template or verification profile.</summary>
+    private void InvalidateTools()
+    {
+        if (_tools is not { } previous)
+        {
+            return;
+        }
+
+        _tools = null;
+        previous.Tools.GiveToAgentRequested -= OnGiveToAgentRequested;
+        previous.Tools.Load([], null);
+        if (Documents.Contains(previous))
+        {
+            RemoveDocument(previous);
+        }
+    }
+
     /// <summary>«Dar a un agente…» of «Herramientas»: the inspector of the agents on the layer Team, where the change is made and approved as always.</summary>
     private async void OnGiveToAgentRequested(object? sender, string tool)
     {
+        var projectRoot = ProjectPath;
         await OpenOrchestratorAsync();
-        if (CurrentOrchestrator is not { } document)
+        // Activating a document can reenter the shell and change the project before this action continues.
+        if (!SameProject(projectRoot, ProjectPath) || CurrentOrchestrator is not { } document)
         {
             return;
         }

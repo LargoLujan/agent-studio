@@ -326,7 +326,7 @@ public static class ClaudeCodeArguments
             }
 
             args.Add("--session-id");
-            args.Add(newSessionId);
+            args.Add(CliArgumentGuard.SessionId(newSessionId, nameof(newSessionId)));
         }
 
         if (!string.IsNullOrWhiteSpace(instructionsFile))

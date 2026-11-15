@@ -47,7 +47,21 @@ public sealed class QuestionViewTests
         {
             OrchestratorTheme.EnsureLoaded();
             var window = new QuestionWindow { DataContext = Model() };
-            return (window is Window, window.ShowInTaskbar, window.ResizeMode, window.Content, new WpfQuestionWindowHost().IsAppInView);
+
+            // The test application is shared by every WPF test, and WPF makes the first window anyone creates its main window: a window another test has
+            // open right now (a nested pass of the dispatcher lets it run while that test waits for its bindings) must not decide this. Nothing here lets
+            // another test in, so for this look the application has no main window, as the app has none before its shell shows.
+            var app = System.Windows.Application.Current;
+            var mainWindow = app.MainWindow;
+            app.MainWindow = null;
+            try
+            {
+                return (window is Window, window.ShowInTaskbar, window.ResizeMode, window.Content, new WpfQuestionWindowHost().IsAppInView);
+            }
+            finally
+            {
+                app.MainWindow = mainWindow;
+            }
         });
 
         Assert.True(isWindow);

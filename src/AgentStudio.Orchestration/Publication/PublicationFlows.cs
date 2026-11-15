@@ -53,6 +53,13 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
 
     protected void Allowed(HostingOperationKind kind, HostingAuthorization authorization, string? detail = null) => _authorizations[kind] = (authorization, detail);
 
+    /// <summary>
+    /// Asked right before every write (git or the platform), with nothing in between: the close may arrive after the check at the start of a stage, and a write that has not been sent does not start
+    /// once it was asked for. The flow stays pending to synchronise (the same stage is tried again, reading before it repeats anything); a write already sent is never cut.
+    /// </summary>
+    protected static FlowResult? StopIfClosing(FlowContext context) =>
+        context.Closing ? FlowResult.WaitForSync(PendingReason.Offline, TimeSpan.FromMinutes(1)) : null;
+
     /// <summary>What an answer of the platform that is not a success does to the flow; null when it went well.</summary>
     protected FlowResult? Interrupted<T>(FlowContext context, HostingResult<T> result)
     {
@@ -199,6 +206,11 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
             return FlowResult.Failed(PublicationCodes.NoProvider);
         }
 
+        if (StopIfClosing(context) is { } closing)
+        {
+            return closing;
+        }
+
         var result = await provider.PublishVerdictAsync(pullRequest, state.Package.Notice, state.Package.StatusDescription, state.Package.CommentBody, null, CancellationToken.None).ConfigureAwait(false);
         if (Interrupted(context, result) is { } interrupted)
         {
@@ -263,6 +275,7 @@ internal sealed class PublishFlow(
             // so that a write that was sent is annotated or parked and never lost.
             if (_stage is Stage.PullRequest or Stage.Verdict && context.Closing)
             {
+                FollowWhenOpened(context);
                 return FlowResult.WaitForSync(PendingReason.Offline, TimeSpan.FromMinutes(1));
             }
 
@@ -277,12 +290,7 @@ internal sealed class PublishFlow(
             };
             if (stop is { } result)
             {
-                // The pull request exists and is followed whatever happened to the verdict (D-18).
-                if (_pullRequest is not null && _stage >= Stage.Verdict && result.End != FlowEnd.WaitSync && result.End != FlowEnd.WaitProject)
-                {
-                    context.Follow(_pullRequest, run.Value);
-                }
-
+                FollowWhenOpened(context);
                 return result;
             }
 
@@ -290,6 +298,18 @@ internal sealed class PublishFlow(
             {
                 return FlowResult.Done;
             }
+        }
+    }
+
+    /// <summary>
+    /// The pull request exists, its entry is in the log, and it is followed whatever happened to the verdict (D-18). Also when the flow is parked (no connection, the close of the app):
+    /// what is parked is not relaunched on its own after a restart, and the poll must still see the pull request. Following is local state and can be repeated.
+    /// </summary>
+    private void FollowWhenOpened(FlowContext context)
+    {
+        if (_pullRequest is not null && _stage >= Stage.Verdict)
+        {
+            context.Follow(_pullRequest, run.Value);
         }
     }
 
@@ -318,6 +338,11 @@ internal sealed class PublishFlow(
         if (await AuthorizeAsync(operation, holdsProject: true, CancellationToken.None).ConfigureAwait(false) is { } refused)
         {
             return refused;
+        }
+
+        if (StopIfClosing(context) is { } closing)
+        {
+            return closing;
         }
 
         // No token that can be cancelled reaches git: a push is not cut halfway.
@@ -387,6 +412,11 @@ internal sealed class PublishFlow(
                 return refused;
             }
 
+            if (StopIfClosing(context) is { } closingUpdate)
+            {
+                return closingUpdate;
+            }
+
             var updated = await provider.UpdatePullRequestAsync(existing, text, CancellationToken.None).ConfigureAwait(false);
             if (Interrupted(context, updated) is { } failed)
             {
@@ -397,6 +427,22 @@ internal sealed class PublishFlow(
         }
         else
         {
+            if (StopIfClosing(context) is { } closingBeforeOpen)
+            {
+                return closingBeforeOpen;
+            }
+
+            // The account and PR reads can overlap a challenge or a withdrawal. Reuse the approval; never ask again here.
+            if (await AuthorizeAsync(openOperation, holdsProject: false, context.Stopping).ConfigureAwait(false) is { } refusedOpen)
+            {
+                return refusedOpen;
+            }
+
+            if (StopIfClosing(context) is { } closingOpen)
+            {
+                return closingOpen;
+            }
+
             var opened = await provider.OpenPullRequestAsync(new PullRequestDraft(repository, Head, baseBranch, text, draft), CancellationToken.None).ConfigureAwait(false);
             if (opened.Outcome != HostingOutcome.Ok && Unclear(opened.Outcome))
             {
@@ -544,6 +590,22 @@ internal sealed class MergeFlow(
             return FlowResult.Failed(PublicationCodes.BaseChanged);
         }
 
+        if (StopIfClosing(context) is { } closingBeforeMerge)
+        {
+            return closingBeforeMerge;
+        }
+
+        // Observing the PR awaited the platform. The verdict and permission must still hold when the write starts.
+        if (await AuthorizeAsync(operation, false, context.Stopping).ConfigureAwait(false) is { } refusedMerge)
+        {
+            return refusedMerge;
+        }
+
+        if (StopIfClosing(context) is { } closing)
+        {
+            return closing;
+        }
+
         // A write that was sent is not cancelled by the close: it ends (the adapter has its own limit) and its result is annotated or parked as always.
         var merged = await provider.MergeAsync(pullRequest, method, expectedHead, CancellationToken.None).ConfigureAwait(false);
         context.Outcome(merged.Outcome);
@@ -664,6 +726,22 @@ internal sealed class WriteFlow(
 
         if (!done)
         {
+            if (StopIfClosing(context) is { } closingCall)
+            {
+                return closingCall;
+            }
+
+            // Reading the PR or checking a previous attempt may have waited while authority changed. Reuse the approval and check again.
+            if (await AuthorizeAsync(operation, false, context.Stopping, detail).ConfigureAwait(false) is { } changed)
+            {
+                return changed;
+            }
+
+            if (StopIfClosing(context) is { } closingWrite)
+            {
+                return closingWrite;
+            }
+
             // A write that was sent is never cancelled by the close: it ends (the adapter has its own limit) and its result is annotated or parked as always.
             var result = await call(provider, CancellationToken.None).ConfigureAwait(false);
 

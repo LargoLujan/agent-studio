@@ -225,6 +225,49 @@ public sealed class MainViewModelBuilderTests
     }
 
     [Fact]
+    public async Task Changing_project_retires_its_permission_preview_and_its_old_inspector_action()
+    {
+        using var rig = new Rig();
+        var first = Directory.CreateDirectory(rig.Folder.Combine("permissions-a")).FullName;
+        var second = Directory.CreateDirectory(rig.Folder.Combine("permissions-b")).FullName;
+        await rig.Main.OpenProjectAsync(first);
+        await RunAsync(rig.Main, "tools");
+        var previous = Assert.IsType<ToolsDocumentViewModel>(rig.Main.ActiveContent);
+        var oldAction = previous.Tools.Groups.SelectMany(g => g.Rows).First(r => r.CanBeGiven);
+        Assert.NotEmpty(previous.Tools.PermissionReadings);
+
+        await rig.Main.OpenProjectAsync(second);
+
+        Assert.DoesNotContain(previous, rig.Main.Documents);
+        Assert.Empty(previous.Tools.PermissionReadings);
+        var activeAfterSwitch = rig.Main.ActiveContent;
+        previous.Tools.GiveToAgentCommand.Execute(oldAction);
+        Assert.Same(activeAfterSwitch, rig.Main.ActiveContent);
+        await RunAsync(rig.Main, "tools");
+        var current = Assert.IsType<ToolsDocumentViewModel>(rig.Main.ActiveContent);
+        Assert.NotSame(previous, current);
+        Assert.NotEmpty(current.Tools.PermissionReadings);
+    }
+
+    [Fact]
+    public async Task Reloading_the_template_or_profile_retires_the_old_permission_preview()
+    {
+        using var rig = new Rig();
+        await rig.OpenProjectAsync();
+        await RunAsync(rig.Main, "tools");
+        var previous = Assert.IsType<ToolsDocumentViewModel>(rig.Main.ActiveContent);
+        await RunAsync(rig.Main, "orchestrator");
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(rig.Main.ActiveContent);
+
+        await orchestrator.ReloadCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain(previous, rig.Main.Documents);
+        Assert.Empty(previous.Tools.PermissionReadings);
+        await RunAsync(rig.Main, "tools");
+        Assert.NotSame(previous, rig.Main.ActiveContent);
+    }
+
+    [Fact]
     public async Task Giving_a_tool_to_an_agent_leads_to_the_inspector_of_the_layer_team_and_says_so()
     {
         using var rig = new Rig();
@@ -243,6 +286,52 @@ public sealed class MainViewModelBuilderTests
         Assert.Same(orchestrator, rig.Main.ActiveContent);
         Assert.NotNull(orchestrator.Canvas.Team.SelectedAgent);
         Assert.Equal(Texts.Format("Shell_Tools_Give", row.Name), rig.Main.StatusMessage);
+    }
+
+    [Fact]
+    public async Task Changing_project_during_document_activation_does_not_navigate_the_other_projects_team()
+    {
+        using var rig = new Rig();
+        var first = Directory.CreateDirectory(rig.Folder.Combine("navigation-a")).FullName;
+        var second = Directory.CreateDirectory(rig.Folder.Combine("navigation-b")).FullName;
+        await rig.Main.OpenProjectAsync(second);
+        await RunAsync(rig.Main, "orchestrator");
+        var other = Assert.IsType<OrchestratorDocumentViewModel>(rig.Main.ActiveContent);
+        other.Canvas.Layer = CanvasLayer.Plan;
+        await rig.Main.OpenProjectAsync(first);
+        await RunAsync(rig.Main, "orchestrator");
+        var original = Assert.IsType<OrchestratorDocumentViewModel>(rig.Main.ActiveContent);
+        await RunAsync(rig.Main, "tools");
+        var tools = Assert.IsType<ToolsDocumentViewModel>(rig.Main.ActiveContent).Tools;
+        var row = tools.Groups.SelectMany(group => group.Rows).First(item => item.CanBeGiven);
+        var switched = false;
+        string? statusAfterSwitch = null;
+
+        void ChangeProjectOnActivation(object? sender, System.ComponentModel.PropertyChangedEventArgs change)
+        {
+            if (!switched && change.PropertyName == nameof(MainViewModel.ActiveContent)
+                && ReferenceEquals(rig.Main.ActiveContent, original))
+            {
+                switched = true;
+                rig.Main.ProjectPath = second;
+                statusAfterSwitch = rig.Main.StatusMessage;
+            }
+        }
+
+        rig.Main.PropertyChanged += ChangeProjectOnActivation;
+        try
+        {
+            tools.GiveToAgentCommand.Execute(row);
+        }
+        finally
+        {
+            rig.Main.PropertyChanged -= ChangeProjectOnActivation;
+        }
+
+        Assert.True(switched);
+        Assert.Equal(second, rig.Main.ProjectPath);
+        Assert.Equal(CanvasLayer.Plan, other.Canvas.Layer);
+        Assert.Equal(statusAfterSwitch, rig.Main.StatusMessage);
     }
 
     // ---- «Configurar proyecto» ----

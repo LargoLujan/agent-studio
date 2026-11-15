@@ -55,6 +55,11 @@ public sealed class UnattendedShell : IDisposable
         var main = services.GetRequiredService<MainViewModel>();
         var settings = services.GetRequiredService<IAppSettingsStore>();
         var resumes = services.GetService<ConsentedResumes>();
+
+        // Phase 10 (docs/21 D-25): the managed exit waits for the mailbox of GitHub to end the stretch of git it is in, without freezing the window and saying so; App.OnExit
+        // is only the safety net for what does not come through here, and finds this wait done.
+        var mailboxes = services.GetService<RemoteSyncAttachment>();
+        var farewell = mailboxes is { IsAvailable: true } ? new ExitFarewell(() => mailboxes.IsBusy, () => mailboxes.ShutdownAsync(HostingServices.ShutdownWait)) : null;
         var background = BackgroundHost.Create(services, new BackgroundShell(
             ConfirmLeaving: withdrawn => main.ConfirmDiscardOrSaveAsync(main.Documents.ToList(), withdrawn),
             Tray: new TrayShellActions(
@@ -62,7 +67,8 @@ public sealed class UnattendedShell : IDisposable
                 OpenFolder: () => main.OpenFolderCommand.ExecuteAsync(null),
                 Lock: LockAction(services),
                 RecentProjects: () => settings.Load().RecentProjects),
-            Resumes: resumes));
+            Resumes: resumes,
+            Farewell: farewell));
 
         // Saved settings: «Impedir la suspensión mientras hay trabajo» is read again (the others are read where they are used).
         void OnSettingsSaved(object? sender, EventArgs e) => background.SettingsChanged();

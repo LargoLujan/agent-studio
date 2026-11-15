@@ -189,10 +189,21 @@ internal sealed class RigGit(RigActivity activity, Trace trace) : IRemoteGitRunn
         trace.Add("git:" + name);
     }
 
-    public Task<RemoteGitInspection> InspectAsync(ProjectContext project, RemoteRepository destination, CancellationToken ct)
+    /// <summary>A stretch of git in progress: the inspection ends when this task does (the test releases it) after announcing itself in <see cref="InspectEntered"/>.</summary>
+    public Func<Task>? InspectHold { get; set; }
+
+    public TaskCompletionSource InspectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public async Task<RemoteGitInspection> InspectAsync(ProjectContext project, RemoteRepository destination, CancellationToken ct)
     {
         Held("inspect");
-        return Task.FromResult(Inspection);
+        InspectEntered.TrySetResult();
+        if (InspectHold is { } hold)
+        {
+            await hold();
+        }
+
+        return Inspection;
     }
 
     public Task<RemoteBranchRead> ReadBranchAsync(ProjectContext project, RemoteRepository destination, RemoteBranch branch, CancellationToken ct)
@@ -257,9 +268,12 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
         trace.Add("gh:" + name);
     }
 
+    public Action? OnProbe { get; set; }
+
     public Task<HostingAvailability> ProbeAsync(CancellationToken ct)
     {
         Outside("probe");
+        OnProbe?.Invoke();
         return Task.FromResult(new HostingAvailability(true, new Version(2, 96, 0), new HostingCapabilities(Capabilities, [MergeMethod.MergeCommit, MergeMethod.Squash, MergeMethod.Rebase], false)));
     }
 
@@ -281,9 +295,13 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
         return Task.FromResult(new HostingResult<BranchRules>(HostingOutcome.Ok, new BranchRules(true, [])));
     }
 
+    /// <summary>Runs inside the look for the pull request of a branch (a test asks for the close of the mailbox here, between the check of a stage and its write).</summary>
+    public Action? OnFind { get; set; }
+
     public Task<HostingResult<PullRequestRef?>> FindPullRequestAsync(RemoteRepository repository, RemoteBranch head, CancellationToken ct)
     {
         Outside("find");
+        OnFind?.Invoke();
         return Task.FromResult(FoundQueue.Count > 0 ? FoundQueue.Dequeue() : Found);
     }
 
@@ -311,9 +329,12 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     /// <summary>Completed when the provider is entered by a read of a pull request: the signal that the consumer reached the call.</summary>
     public TaskCompletionSource ObserveEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    public CancellationToken LastObserveToken { get; private set; }
+
     public async Task<HostingResult<PullRequestObservation>> ObserveAsync(PullRequestRef pullRequest, ObservationCursor? cursor, CancellationToken ct)
     {
         Outside("observe");
+        LastObserveToken = ct;
         ObserveEntered.TrySetResult();
         if (ObserveDelay is { } delay)
         {
@@ -403,8 +424,13 @@ internal sealed class RigDelivery : IDeliveryService
 {
     public bool Ready { get; set; } = true;
 
-    public Task<DeliveryReadiness> CheckAsync(ProjectContext project, AgentStudio.Domain.Orchestration.RunId run, CancellationToken cancellationToken) =>
-        Task.FromResult(new DeliveryReadiness(Ready, Ready ? HostingP0Data.Head : null, Ready ? "ok" : "not approved"));
+    public Action? OnCheck { get; set; }
+
+    public Task<DeliveryReadiness> CheckAsync(ProjectContext project, AgentStudio.Domain.Orchestration.RunId run, CancellationToken cancellationToken)
+    {
+        OnCheck?.Invoke();
+        return Task.FromResult(new DeliveryReadiness(Ready, Ready ? HostingP0Data.Head : null, Ready ? "ok" : "not approved"));
+    }
 
     public Task<DeliveryResult> DeliverAsync(ProjectContext project, AgentStudio.Domain.Orchestration.RunId run, DeliveryMode mode, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
@@ -485,13 +511,39 @@ internal sealed class RigStore : IRemoteSyncStore
     }
 }
 
-internal sealed class RigPolicy : IRemoteSyncPolicy
+internal sealed class RigPolicy : IRemoteSyncPolicy, IRemoteSyncPermission
 {
-    public bool Allowed { get; set; } = true;
+    private bool _allowed = true;
+
+    public bool Allowed
+    {
+        get => _allowed;
+        set
+        {
+            _allowed = value;
+            Announce(PublicationRig.Project.ProjectId);
+        }
+    }
+
+    public event EventHandler<string>? Changed;
+
+    public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
 
     public TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(5);
 
     public bool PeriodicSyncAllowed(string projectId) => Allowed;
+
+    public bool IsAllowed(string projectId) => Allowed;
+
+    public Task SetAsync(string projectId, bool allowed, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        _allowed = allowed;
+        Announce(projectId);
+        return Task.CompletedTask;
+    }
+
+    public void Announce(string projectId) => Changed?.Invoke(this, projectId);
 }
 
 internal sealed class RigTexts : IUserTextRenderer

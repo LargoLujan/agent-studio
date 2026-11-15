@@ -16,12 +16,13 @@ namespace AgentStudio.Desktop.Background;
 /// What the background asks of the shell that only the shell has (the integration fills it over <c>MainViewModel</c> and
 /// the lock of WP4): the confirmation before leaving (unsaved changes in the editor), the actions of the tray menu, and the
 /// consented resumes, which the managed exit suspends while the app leaves (<c>ResumeScheduler.Suspend</c> and
-/// <c>WaitForIdleAsync</c>, docs/16 D-39).
+/// <c>WaitForIdleAsync</c>, docs/16 D-39), and what the app's services finish before it ends (<see cref="ExitFarewell"/>: the mailbox of GitHub, docs/21 D-25).
 /// </summary>
 public sealed record BackgroundShell(
     Func<CancellationToken, Task<bool>>? ConfirmLeaving = null,
     TrayShellActions? Tray = null,
-    ISuspendableResumes? Resumes = null)
+    ISuspendableResumes? Resumes = null,
+    ExitFarewell? Farewell = null)
 {
     public static BackgroundShell None { get; } = new();
 }
@@ -141,7 +142,8 @@ public sealed class BackgroundHost : IDisposable
             services.GetRequiredService<IAppShutdown>(),
             shell.ConfirmLeaving,
             services.GetService<ILogger<ManagedExit>>(),
-            shell.Resumes);
+            shell.Resumes,
+            shell.Farewell);
         var tray = new TrayController(
             services.GetRequiredService<ITrayIcon>(),
             work,

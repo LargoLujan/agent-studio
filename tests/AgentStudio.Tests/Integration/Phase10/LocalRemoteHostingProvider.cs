@@ -2,7 +2,6 @@ using System.IO;
 using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Hosting;
-using AgentStudio.Tests.Infrastructure.Git;
 
 namespace AgentStudio.Tests.Integration.Phase10;
 
@@ -18,14 +17,16 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
     private static readonly RemoteLogin Merger = RemoteLogin.TryParse("tester")!;
     private readonly string _bare;
     private readonly string _scratch;
+    private readonly NativeLocalGit _git;
     private readonly Lock _gate = new();
     private readonly Dictionary<int, Record> _pulls = [];
     private int _scratches;
     private int _clock;
 
-    public LocalRemoteHostingProvider(string bareFolder, string scratchFolder)
+    public LocalRemoteHostingProvider(NativeLocalGit git, string scratchFolder)
     {
-        _bare = bareFolder;
+        _git = git;
+        _bare = git.Bare;
         _scratch = scratchFolder;
         Directory.CreateDirectory(_scratch);
     }
@@ -80,6 +81,8 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
         public string? HeadAtMerge { get; set; }
 
         public int Stamp { get; set; }
+
+        public bool Deployed { get; set; }
     }
 
     public Task<HostingAvailability> ProbeAsync(CancellationToken ct) =>
@@ -164,7 +167,7 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
                 return Task.FromResult(new HostingResult<bool>(HostingOutcome.Refused, RefusalCode: "branch-moved"));
             }
 
-            TempGitRepo.Git(_bare, "update-ref", "-d", "refs/heads/" + runBranch.Name);
+            _git.Run(_bare, "update-ref", "-d", "refs/heads/" + runBranch.Name);
             return Task.FromResult(new HostingResult<bool>(HostingOutcome.Ok, true));
         }
     }
@@ -183,28 +186,28 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
 
             var clone = Clone();
             var before = Ref(record.Base.Name)!;
-            record.Originals = [.. Lines(TempGitRepo.Git(clone, "rev-list", "--reverse", $"origin/{record.Base.Name}..origin/{record.Head.Name}"))];
-            TempGitRepo.Git(clone, "checkout", "-q", "-B", record.Base.Name, "origin/" + record.Base.Name);
+            record.Originals = [.. Lines(_git.Run(clone, "rev-list", "--reverse", $"origin/{record.Base.Name}..origin/{record.Head.Name}"))];
+            _git.Run(clone, "checkout", "-q", "-B", record.Base.Name, "origin/" + record.Base.Name);
             switch (method)
             {
                 case MergeMethod.Squash:
-                    TempGitRepo.Git(clone, "merge", "--squash", "origin/" + record.Head.Name);
-                    TempGitRepo.Git(clone, "commit", "-q", "-m", $"Squash of pull request #{pullRequest.Number}");
+                    _git.Run(clone, "merge", "--squash", "origin/" + record.Head.Name);
+                    _git.Run(clone, "commit", "-q", "-m", $"Squash of pull request #{pullRequest.Number}");
                     break;
                 case MergeMethod.MergeCommit:
-                    TempGitRepo.Git(clone, "merge", "--no-ff", "-q", "-m", $"Merge pull request #{pullRequest.Number}", "origin/" + record.Head.Name);
+                    _git.Run(clone, "merge", "--no-ff", "-q", "-m", $"Merge pull request #{pullRequest.Number}", "origin/" + record.Head.Name);
                     break;
                 default:
-                    TempGitRepo.Git(clone, "checkout", "-q", "-B", "work", "origin/" + record.Head.Name);
-                    TempGitRepo.Git(clone, "rebase", "-q", "origin/" + record.Base.Name);
-                    TempGitRepo.Git(clone, "checkout", "-q", record.Base.Name);
-                    TempGitRepo.Git(clone, "merge", "--ff-only", "-q", "work");
+                    _git.Run(clone, "checkout", "-q", "-B", "work", "origin/" + record.Head.Name);
+                    _git.Run(clone, "rebase", "-q", "origin/" + record.Base.Name);
+                    _git.Run(clone, "checkout", "-q", record.Base.Name);
+                    _git.Run(clone, "merge", "--ff-only", "-q", "work");
                     break;
             }
 
-            TempGitRepo.Git(clone, "push", "-q", "origin", record.Base.Name);
+            _git.Run(clone, "push", "-q", "origin", record.Base.Name);
             record.MergeCommit = Ref(record.Base.Name);
-            record.Results = [.. Lines(TempGitRepo.Git(_bare, "rev-list", "--reverse", $"{before}..refs/heads/{record.Base.Name}"))];
+            record.Results = [.. Lines(_git.Run(_bare, "rev-list", "--reverse", $"{before}..refs/heads/{record.Base.Name}"))];
             record.HeadAtMerge = head;
             record.State = PullRequestState.Merged;
             record.Stamp = ++_clock;
@@ -218,12 +221,39 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
         lock (_gate)
         {
             var clone = Clone();
-            TempGitRepo.Git(clone, "checkout", "-q", "-B", baseBranch, "origin/" + baseBranch);
+            _git.Run(clone, "checkout", "-q", "-B", baseBranch, "origin/" + baseBranch);
             File.WriteAllText(Path.Combine(clone, "elsewhere-" + (++_clock) + ".txt"), "pushed by somebody else\n");
-            TempGitRepo.Git(clone, "add", "-A");
-            TempGitRepo.Git(clone, "commit", "-q", "-m", "Somebody else's change");
-            TempGitRepo.Git(clone, "push", "-q", "origin", baseBranch);
+            _git.Run(clone, "add", "-A");
+            _git.Run(clone, "commit", "-q", "-m", "Somebody else's change");
+            _git.Run(clone, "push", "-q", "origin", baseBranch);
             return Ref(baseBranch)!;
+        }
+    }
+
+    /// <summary>Somebody else pushes a commit to the branch of the pull request (a file of its own) before it is merged, so that what is merged is not what was published; returns the new head.</summary>
+    public string PushToHead(PullRequestRef pullRequest)
+    {
+        lock (_gate)
+        {
+            _calls.Add("push-to-head");
+            var record = _pulls[pullRequest.Number];
+            var clone = Clone();
+            _git.Run(clone, "checkout", "-q", "-B", record.Head.Name, "origin/" + record.Head.Name);
+            File.WriteAllText(Path.Combine(clone, "added-in-review-" + (++_clock) + ".txt"), "pushed to the branch after the judge saw it\n");
+            _git.Run(clone, "add", "-A");
+            _git.Run(clone, "commit", "-q", "-m", "A change made in the review");
+            _git.Run(clone, "push", "-q", "origin", record.Head.Name);
+            return Ref(record.Head.Name)!;
+        }
+    }
+
+    /// <summary>The platform deploys what the merge left: its next observation of the merged pull request carries a succeeded deployment of the merge commit (the platform keeps it in its own database, as it keeps the state).</summary>
+    public void ReportDeployment(PullRequestRef pullRequest)
+    {
+        lock (_gate)
+        {
+            _calls.Add("deploy");
+            _pulls[pullRequest.Number].Deployed = true;
         }
     }
 
@@ -235,23 +265,23 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
             _calls.Add("revert");
             var record = _pulls[pullRequest.Number];
             var clone = Clone();
-            TempGitRepo.Git(clone, "checkout", "-q", "-B", record.Base.Name, "origin/" + record.Base.Name);
-            var parents = Lines(TempGitRepo.Git(clone, "rev-list", "--parents", "-n", "1", record.MergeCommit!)).Single().Split(' ').Length - 1;
+            _git.Run(clone, "checkout", "-q", "-B", record.Base.Name, "origin/" + record.Base.Name);
+            var parents = Lines(_git.Run(clone, "rev-list", "--parents", "-n", "1", record.MergeCommit!)).Single().Split(' ').Length - 1;
             var before = Ref(record.Base.Name)!;
             if (parents > 1)
             {
-                TempGitRepo.Git(clone, "revert", "--no-edit", "-m", "1", record.MergeCommit!);
+                _git.Run(clone, "revert", "--no-edit", "-m", "1", record.MergeCommit!);
             }
             else
             {
                 foreach (var result in Enumerable.Reverse(record.Results))
                 {
-                    TempGitRepo.Git(clone, "revert", "--no-edit", result);
+                    _git.Run(clone, "revert", "--no-edit", result);
                 }
             }
 
-            TempGitRepo.Git(clone, "push", "-q", "origin", record.Base.Name);
-            return [.. Lines(TempGitRepo.Git(_bare, "rev-list", "--reverse", $"{before}..refs/heads/{record.Base.Name}"))];
+            _git.Run(clone, "push", "-q", "origin", record.Base.Name);
+            return [.. Lines(_git.Run(_bare, "rev-list", "--reverse", $"{before}..refs/heads/{record.Base.Name}"))];
         }
     }
 
@@ -270,14 +300,14 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
             var head = merged ? record.HeadAtMerge! : headNow ?? record.HeadAtMerge ?? Ref(record.Base.Name)!;
             var originals = merged
                 ? record.Originals
-                : headNow is null ? [] : Lines(TempGitRepo.Git(_bare, "rev-list", "--reverse", $"refs/heads/{record.Base.Name}..refs/heads/{record.Head.Name}"));
+                : headNow is null ? [] : Lines(_git.Run(_bare, "rev-list", "--reverse", $"refs/heads/{record.Base.Name}..refs/heads/{record.Head.Name}"));
 
             RemoteMergeMode? mode = null;
             var reverts = new List<string>();
             if (merged)
             {
                 // The mode is read from the commits, as the adapter does: two parents is a merge commit; several results are a rebase, and one result for several originals is a squash (a branch with merge commits that a rebase flattens to one commit is read as a squash: the commits cannot tell them apart).
-                var parents = Lines(TempGitRepo.Git(_bare, "rev-list", "--parents", "-n", "1", record.MergeCommit!)).Single().Split(' ').Length - 1;
+                var parents = Lines(_git.Run(_bare, "rev-list", "--parents", "-n", "1", record.MergeCommit!)).Single().Split(' ').Length - 1;
                 mode = parents > 1
                     ? RemoteMergeMode.MergeCommit
                     : record.Results.Count > 1 ? RemoteMergeMode.Rebase
@@ -288,7 +318,7 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
                 var targets = parents > 1 ? [record.MergeCommit!] : record.Results;
                 foreach (var target in targets)
                 {
-                    reverts.AddRange(Lines(TempGitRepo.Git(_bare, "log", "--format=%H", $"--grep=This reverts commit {target}", "refs/heads/" + record.Base.Name)));
+                    reverts.AddRange(Lines(_git.Run(_bare, "log", "--format=%H", $"--grep=This reverts commit {target}", "refs/heads/" + record.Base.Name)));
                 }
             }
 
@@ -309,7 +339,7 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
                 0,
                 false,
                 [.. reverts.Distinct(StringComparer.Ordinal)],
-                null,
+                merged && record.Deployed ? new RemoteDeployment(1, record.MergeCommit!, DeploymentState.Succeeded) : null,
                 new DateTimeOffset(2026, 11, 13, 12, 0, 0, TimeSpan.Zero).AddSeconds(record.Stamp));
             snapshot.EnsureValid();
             return Task.FromResult(new HostingResult<PullRequestObservation>(HostingOutcome.Ok, new PullRequestObservation(snapshot, new ObservationCursor(new Dictionary<ObservedResource, string>(), snapshot), RemoteDisplayTexts.None)));
@@ -318,17 +348,17 @@ internal sealed class LocalRemoteHostingProvider : IHostingProvider
 
     private string? Ref(string branch)
     {
-        var text = TempGitRepo.Git(_bare, "for-each-ref", "--format=%(objectname)", "refs/heads/" + branch).Trim();
+        var text = _git.Run(_bare, "for-each-ref", "--format=%(objectname)", "refs/heads/" + branch).Trim();
         return text.Length == 0 ? null : text;
     }
 
     private string Clone()
     {
         var folder = Path.Combine(_scratch, "clone-" + (++_scratches));
-        TempGitRepo.Git(_scratch, "clone", "-q", _bare, folder);
-        TempGitRepo.Git(folder, "config", "user.name", "Platform");
-        TempGitRepo.Git(folder, "config", "user.email", "platform@example.invalid");
-        TempGitRepo.Git(folder, "config", "commit.gpgsign", "false");
+        _git.Run(_scratch, "clone", "-q", _git.Address, folder);
+        _git.Run(folder, "config", "user.name", "Platform");
+        _git.Run(folder, "config", "user.email", "platform@example.invalid");
+        _git.Run(folder, "config", "commit.gpgsign", "false");
         return folder;
     }
 

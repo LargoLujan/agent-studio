@@ -31,6 +31,47 @@ public sealed class MonitorLayoutPassTests
     /// </summary>
     public const double LoadMargin = 2;
 
+    /// <summary>
+    /// What makes the pass below cheap, without a clock: the visual tree the monitor builds does not grow with the number of tasks and agents (the lists
+    /// virtualize), so the layout and the render of a repaint cost what is in view. Four times the nodes may add the few that fit, never four times the tree.
+    /// </summary>
+    [Fact]
+    public void The_visual_tree_of_the_monitor_does_not_grow_with_the_number_of_tasks()
+    {
+        var small = TreeSizeWith(20);
+        var large = TreeSizeWith(80);
+
+        Assert.True(large < small * 1.5, $"The monitor built {large} elements for 80 tasks and {small} for 20: the tree grows with the nodes, so a repaint costs what they are, not what is in view.");
+    }
+
+    private static int TreeSizeWith(int nodes)
+    {
+        var tasks = Enumerable.Range(1, nodes).Select(i => View("T" + i, "exec" + i, WorkTaskStatus.Running)).ToArray();
+        var (monitor, run, ui, time) = Open(tasks);
+        monitor.Roster = [.. Enumerable.Range(1, nodes).Select(i => AgentDef("exec" + i, "Ejecutor " + i))];
+        run.Emit(Enumerable.Range(1, nodes).Select(i => (OrchestrationEvent)Step("T" + i, 1_000 * i)).ToArray());
+        Pump(ui, nodes);
+        Settle(time, ui);
+        return WpfHost.Run(() =>
+        {
+            OrchestratorTheme.EnsureLoaded();
+            var view = new RunMonitorView { DataContext = monitor };
+            OffscreenRender.Render(view, 1440, 900);
+            return CountVisuals(view);
+        });
+    }
+
+    private static int CountVisuals(DependencyObject root)
+    {
+        var count = 1;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            count += CountVisuals(VisualTreeHelper.GetChild(root, i));
+        }
+
+        return count;
+    }
+
     // Measurement, outside the CI like the pass of the canvas (F13-7): in the whole suite the rounds went from 52 to 411 ms on
     // one machine, so as a gate it would only tell how busy the processors were.
     [Fact]

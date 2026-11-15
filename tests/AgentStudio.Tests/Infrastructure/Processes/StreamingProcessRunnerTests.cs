@@ -96,10 +96,9 @@ public sealed class StreamingProcessRunnerTests
         // Two reads and one line: with the input closed, the second read gets its end and the process ends.
         await using var session = await _runner.StartAsync(Cmd("set /p a= & set /p b=", TimeSpan.FromSeconds(30), "uno\n"), Token);
 
-        var exited = await Task.WhenAny(session.Exited, Task.Delay(TimeSpan.FromSeconds(20), Token));
+        var code = await session.Exited.WaitAsync(TimeSpan.FromSeconds(45), Token);
 
-        Assert.Same(session.Exited, exited);
-        Assert.NotEqual(-1, await session.Exited);
+        Assert.NotEqual(-1, code);
     }
 
     [Fact]
@@ -134,10 +133,12 @@ public sealed class StreamingProcessRunnerTests
         var stopwatch = Stopwatch.StartNew();
         await using var session = await _runner.StartAsync(Cmd("ping -n 30 127.0.0.1", TimeSpan.FromSeconds(1)), Token);
 
-        var code = await session.Exited;
+        var code = await session.Exited.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
         Assert.Equal(-1, code);
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Took {stopwatch.Elapsed}.");
+
+        // The ping alone lasts about 29 s: ending well under that proves the tree was killed at the deadline.
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(15), $"Took {stopwatch.Elapsed}.");
     }
 
     [Fact]

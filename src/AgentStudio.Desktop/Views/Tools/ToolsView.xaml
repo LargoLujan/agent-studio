@@ -19,6 +19,43 @@
         <TextBlock DockPanel.Dock="Top" Style="{StaticResource SecondaryText}" Margin="16,0,16,8" Text="{l:T Tools_Empty}"
                    Visibility="{Binding HasAgents, Converter={StaticResource Orchestrator.FalseToVisibility}}"/>
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+          <StackPanel>
+            <StackPanel Margin="16,8,16,12">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Tools_Permissions_Title}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Tools_Permissions_Note}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,4" Text="{l:T Tools_Permissions_Exposure}"/>
+                <ItemsControl ItemsSource="{Binding PermissionReadings}" Focusable="False" AutomationProperties.Name="{l:T Tools_Permissions_Title}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type tools:EffectivePermissionReading}">
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6" AutomationProperties.Name="{Binding AccessibleName}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Files}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Network}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding OutboundData}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,12,0,0" Text="{l:T Tools_Publication_Title}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Tools_Publication_Note}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,4" Text="{l:T Tools_Publication_Sync}"/>
+                <ItemsControl ItemsSource="{Binding PublicationReadings}" Focusable="False" AutomationProperties.Name="{l:T Tools_Publication_Title}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type tools:PublicationPermissionReading}">
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6" AutomationProperties.Name="{Binding AccessibleName}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Data}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Approval}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Verdict}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
             <ItemsControl ItemsSource="{Binding Groups}" Margin="16,0,16,12" Focusable="False">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type tools:ToolGroup}">
@@ -56,6 +93,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+          </StackPanel>
         </ScrollViewer>
     </DockPanel>
 </UserControl>

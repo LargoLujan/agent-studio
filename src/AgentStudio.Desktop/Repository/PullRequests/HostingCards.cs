@@ -353,7 +353,8 @@ public sealed partial class PublishCardViewModel : HostingCardViewModel
             }
         }
 
-        if (!preview.Capabilities.Has(preview.Existing is null ? HostingCapability.OpenPullRequest : HostingCapability.UpdatePullRequest))
+        // An early refusal has not read gh's capabilities; absence of a reading says nothing about its version.
+        if (preview.CapabilitiesRead && !preview.Capabilities.Has(preview.Existing is null ? HostingCapability.OpenPullRequest : HostingCapability.UpdatePullRequest))
         {
             Lines.Add(new CardLine(Texts.Get(preview.Existing is null ? "Hosting_Publish_NoOpen" : "Hosting_Update_NoUpdate"), true));
         }

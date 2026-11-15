@@ -79,7 +79,8 @@
 | Fase 13: `IRunLiveProjection` y sus tipos (§21.5) | `src/AgentStudio.Desktop/Orchestrator/Live/IRunLiveProjection.cs` | Contrato | Fase 13 (monitor, WP8) |
 | Reglas del dominio (abajo) | `src/AgentStudio.Domain/**` | Implementado | — |
 | `ContextHealthEvaluator` (movido desde `Observability` en la Fase 4) | `src/AgentStudio.Domain/Metrics/ContextHealth.cs` | Implementado | — |
-| `PathAccessPolicy` | `src/AgentStudio.Security/Paths/` | Implementado (comprobación léxica) | Resolución de enlaces en Fase 7 |
+| `PathAccessPolicy` | `src/AgentStudio.Security/Paths/` | Propuesta F7-2: nombre y destino resuelto de enlaces/junctions; concesiones congeladas | Sin consumidores de producción ni apertura atómica; comprobaciones en [23](23-fase-7-seguridad-y-pruebas.md) |
+| `IProjectCredentialVault`, `IProjectCredentialVaults` | `Application/Security/ProjectCredentialVaultContracts.cs` | Propuesta F7-7: fábrica registrada en Desktop, DPAPI con carpeta y entropía por proyecto | No sustituye la bóveda global del doctor ni autoriza usar o revelar secretos |
 | `IPromptJournal`, `PromptJournalEntry`, `PromptOutcome` | `src/AgentStudio.Application/Knowledge/PromptJournal.cs` | Implementado | `Memory/Journal/MarkdownDailyJournal` |
 | `JournalingAgentProvider` (decorador obligatorio de `IAgentProvider`) | `src/AgentStudio.Application/Providers/JournalingAgentProvider.cs` | Implementado | — |
 | Dominio de skills: `SkillEntry`, `SkillSectors`, `SkillActivationResolver`, `SkillHealthReport`, `SkillFrontmatter`, `SkillTagger`, `SkillRecommender` | `src/AgentStudio.Domain/Skills/` | Implementado | — |

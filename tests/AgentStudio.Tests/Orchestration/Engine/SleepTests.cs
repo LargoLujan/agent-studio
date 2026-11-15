@@ -456,6 +456,10 @@ internal sealed class FakePowerEvents : IPowerEvents
 internal sealed class SuspendableClock(TimeProvider awake, bool timestampCountsSleep) : TimeProvider
 {
     private readonly ConcurrentQueue<TimeSpan> _timers = new();
+    private readonly object _alarmLock = new();
+    private readonly Dictionary<long, ActiveAlarm> _activeAlarms = [];
+    private TaskCompletionSource _alarmsChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private long _alarmSequence;
     private long _sleptTicks;
 
     public TimeSpan Slept => TimeSpan.FromTicks(Interlocked.Read(ref _sleptTicks));
@@ -477,7 +481,8 @@ internal sealed class SuspendableClock(TimeProvider awake, bool timestampCountsS
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
-        var timer = awake.CreateTimer(callback, state, dueTime, period);
+        var timer = new ObservedTimer(this, callback, state);
+        timer.Start(awake, dueTime, period);
         _timers.Enqueue(dueTime);
         return timer;
     }
@@ -485,6 +490,109 @@ internal sealed class SuspendableClock(TimeProvider awake, bool timestampCountsS
     /// <summary>Waits, in real time, until <paramref name="count"/> timers whose due time <paramref name="due"/> accepts are armed.</summary>
     public Task ArmedAsync(Func<TimeSpan, bool> due, int count, string what) =>
         RunTestSupport.WaitUntilAsync(() => _timers.Count(due) >= count, what);
+
+    /// <summary>Reads the pending one-shot alarms and their next change signal together, so a waiter cannot miss an arm or cancellation.</summary>
+    public (IReadOnlyList<ActiveAlarm> Active, Task Changed) ReadAlarms()
+    {
+        lock (_alarmLock)
+        {
+            return ([.. _activeAlarms.Values], _alarmsChanged.Task);
+        }
+    }
+
+    public sealed record ActiveAlarm(long Sequence, TimeSpan DueTime);
+
+    private void AlarmsChanged()
+    {
+        var previous = _alarmsChanged;
+        _alarmsChanged = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        previous.TrySetResult();
+    }
+
+    /// <summary>Only pending one-shot alarms are barriers. The wrapped timer still receives every change and disposal.</summary>
+    /// <remarks>Quota waits create a new timer each time. Sequential Change is observed; concurrent rearming of the same timer is outside this observer's scope.</remarks>
+    private sealed class ObservedTimer(SuspendableClock owner, TimerCallback callback, object? state) : ITimer
+    {
+        private ITimer? _inner;
+        private long _sequence;
+        private bool _fired;
+        private bool _disposed;
+
+        public void Start(TimeProvider clock, TimeSpan due, TimeSpan period)
+        {
+            var sequence = BeginArm();
+            _inner = clock.CreateTimer(OnTick, null, due, period);
+            EndArm(sequence, due, period, success: true);
+        }
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            var sequence = BeginArm();
+            var changed = _inner!.Change(dueTime, period);
+            EndArm(sequence, dueTime, period, changed);
+            return changed;
+        }
+
+        private long BeginArm()
+        {
+            lock (owner._alarmLock)
+            {
+                owner._activeAlarms.Remove(_sequence);
+                _sequence = ++owner._alarmSequence;
+                _fired = false;
+                owner.AlarmsChanged();
+                return _sequence;
+            }
+        }
+
+        private void EndArm(long sequence, TimeSpan due, TimeSpan period, bool success)
+        {
+            lock (owner._alarmLock)
+            {
+                // CreateTimer/Change can invoke a zero-due callback before returning: that alarm is already history.
+                if (_sequence == sequence && !_fired && !_disposed && success && due != Timeout.InfiniteTimeSpan
+                    && (period == Timeout.InfiniteTimeSpan || period == TimeSpan.Zero))
+                {
+                    owner._activeAlarms[sequence] = new ActiveAlarm(sequence, due);
+                    owner.AlarmsChanged();
+                }
+            }
+        }
+
+        private void OnTick(object? unused)
+        {
+            lock (owner._alarmLock)
+            {
+                _fired = true;
+                owner._activeAlarms.Remove(_sequence);
+                owner.AlarmsChanged();
+            }
+
+            callback(state);
+        }
+
+        private void Retire()
+        {
+            lock (owner._alarmLock)
+            {
+                _disposed = true;
+                owner._activeAlarms.Remove(_sequence);
+                owner.AlarmsChanged();
+            }
+        }
+
+        public void Dispose()
+        {
+            Retire();
+            _inner!.Dispose();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            Retire();
+            await _inner!.DisposeAsync().ConfigureAwait(false);
+        }
+    }
 
     /// <summary>The machine sleeps for <paramref name="duration"/> and wakes: no timer fires, and no awake time goes by.</summary>
     public void Sleep(TimeSpan duration) => Interlocked.Add(ref _sleptTicks, duration.Ticks);

@@ -67,6 +67,15 @@ public interface IAppShutdown
 }
 
 /// <summary>
+/// What the app's own services still have to finish before the managed exit ends the app (docs/21 D-25: the mailbox of GitHub ends the stretch of git it is in, a <c>push</c> is not
+/// cut in half). The exit waits for <see cref="WaitAsync"/> without blocking the interface, after the choice was written in the logs and the runs were paused, and tells the person
+/// while it waits when <see cref="IsPending"/> says there is something to wait for.
+/// </summary>
+/// <param name="IsPending">Whether there is something going on that the exit is about to wait for (read on the UI thread, once, right before the wait).</param>
+/// <param name="WaitAsync">Ends what is going on, with its own limit; it must not need the UI thread.</param>
+public sealed record ExitFarewell(Func<bool> IsPending, Func<Task> WaitAsync);
+
+/// <summary>
 /// The consented resumes (docs/16 D-39) as the managed exit holds them back while the app leaves: in the app,
 /// <c>ConsentedResumes</c> over the engine's <c>ResumeScheduler.Suspend</c> and <c>WaitForIdleAsync</c>. An interface so the
 /// exit can be tested without the engine.
@@ -160,6 +169,7 @@ public sealed class ManagedExit : IDisposable
     private readonly Func<CancellationToken, Task<bool>>? _confirmLeaving;
     private readonly ILogger? _log;
     private readonly ISuspendableResumes? _resumes;
+    private readonly ExitFarewell? _farewell;
 
     /// <summary>The questions of the exit open now (its own, and the shell's confirmation): the lock withdraws them.</summary>
     private CancellationTokenSource? _questions;
@@ -196,6 +206,7 @@ public sealed class ManagedExit : IDisposable
     /// </param>
     /// <param name="log">The app's log, for a choice that could not be written.</param>
     /// <param name="resumes">The consented resumes, held back while the app leaves; null when nothing resumes by itself.</param>
+    /// <param name="farewell">What the app's services finish before the app ends (the mailbox of GitHub); null when there is nothing to wait for.</param>
     public ManagedExit(
         BackgroundWorkRegistry work,
         IExitPrompt prompt,
@@ -204,7 +215,8 @@ public sealed class ManagedExit : IDisposable
         IAppShutdown shutdown,
         Func<CancellationToken, Task<bool>>? confirmLeaving = null,
         ILogger<ManagedExit>? log = null,
-        ISuspendableResumes? resumes = null)
+        ISuspendableResumes? resumes = null,
+        ExitFarewell? farewell = null)
     {
         ArgumentNullException.ThrowIfNull(work);
         ArgumentNullException.ThrowIfNull(prompt);
@@ -219,7 +231,17 @@ public sealed class ManagedExit : IDisposable
         _confirmLeaving = confirmLeaving;
         _log = log;
         _resumes = resumes;
+        _farewell = farewell;
     }
+
+    /// <summary>What the person is told while the exit waits for the mailbox of GitHub to end the stretch of git it is in.</summary>
+    public static string FinishingNotice => Texts.Get("Background_Exit_Finishing");
+
+    /// <summary>The exit is waiting for the app's services (the mailbox of GitHub) to finish: the tray says so. The window is not frozen meanwhile.</summary>
+    public bool IsFinishing { get; private set; }
+
+    /// <summary>Raised on the UI thread with <see cref="FinishingNotice"/> when the exit starts waiting for something that is still going on.</summary>
+    public event EventHandler<string>? Finishing;
 
     /// <summary>Whether this exit holds a suspension of the consented resumes now.</summary>
     public bool SuspendsResumes => _suspension is not null;
@@ -414,7 +436,7 @@ public sealed class ManagedExit : IDisposable
         Decide(going);
         SetState(ExitState.Exiting, null);
         await RecordAsync(going, RunExitChoice.ExitNow).ConfigureAwait(true);
-        _shutdown.Shutdown();
+        await EndAppAsync().ConfigureAwait(true);
     }
 
     /// <summary>«No salir» while waiting to exit: the app stays, the window shows again, and the runs stay paused.</summary>
@@ -684,7 +706,7 @@ public sealed class ManagedExit : IDisposable
         {
             SetState(ExitState.Exiting, null);
             await RecordAsync(leaving, choice).ConfigureAwait(true);
-            _shutdown.Shutdown();
+            await EndAppAsync().ConfigureAwait(true);
             return CloseOutcome.Exiting;
         }
 
@@ -821,8 +843,57 @@ public sealed class ManagedExit : IDisposable
 
         _work.Changed -= OnWorkChanged;
         SetState(ExitState.Exiting, null);
-        _shutdown.Shutdown();
+
+        // Nobody awaits this (it comes from the event of the registry): EndAppAsync never throws and always ends the app.
+        _ = EndAppAsync();
         return true;
+    }
+
+    /// <summary>
+    /// Ends the app once what the app's services have to finish is done (<see cref="ExitFarewell"/>: the mailbox of GitHub ends the stretch of git it is in), waiting without blocking the
+    /// interface and saying so while it lasts. It comes after the choice was written in the logs and the runs were paused, so what the exit does with the work keeps its order. What
+    /// fails while waiting is noted in the log and the app ends all the same; it never throws.
+    /// </summary>
+    private async Task EndAppAsync()
+    {
+        try
+        {
+            if (_farewell is { } farewell)
+            {
+                try
+                {
+                    if (farewell.IsPending())
+                    {
+                        // The window goes away while the app waits: nothing new (a publication, a run, another project) can be asked of an app that is leaving. The tray stays and says
+                        // what it waits for.
+                        _window.Hide();
+                        IsFinishing = true;
+                        StateChanged?.Invoke(this, EventArgs.Empty);
+                        Finishing?.Invoke(this, FinishingNotice);
+                    }
+
+                    await farewell.WaitAsync().ConfigureAwait(true);
+                }
+#pragma warning disable CA1031 // What the services finish is a courtesy of the exit: a failure is noted, and the app ends all the same.
+                catch (Exception ex)
+#pragma warning restore CA1031
+                {
+                    _log?.LogWarning(ex, "The services of the app could not finish before the exit.");
+                }
+                finally
+                {
+                    IsFinishing = false;
+                }
+            }
+
+            _shutdown.Shutdown();
+        }
+#pragma warning disable CA1031 // Nobody awaits the exit that came from an event: the failure goes to the app's log.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            _log?.LogError(ex, "The app could not be ended after the services finished.");
+        }
     }
 
     /// <summary>

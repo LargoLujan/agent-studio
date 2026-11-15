@@ -3487,6 +3487,9 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
   <data name="Text_hosting_refused_state_changed" xml:space="preserve">
     <value>El estado cambió mientras decidías. Vuelve a empezar.</value>
   </data>
+  <data name="Text_hosting_refused_closing" xml:space="preserve">
+    <value>Agent Studio se está cerrando. Vuelve a intentarlo cuando lo abras de nuevo.</value>
+  </data>
   <data name="Text_hosting_refused_needs_approval" xml:space="preserve">
     <value>Esta operación necesita tu aprobación y no se ha dado.</value>
   </data>
