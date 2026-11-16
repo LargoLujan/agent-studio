@@ -213,7 +213,7 @@
                      the pin docks them. -->
                 <xcad:LayoutRoot>
                     <xcad:LayoutPanel Orientation="Horizontal">
-                        <xcad:LayoutAnchorablePane DockWidth="240">
+                        <xcad:LayoutAnchorablePane DockWidth="240" DockMinWidth="200">
                             <xcad:LayoutAnchorable ContentId="panel:explorer" Title="{l:T Main_Panel_Explorer}" CanFloat="True">
                                 <views:ExplorerView x:Name="ExplorerPanel"/>
                             </xcad:LayoutAnchorable>

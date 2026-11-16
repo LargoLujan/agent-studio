@@ -146,6 +146,35 @@ public sealed class MainWindowTests
         Assert.Equal(340, pinnedWidth, 0);
     }
 
+    /// <summary>
+    /// Review of the first wave: with the activity bar showing its names, a layout saved with the explorer about 100 wide brought it
+    /// back with «E…» for a header. The explorer keeps 200 at least: a fresh layout and a restored one alike.
+    /// </summary>
+    [Fact]
+    public async Task AnExplorerSavedTooNarrow_ComesBackWideEnoughForItsHeaderAndItsButton()
+    {
+        using var temp = new TempDirectory();
+        var first = temp.CreateDirectory("first");
+        var second = temp.CreateDirectory("second");
+
+        var (fresh, restored, least) = await WpfHost.RunAsync(async () =>
+        {
+            var window = CreateWindow(ShellFactory.CreateMain(), new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            var vm = (MainViewModel)window.DataContext;
+            var freshLeast = ((LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent).DockMinWidth;
+            await vm.OpenProjectAsync(first);
+            ((LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent).DockWidth = new GridLength(100);
+            await vm.OpenProjectAsync(second);
+            await vm.OpenProjectAsync(first);
+            var pane = (LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent;
+            return (freshLeast, pane.DockWidth, pane.DockMinWidth);
+        });
+
+        Assert.Equal(200, fresh);
+        Assert.Equal(new GridLength(200), restored);
+        Assert.Equal(200, least);
+    }
+
     /// <summary>A project without a saved layout gets the default one back from its serialized copy, the column for pinning included.</summary>
     [Fact]
     public async Task AProjectWithoutASavedLayout_GetsTheDefaultLayout_WithItsColumnForThePinnedPanels()
