@@ -98,8 +98,9 @@ internal sealed class RunResumer(EnginePorts ports)
 
         // A profile frozen before a rule of this version (the invisible and direction characters, the double quote in a program, docs/24)
         // runs with commands the person may not see as they run, and the verifier would refuse its steps at every attempt: it is not
-        // resumed, the alert says which rule, and the person reads why in plain words.
-        if (VerificationRules.Check(record.Verification) is { Count: > 0 } broken)
+        // resumed, the alert says which rule, and the person reads why in plain words. The steps are checked as the runner and the
+        // integrator check them (CheckSteps): a run may start with no steps at all, and that is no broken rule.
+        if (VerificationRules.CheckSteps(record.Verification.Steps ?? []) is { Count: > 0 } broken)
         {
             await NotResumableAsync(
                 recorder,
