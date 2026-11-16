@@ -546,6 +546,36 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task While_a_trial_runs_the_commands_and_the_size_cannot_change_and_a_change_that_slips_through_drops_its_result()
+    {
+        var runner = new GatedTrialRunner();
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()) };
+        var vm = await rig.OpenAsync();
+        Assert.True(vm.ChecksEditable);
+        Assert.True(vm.CanChangeSize);
+
+        var trying = vm.TryChecksCommand.ExecuteAsync(null);
+        await WaitForAsync(() => runner.Started);
+
+        Assert.True(vm.IsTrying);
+        Assert.False(vm.ChecksEditable);
+        Assert.False(vm.CanChangeSize);
+        Assert.False(vm.UseProposedChecksCommand.CanExecute(null));
+        Assert.False(vm.RestoreCurrentChecksCommand.CanExecute(null));
+
+        // A change made from code while it runs: what the trial finds is no longer about the commands on screen.
+        Row(vm, "build").CommandText = "dotnet build Other.slnx";
+        runner.Release();
+        await trying;
+
+        Assert.Null(vm.TrialPassed);
+        Assert.Equal(Spanish.Get("Setup_Verification_Trial_Stale"), vm.TrialStatus);
+        Assert.Empty(vm.TrialLines);
+        Assert.True(vm.ChecksEditable);
+        Assert.True(vm.CanChangeSize);
+    }
+
+    [Fact]
     public async Task Without_the_trial_composed_the_button_is_not_offered()
     {
         var vm = await new Rig().OpenAsync();
@@ -782,6 +812,30 @@ internal sealed class SetupTrialRunner : IVerificationRunner
         }
 
         return Task.FromResult<IReadOnlyList<VerificationResult>>(results);
+    }
+}
+
+/// <summary>A verifier that holds the trial until the test lets it go, or until it is cancelled (which it honours, as the real one does).</summary>
+internal sealed class GatedTrialRunner : IVerificationRunner
+{
+    private readonly TaskCompletionSource _gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public bool Started { get; private set; }
+
+    public Exception? Failure { get; init; }
+
+    public void Release() => _gate.TrySetResult();
+
+    public async Task<IReadOnlyList<VerificationResult>> RunAsync(string workingDirectory, IReadOnlyList<VerificationStep> steps, EvidenceScope scope, IProgress<ProcessOutputLine>? output, CancellationToken cancellationToken)
+    {
+        Started = true;
+        await _gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (Failure is not null)
+        {
+            throw Failure;
+        }
+
+        return [.. steps.Select(s => new VerificationResult(s.Id, new EvidenceRecord(new EvidenceId("ev-" + s.Id), s.Kind, EvidenceOrigin.CapturedBySystem, s.Title, "agent-studio", DateTimeOffset.UnixEpoch, new string('a', 64), s.Kind == EvidenceKind.TestRun ? new TestRunSummary(1, 0, 0, 0) : null), true, false, 0))];
     }
 }
 

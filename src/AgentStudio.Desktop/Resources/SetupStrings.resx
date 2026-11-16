@@ -753,4 +753,7 @@ Elegir cuánto puede durar cada intento.</value>
     <value>No se guardó {0}. Tus cambios siguen aquí para que lo intentes otra vez.</value>
     <comment>{0}: the steps that were not saved.</comment>
   </data>
+  <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
+    <value>Las órdenes cambiaron mientras se probaban. Pruébalas otra vez.</value>
+  </data>
 </root>

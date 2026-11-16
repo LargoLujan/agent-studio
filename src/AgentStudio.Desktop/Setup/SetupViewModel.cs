@@ -215,8 +215,15 @@ public sealed partial class SetupViewModel : ObservableObject
 
     /// <summary>The commands are running in «Probarla ahora».</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(TryChecksCommand), nameof(StopTrialCommand), nameof(ApplyCommand), nameof(GoToWorkCommand))]
+    [NotifyPropertyChangedFor(nameof(ChecksEditable), nameof(CanChangeSize))]
+    [NotifyCanExecuteChangedFor(nameof(TryChecksCommand), nameof(StopTrialCommand), nameof(ApplyCommand), nameof(GoToWorkCommand), nameof(RestoreCurrentChecksCommand), nameof(UseProposedChecksCommand))]
     private bool _isTrying;
+
+    /// <summary>The commands can be changed now: never over a file that cannot be used, and not while «Probarla ahora» runs them.</summary>
+    public bool ChecksEditable => CanEditChecks && !IsTrying;
+
+    /// <summary>The size of the team can be changed now: not while the project is read or a trial runs, which would change the commands under it.</summary>
+    public bool CanChangeSize => !IsBusy && !IsTrying;
 
     /// <summary>What «Probarla ahora» says as a whole: running, it works, it does not, or why it could not run.</summary>
     [ObservableProperty]
@@ -564,7 +571,7 @@ public sealed partial class SetupViewModel : ObservableObject
     }
 
     /// <summary>«Volver a las que tienes ahora»: the rows of the commands in force.</summary>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(ChecksEditable))]
     private void RestoreCurrentChecks()
     {
         if (_proposal?.Verification.Current is { } current && CanEditChecks)
@@ -575,7 +582,7 @@ public sealed partial class SetupViewModel : ObservableObject
     }
 
     /// <summary>«Usar la propuesta»: the rows of the commands proposed for the stack, as an edit of the person (the step turns on when they change what is saved).</summary>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(ChecksEditable))]
     private void UseProposedChecks()
     {
         if (_proposal?.Verification.Proposed is { } proposed && CanEditChecks)
@@ -623,7 +630,16 @@ public sealed partial class SetupViewModel : ObservableObject
         try
         {
             var result = await _trial.RunAsync(project, profile, stop.Token).ConfigureAwait(true);
-            ShowTrial(result, profile, text);
+
+            // What it found is about the commands it ran: if the ones on screen are others by now, it says nothing of them.
+            if (EditedChecks(out _)?.ContentHash != profile.ContentHash)
+            {
+                TrialStatus = text.Get("Setup_Verification_Trial_Stale");
+            }
+            else
+            {
+                ShowTrial(result, profile, text);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -731,7 +747,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
     partial void OnSelectedSizeChanged(SetupSizeChoice value)
     {
-        if (!_loading && _proposal is not null && value.Size != _proposal.Team.Size)
+        if (!_loading && !IsTrying && _proposal is not null && value.Size != _proposal.Team.Size)
         {
             _ = ResizeAsync(value.Size);
         }
@@ -1012,6 +1028,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
     partial void OnIsBusyChanged(bool value)
     {
+        OnPropertyChanged(nameof(CanChangeSize));
         BackCommand.NotifyCanExecuteChanged();
         NextCommand.NotifyCanExecuteChanged();
         ApplyCommand.NotifyCanExecuteChanged();
@@ -1021,6 +1038,9 @@ public sealed partial class SetupViewModel : ObservableObject
 
     partial void OnCanEditChecksChanged(bool value)
     {
+        OnPropertyChanged(nameof(ChecksEditable));
+        RestoreCurrentChecksCommand.NotifyCanExecuteChanged();
+        UseProposedChecksCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasCurrentChecks));
         OnPropertyChanged(nameof(HasProposedChecks));
     }

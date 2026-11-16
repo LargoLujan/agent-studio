@@ -205,7 +205,7 @@
                         <CheckBox Style="{StaticResource Setup.CheckBox}" Content="{l:T Setup_Include_Step}" IsChecked="{Binding Steps[2].IsIncluded}"/>
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Team_Hint}"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Team_Size_Label}"/>
-                        <ComboBox ItemsSource="{Binding Sizes}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Left" MinWidth="160" Margin="0,4,0,8"
+                        <ComboBox ItemsSource="{Binding Sizes}" SelectedItem="{Binding SelectedSize}" IsEnabled="{Binding CanChangeSize}" HorizontalAlignment="Left" MinWidth="160" Margin="0,4,0,8"
                                   AutomationProperties.Name="{l:T Setup_Team_Size_Label}"/>
                         <ItemsControl ItemsSource="{Binding TeamRows}" Focusable="False">
                             <ItemsControl.ItemTemplate>
@@ -286,7 +286,7 @@
                                         <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Label}"/>
                                         <TextBox Style="{StaticResource Setup.TextBox}" Margin="0,2,0,0" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap"
                                                  Text="{Binding CommandText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}"
-                                                 IsEnabled="{Binding DataContext.CanEditChecks, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                 IsEnabled="{Binding DataContext.ChecksEditable, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <TextBlock Style="{StaticResource Setup.OptionalText}" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Example}"/>
                                         <TextBlock Style="{StaticResource Setup.OptionalError}" Text="{Binding Problem}"/>
                                     </StackPanel>
