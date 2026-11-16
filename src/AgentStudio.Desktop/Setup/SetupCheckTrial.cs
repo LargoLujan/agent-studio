@@ -35,13 +35,16 @@ public sealed record SetupCheckTrialResult(
 /// <summary>
 /// «Probarla ahora» of the check step of the configurator (docs/24 §3.4, wave 1): the commands the person is editing, before they are
 /// saved, run once with the verifier of the runs and with its confinement, exactly as the tests of HEAD run the saved profile
-/// (<c>HeadTestsService</c>): only the isolated steps (low integrity, on a copy of the last commit taken from the objects of the
-/// repository, without network, ADR-0017), with the project held as an audit holds it, within the sum of the timeouts of the steps
-/// plus a minute, and without quota. A step the profile runs without isolation is never run from here, so nothing runs with the
-/// rights of the person and nothing of their working tree is read or written.
+/// (<c>HeadTestsService</c>): only the isolated steps (low integrity on a copy of the last commit taken from the objects of the
+/// repository, ADR-0017), with the project held as an audit holds it, within the sum of the timeouts of the steps plus a minute,
+/// and without quota. A step the profile runs without isolation is never run from here, so nothing runs with the rights of the
+/// person and their working tree is never written.
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
+/// <item><b>What the isolation does not do.</b> Low integrity only stops writes: the code the commands build and run can read
+/// whatever the person can read and can use the network (<c>ProcessContracts</c>, ADR-0017). The screen says so in those words, and
+/// the configurator asks the person before running commands that are not the profile they already accepted.</item>
 /// <item>The commands are the person's own, typed on this screen, and they have not been confirmed with Windows Hello: that
 /// confirmation guards <b>saving</b> them, because a saved profile runs by itself in every run. Here one click runs them once,
 /// confined, and nothing is saved.</item>

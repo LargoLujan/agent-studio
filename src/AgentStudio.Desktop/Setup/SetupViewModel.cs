@@ -541,8 +541,9 @@ public sealed partial class SetupViewModel : ObservableObject
     private bool CanTryChecks() => _trial is not null && _project is not null && !IsTrying && !IsBusy && EditedChecks(out _) is not null;
 
     /// <summary>
-    /// «Probarla ahora»: the commands as they are on screen, run once on a copy of the last commit, isolated and without network,
-    /// with the verifier of the runs (<see cref="SetupCheckTrial"/>). Nothing is saved.
+    /// «Probarla ahora»: the commands as they are on screen, run once on a copy of the last commit at low integrity, with the verifier
+    /// of the runs (<see cref="SetupCheckTrial"/>). They cannot write the project but can read the person's files and use the network.
+    /// Nothing is saved.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanTryChecks))]
     private async Task TryChecksAsync()

@@ -492,7 +492,7 @@ Apply: saving the check commands or sensitive permissions asks for Windows Hello
     <value>Try it now</value>
   </data>
   <data name="Setup_Verification_Try_Hint" xml:space="preserve">
-    <value>It tries the latest saved version (commit) in an isolated copy with no network. Your unsaved changes do not count.</value>
+    <value>It runs on a copy of your latest saved version and cannot change your project. It can read your files and use the network, as when you run the tests yourself. Your unsaved changes do not count.</value>
   </data>
   <data name="Setup_Verification_Stop" xml:space="preserve">
     <value>Stop the trial</value>
@@ -552,13 +552,13 @@ Apply: saving the check commands or sensitive permissions asks for Windows Hello
     <comment>Name of the section for the information button.</comment>
   </data>
   <data name="Setup_Verification_Info_What" xml:space="preserve">
-    <value>These are the commands the system runs to know whether the work is right. They run in an isolated copy with no network. Tests only count if they leave a TRX or JUnit report in the folder {results}. The history keeps the fingerprint of each version you save.</value>
+    <value>These are the commands the system runs to know whether the work is right. They run on a copy and cannot change your project, but they can read your files and use the network. Tests only count if they leave their report in the folder {results}. The history keeps the fingerprint of each version you save.</value>
     <comment>What it is. {results} is written as it is.</comment>
   </data>
   <data name="Setup_Verification_Info_Actions" xml:space="preserve">
     <value>Change any command.
 Leave one empty so it does not run.
-Try them now on the latest saved version (commit).
+Try them now on your latest saved version.
 Save them: it asks for Windows Hello.</value>
     <comment>What can be done here, one action per line.</comment>
   </data>
@@ -655,7 +655,7 @@ Choose how long each attempt can last.</value>
     <comment>(setup.check.busy)</comment>
   </data>
   <data name="Text_setup_check_no_version" xml:space="preserve">
-    <value>The latest saved version (commit) of the project could not be read. It needs git and at least one saved version (commit).</value>
+    <value>The latest saved version of the project could not be read. It needs git and at least one saved version.</value>
     <comment>(setup.check.no-version)</comment>
   </data>
   <data name="Text_setup_check_too_long" xml:space="preserve">

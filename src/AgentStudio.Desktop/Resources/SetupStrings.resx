@@ -541,7 +541,7 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <value>Probarla ahora</value>
   </data>
   <data name="Setup_Verification_Try_Hint" xml:space="preserve">
-    <value>Se prueba la última versión guardada (commit) en una copia aislada y sin red. Tus cambios sin guardar no cuentan.</value>
+    <value>Se ejecuta sobre una copia de tu última versión guardada y no puede cambiar tu proyecto. Puede leer tus ficheros y usar la red, como cuando lanzas las pruebas tú. Tus cambios sin guardar no cuentan.</value>
   </data>
   <data name="Setup_Verification_Stop" xml:space="preserve">
     <value>Parar la prueba</value>
@@ -601,13 +601,13 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <comment>Name of the section for the information button.</comment>
   </data>
   <data name="Setup_Verification_Info_What" xml:space="preserve">
-    <value>Son las órdenes que el sistema ejecuta para saber si el trabajo funciona. Corren en una copia aislada y sin red. Las pruebas solo cuentan si dejan un informe TRX o JUnit en la carpeta {results}. El historial guarda la huella de cada versión que guardas.</value>
+    <value>Son las órdenes que el sistema ejecuta para saber si el trabajo funciona. Corren sobre una copia y no pueden cambiar tu proyecto, pero pueden leer tus ficheros y usar la red. Las pruebas solo cuentan si dejan su informe en la carpeta {results}. El historial guarda la huella de cada versión que guardas.</value>
     <comment>What it is. {results} is written as it is.</comment>
   </data>
   <data name="Setup_Verification_Info_Actions" xml:space="preserve">
     <value>Cambiar cualquier orden.
 Dejar una vacía para que no se ejecute.
-Probarlas ahora sobre la última versión guardada (commit).
+Probarlas ahora sobre tu última versión guardada.
 Guardarlas: pide Windows Hello.</value>
     <comment>What can be done here, one action per line.</comment>
   </data>
@@ -704,7 +704,7 @@ Elegir cuánto puede durar cada intento.</value>
     <comment>(setup.check.busy)</comment>
   </data>
   <data name="Text_setup_check_no_version" xml:space="preserve">
-    <value>No se pudo leer la última versión guardada (commit) del proyecto. Hace falta git y al menos una versión guardada (commit).</value>
+    <value>No se pudo leer la última versión guardada del proyecto. Hace falta git y al menos una versión guardada.</value>
     <comment>(setup.check.no-version)</comment>
   </data>
   <data name="Text_setup_check_too_long" xml:space="preserve">
