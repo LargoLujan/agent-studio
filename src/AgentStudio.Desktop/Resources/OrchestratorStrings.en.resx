@@ -3612,4 +3612,8 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Text_hosting_done_already_closed" xml:space="preserve">
     <value>It was already closed another way.</value>
   </data>
+  <data name="Text_resume_profile_breaks_rules" xml:space="preserve">
+    <value>It cannot be resumed. Its commands have signs you cannot see or quotes where they do not go. Fix them in "Set up project" and start again.</value>
+    <comment>(resume.profile-breaks-rules)</comment>
+  </data>
 </root>

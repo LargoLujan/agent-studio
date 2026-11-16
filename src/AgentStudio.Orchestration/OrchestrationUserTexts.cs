@@ -276,6 +276,9 @@ public static class OrchestrationUserTexts
     public const string ResumeFailed = "resume.failed";
     public const string ResumeStoppedByError = "resume.stopped-by-error";
     public const string ResumeNotRegistered = "resume.not-registered";
+
+    /// <summary>A run frozen with a profile that breaks a rule of this version (docs/24): it is not resumed, and the person is told why in plain words.</summary>
+    public const string ResumeProfileBreaksRules = "resume.profile-breaks-rules";
     public const string QuotaWhoJudge = "quota.who-judge";
     public const string QuotaWhoOverload = "quota.who-overload";
     public const string QuotaWhoPlain = "quota.who-plain";
@@ -388,7 +391,7 @@ public static class OrchestrationUserTexts
         WorkerIntegrated, WorkerToolSilent, WorkerToolTimeout, WorkerSystemError, WorkerApproved, WorkerDenied,
         WorkerDeniedWithComment,
         ResumeNoConsent, ResumeNotHalfway, ResumePaused, ResumeLeftOnExit, ResumeSessionEnded, ResumeWaitingLimit,
-        ResumeUnrequestedClose, ResumeFailedBefore, ResumeSuspended, ResumeFailed, ResumeStoppedByError, ResumeNotRegistered,
+        ResumeUnrequestedClose, ResumeFailedBefore, ResumeSuspended, ResumeFailed, ResumeStoppedByError, ResumeNotRegistered, ResumeProfileBreaksRules,
         QuotaWhoJudge, QuotaWhoOverload, QuotaWhoPlain, QuotaWait, QuotaWaitEstimated, QuotaUntil, QuotaNoReset,
         QuotaPassedReset, WorkerNotSignedIn, WorkerLimitStillOnUntil, WorkerLimitStillOnNoReset, InspectLogNotReplayable,
         InspectProblemUnknownTasks, InspectProblemNotRebuilt, InspectProblemDetail,

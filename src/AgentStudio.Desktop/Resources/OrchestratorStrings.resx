@@ -3613,4 +3613,8 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
   <data name="Text_hosting_done_already_closed" xml:space="preserve">
     <value>Ya estaba cerrado por otra vía.</value>
   </data>
+  <data name="Text_resume_profile_breaks_rules" xml:space="preserve">
+    <value>No se puede reanudar. Sus órdenes tienen signos que no se ven o comillas donde no van. Arréglalas en «Configurar proyecto» y empieza de nuevo.</value>
+    <comment>(resume.profile-breaks-rules)</comment>
+  </data>
 </root>
