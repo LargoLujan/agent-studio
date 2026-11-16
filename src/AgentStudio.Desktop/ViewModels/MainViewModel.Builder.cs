@@ -217,7 +217,11 @@ public sealed partial class MainViewModel
         if (!_setups.TryGetValue(root, out var document))
         {
             var setup = factory.Create();
-            setup.Applied += (_, result) => _ = OnSetupAppliedAsync(orchestrator, result);
+
+            // The orchestrator reads what was applied first; the configurator asks to go to work after it (docs/24 §3.4, wave 1).
+            var reread = Task.CompletedTask;
+            setup.Applied += (_, result) => reread = OnSetupAppliedAsync(orchestrator, result);
+            setup.WorkRequested += (_, e) => _ = GoToWorkAsync(orchestrator, reread, e.Confirmation);
             document = new SetupDocumentViewModel(root, setup, RecentProjectItem.From(root).Name);
             _setups[root] = document;
         }
@@ -239,6 +243,44 @@ public sealed partial class MainViewModel
             StatusMessage = Texts.Format("Shell_Setup_ReadAgainFailed", ex.Message);
         }
     }
+
+    /// <summary>
+    /// «Ir a trabajar» of the configurator, and the end of an «Aplicar» in which every part went well: the orchestrator of that project,
+    /// once it has read the template again, with the confirmation in the status bar. Only while that project is the open one, since
+    /// the orchestrator the shell opens is the one of the open project.
+    /// </summary>
+    private async Task GoToWorkAsync(OrchestratorDocumentViewModel orchestrator, Task reread, string? confirmation)
+    {
+        try
+        {
+            await reread;
+            if (!SameProject(orchestrator.ProjectRoot, ProjectPath))
+            {
+                return;
+            }
+
+            await OpenOrchestratorAsync();
+            if (confirmation is not null)
+            {
+                StatusMessage = confirmation;
+            }
+
+            FocusWorkRequest(orchestrator);
+        }
+#pragma warning disable CA1031 // Opening the orchestrator reads its stores: a failure is said in the status bar, never thrown into the UI.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            StatusMessage = Texts.Format("Shell_Setup_ReadAgainFailed", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Integration seam (docs/24, wave 1): puts the focus in the request box of <paramref name="orchestrator"/> once the configurator
+    /// took the person there. The package that adds that method to the orchestrator implements this partial method; until then it
+    /// compiles to nothing and the shell only navigates.
+    /// </summary>
+    partial void FocusWorkRequest(OrchestratorDocumentViewModel orchestrator);
 
     /// <summary>
     /// The entry of the welcome tab: with the project open, «Configurar proyecto» is always there, and the first time a project is opened

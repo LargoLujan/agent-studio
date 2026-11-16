@@ -149,7 +149,7 @@ public sealed class SetupViewTests
 
         Assert.Equal(Texts.Current.Get("Setup_Steps_Label"), listName);
         Assert.True(heading);
-        Assert.Equal(["Setup_Info"], infoKeys);
+        Assert.Equal(["Setup_Info", "Setup_Verification_Info", "Setup_Budget_Info"], infoKeys);
         Assert.Equal(vm.Steps.Select(s => s.Title), stepNames);
         Assert.Contains(Texts.Current.Get("Setup_Button_Apply"), buttons);
         Assert.Contains(Texts.Current.Get("Setup_Button_Next"), buttons);

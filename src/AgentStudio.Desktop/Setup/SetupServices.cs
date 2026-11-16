@@ -3,10 +3,13 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Models;
+using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Providers;
 using AgentStudio.Application.Setup;
 using AgentStudio.Application.Skills;
+using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Infrastructure.Processes;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,10 +18,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace AgentStudio.Desktop.Setup;
 
 /// <summary>Creates the view models of the configurator over one service.</summary>
-public sealed class SetupViewModelFactory(ProjectSetupService service)
+/// <param name="trial">«Probarla ahora» of the check; null when the shell cannot compose it, and the button is not offered.</param>
+/// <param name="providerLimits">How many agents each program runs at once, for the root of a project; null to leave the line out.</param>
+public sealed class SetupViewModelFactory(ProjectSetupService service, SetupCheckTrial? trial = null, Func<string, IReadOnlyList<SetupProviderLimit>>? providerLimits = null)
 {
     /// <summary>A configurator that has not read any project yet: <see cref="SetupViewModel.LoadAsync"/> does.</summary>
-    public SetupViewModel Create() => new(service);
+    public SetupViewModel Create() => new(service, trial: trial, providerLimits: providerLimits);
 }
 
 /// <summary>
@@ -50,10 +55,22 @@ public static class SetupServices
             provider.GetService<IModelCatalogSource>(),
             provider.GetService<IModelLearning>(),
             provider.GetService<ISetupPresenceGate>() ?? (provider.GetService<ReinforcedConfirmation>() is { } confirmation ? new HelloSetupPresenceGate(confirmation) : null)));
-        services.TryAddSingleton<SetupViewModelFactory>();
+        services.TryAddSingleton(provider => new SetupViewModelFactory(
+            provider.GetRequiredService<ProjectSetupService>(),
+            SetupCheckTrial.Create(provider.GetService<IVerificationRunner>(), provider.GetService<IWorktreeManager>(), provider.GetService<IProjectActivity>(), provider.GetService<TimeProvider>()),
+            ProviderLimits(provider.GetService<IProjectAgentProviders>())));
 
         // Which projects were already offered the configurator on the welcome tab: next to the options, nothing in the project.
         services.TryAddSingleton(_ => new SetupSuggestions(optionsFolder ?? LocalProjectOptionsStore.DefaultFolder));
         return services;
     }
+
+    /// <summary>
+    /// How many agents each program of a project runs at once, as the composed adapters fix it (the limit of their pipeline, or what
+    /// the adapter says it can do, as the engine reads it); null without the providers. Nothing is started: only the limits are read.
+    /// </summary>
+    public static Func<string, IReadOnlyList<SetupProviderLimit>>? ProviderLimits(IProjectAgentProviders? providers) =>
+        providers is null
+            ? null
+            : root => [.. providers.For(root).Select(p => new SetupProviderLimit(p.Provider, (p as ConcurrencyLimitedAgentProvider)?.Limit ?? p.Capabilities.MaxConcurrentRuns))];
 }

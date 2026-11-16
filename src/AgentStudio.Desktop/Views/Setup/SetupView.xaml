@@ -122,6 +122,27 @@
             </Style.Triggers>
         </Style>
 
+        <!-- A block of its own: one agent of the models, one step of the summary. -->
+        <Style x:Key="Setup.Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <!-- «Se guarda» stands out; «Se queda como está» does not. -->
+        <Style x:Key="Setup.State" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Saves}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <DataTemplate x:Key="Setup.LineTemplate">
             <TextBlock Style="{StaticResource Setup.Line}" Text="{Binding}"/>
         </DataTemplate>
@@ -164,6 +185,7 @@
 
                     <!-- 1 · Proyecto -->
                     <StackPanel Style="{StaticResource Setup.ProjectPanel}">
+                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Project_Hint}"/>
                         <ItemsControl ItemsSource="{Binding ProjectLines}" ItemTemplate="{StaticResource Setup.LineTemplate}" Focusable="False"/>
                     </StackPanel>
 
@@ -195,38 +217,102 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Team_Never_Removes}"/>
+                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Team_Plan_Note}"/>
                     </StackPanel>
 
                     <!-- 4 · Modelos -->
                     <StackPanel Style="{StaticResource Setup.ModelsPanel}">
                         <CheckBox Style="{StaticResource Setup.CheckBox}" Content="{l:T Setup_Include_Step}" IsChecked="{Binding Steps[3].IsIncluded}"/>
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Models_Hint}"/>
+                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Models_Default_Hint}"/>
                         <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,0,0,8" Content="{l:T Setup_Button_Use_All}"
                                 Command="{Binding UseAllRecommendedCommand}" Visibility="{Binding HasRecommendations, Converter={StaticResource Setup.BoolToVisibility}}"/>
                         <ItemsControl ItemsSource="{Binding ModelRows}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="0,0,0,12">
-                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
-                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Current}"/>
-                                        <TextBlock Style="{StaticResource Setup.OptionalText}" Text="{Binding Recommended}"/>
-                                        <TextBlock Style="{StaticResource Setup.OptionalText}" Text="{Binding Why}"/>
-                                        <TextBlock Style="{StaticResource Setup.OptionalText}" Text="{Binding Follows}"/>
-                                        <CheckBox Style="{StaticResource Setup.CheckBox}" Margin="0,4,0,0" Content="{l:T Setup_Models_Accept}" IsChecked="{Binding IsAccepted}"
-                                                  Visibility="{Binding CanAccept, Converter={StaticResource Setup.BoolToVisibility}}"
-                                                  AutomationProperties.Name="{Binding Name}"/>
-                                    </StackPanel>
+                                    <Border Style="{StaticResource Setup.Card}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                            <TextBlock Style="{StaticResource Setup.Hint}" Margin="0" Text="{Binding ProgramLine}"/>
+                                            <TextBlock Style="{StaticResource Setup.Hint}" Margin="0,0,0,4" Text="{Binding Current}"/>
+                                            <WrapPanel>
+                                                <StackPanel Margin="0,0,16,4">
+                                                    <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Models_Model_Label}"/>
+                                                    <ComboBox IsEditable="True" MinWidth="220" Margin="0,2,0,0" ItemsSource="{Binding Models}" TextSearch.TextPath="Model"
+                                                              Text="{Binding ModelText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding ModelName}">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding Label}"/>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                                <StackPanel Margin="0,0,0,4">
+                                                    <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Models_Effort_Label}"/>
+                                                    <ComboBox MinWidth="180" Margin="0,2,0,0" ItemsSource="{Binding Efforts}" SelectedItem="{Binding SelectedEffort}"
+                                                              DisplayMemberPath="Label" AutomationProperties.Name="{Binding EffortName}"/>
+                                                </StackPanel>
+                                            </WrapPanel>
+                                            <TextBlock Style="{StaticResource Setup.OptionalError}" Text="{Binding Problem}"/>
+                                            <TextBlock Style="{StaticResource Setup.OptionalText}" Text="{Binding Recommended}"/>
+                                            <TextBlock Style="{StaticResource Setup.OptionalText}" Text="{Binding Why}"/>
+                                            <TextBlock Style="{StaticResource Setup.OptionalText}" Text="{Binding FollowsText}"/>
+                                            <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:T Setup_Models_Use}"
+                                                    Command="{Binding UseRecommendedCommand}" AutomationProperties.Name="{Binding UseName}"
+                                                    Visibility="{Binding CanUseRecommendation, Converter={StaticResource Setup.BoolToVisibility}}"/>
+                                        </StackPanel>
+                                    </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </StackPanel>
 
-                    <!-- 5 · Pruebas -->
+                    <!-- 5 · Comprobación -->
                     <StackPanel Style="{StaticResource Setup.VerificationPanel}">
                         <CheckBox Style="{StaticResource Setup.CheckBox}" Content="{l:T Setup_Include_Step}" IsChecked="{Binding Steps[4].IsIncluded}"/>
-                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Verification_Hint}"/>
-                        <ItemsControl ItemsSource="{Binding VerificationLines}" ItemTemplate="{StaticResource Setup.LineTemplate}" Focusable="False"/>
-                        <TextBlock Style="{StaticResource Setup.OptionalText}" Margin="0,8,0,0" Text="{Binding VerificationStatus}"/>
+                        <DockPanel>
+                            <info:InfoButton DockPanel.Dock="Right" VerticalAlignment="Top" InfoKey="Setup_Verification_Info"/>
+                            <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Verification_Hint}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Verification_Edit_Hint}"/>
+                        <ItemsControl ItemsSource="{Binding CheckRows}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,10">
+                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Label}"/>
+                                        <TextBox Style="{StaticResource Setup.TextBox}" Margin="0,2,0,0" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap"
+                                                 Text="{Binding CommandText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}"
+                                                 IsEnabled="{Binding DataContext.CanEditChecks, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                        <TextBlock Style="{StaticResource Setup.OptionalText}" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Example}"/>
+                                        <TextBlock Style="{StaticResource Setup.OptionalError}" Text="{Binding Problem}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Setup.OptionalError}" Text="{Binding CheckProblem}"/>
+                        <WrapPanel>
+                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Restore_Proposed}" Command="{Binding RestoreProposedChecksCommand}"
+                                    Visibility="{Binding HasProposedChecks, Converter={StaticResource Setup.BoolToVisibility}}"/>
+                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Restore_Current}" Command="{Binding RestoreCurrentChecksCommand}"
+                                    Visibility="{Binding HasCurrentChecks, Converter={StaticResource Setup.BoolToVisibility}}"/>
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource Setup.OptionalText}" Margin="0,4,0,0" Text="{Binding VerificationStatus}"/>
+                        <StackPanel Margin="0,12,0,0" Visibility="{Binding HasTrial, Converter={StaticResource Setup.BoolToVisibility}}">
+                            <WrapPanel>
+                                <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Try}" Command="{Binding TryChecksCommand}"/>
+                                <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Stop}" Command="{Binding StopTrialCommand}"
+                                        Visibility="{Binding IsTrying, Converter={StaticResource Setup.BoolToVisibility}}"/>
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Verification_Try_Hint}"/>
+                            <TextBlock Style="{StaticResource Setup.OptionalText}" FontWeight="SemiBold" Text="{Binding TrialStatus}"/>
+                            <ItemsControl ItemsSource="{Binding TrialLines}" ItemTemplate="{StaticResource Setup.LineTemplate}" Focusable="False"/>
+                            <StackPanel Margin="0,8,0,0" Visibility="{Binding HasTrialOutput, Converter={StaticResource Setup.BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Verification_Trial_Output}"/>
+                                <TextBox Style="{StaticResource Setup.TextBox}" Margin="0,2,0,0" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap"
+                                         MaxHeight="220" VerticalScrollBarVisibility="Auto" Text="{Binding TrialOutput, Mode=OneWay}"
+                                         AutomationProperties.Name="{l:T Setup_Verification_Trial_Output}"/>
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- 6 · Skills -->
@@ -249,16 +335,22 @@
                         </ItemsControl>
                     </StackPanel>
 
-                    <!-- 7 · Presupuesto -->
+                    <!-- 7 · Límites -->
                     <StackPanel Style="{StaticResource Setup.BudgetPanel}">
                         <CheckBox Style="{StaticResource Setup.CheckBox}" Content="{l:T Setup_Include_Step}" IsChecked="{Binding Steps[6].IsIncluded}"/>
-                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Budget_Hint}"/>
-                        <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Budget_Runs}"/>
-                        <TextBox Style="{StaticResource Setup.TextBox}" Width="100" HorizontalAlignment="Left" Margin="0,2,0,8"
-                                 Text="{Binding MaxAgentRunsText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Setup_Budget_Runs}"/>
+                        <DockPanel>
+                            <info:InfoButton DockPanel.Dock="Right" VerticalAlignment="Top" InfoKey="Setup_Budget_Info"/>
+                            <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Budget_Hint}"/>
+                        </DockPanel>
                         <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Budget_Parallel}"/>
-                        <TextBox Style="{StaticResource Setup.TextBox}" Width="100" HorizontalAlignment="Left" Margin="0,2,0,8"
+                        <TextBox Style="{StaticResource Setup.TextBox}" Width="100" HorizontalAlignment="Left" Margin="0,2,0,2"
                                  Text="{Binding MaxParallelTasksText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Setup_Budget_Parallel}"/>
+                        <TextBlock Style="{StaticResource Setup.Hint}" Margin="0" Text="{l:T Setup_Budget_Parallel_Hint}"/>
+                        <TextBlock Style="{StaticResource Setup.OptionalText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8" Text="{Binding ProviderLimitsText}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Budget_Runs}"/>
+                        <TextBox Style="{StaticResource Setup.TextBox}" Width="100" HorizontalAlignment="Left" Margin="0,2,0,2"
+                                 Text="{Binding MaxAgentRunsText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Setup_Budget_Runs}"/>
+                        <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Budget_Runs_Hint}"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Budget_Time}"/>
                         <TextBox Style="{StaticResource Setup.TextBox}" Width="100" HorizontalAlignment="Left" Margin="0,2,0,2"
                                  Text="{Binding TimeMinutesText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Setup_Budget_Time}"/>
@@ -272,7 +364,30 @@
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Summary_Hint}"/>
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Summary_Empty}"
                                    Visibility="{Binding IsSummaryEmpty, Converter={StaticResource Setup.BoolToVisibility}}"/>
-                        <ItemsControl ItemsSource="{Binding SummaryLines}" ItemTemplate="{StaticResource Setup.LineTemplate}" Focusable="False"/>
+                        <ItemsControl ItemsSource="{Binding SummaryBlocks}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Setup.Card}">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Content="{l:T Setup_Summary_Change}"
+                                                        Command="{Binding DataContext.ChangeStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding Step}" AutomationProperties.Name="{Binding ChangeName}"/>
+                                                <WrapPanel VerticalAlignment="Center">
+                                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,12,0" Text="{Binding Title}"/>
+                                                    <TextBlock Style="{StaticResource Setup.State}" Text="{Binding State}"/>
+                                                </WrapPanel>
+                                            </DockPanel>
+                                            <ItemsControl ItemsSource="{Binding Lines}" ItemTemplate="{StaticResource Setup.LineTemplate}" Focusable="False"/>
+                                            <StackPanel Margin="0,6,0,0" Visibility="{Binding HasChanges, Converter={StaticResource Setup.BoolToVisibility}}">
+                                                <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Summary_Changes_Heading}"/>
+                                                <ItemsControl ItemsSource="{Binding Changes}" ItemTemplate="{StaticResource Setup.LineTemplate}" Focusable="False"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <TextBlock Style="{StaticResource Setup.Hint}" Margin="0,8,0,0" Text="{l:T Setup_Summary_Hello}"
                                    Visibility="{Binding WillAskHello, Converter={StaticResource Setup.BoolToVisibility}}"/>
                     </StackPanel>
@@ -288,7 +403,10 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Style="{StaticResource GhostButton}" Content="{l:T Setup_Button_Back}" Command="{Binding BackCommand}" Margin="0,0,8,0"/>
             <Button Style="{StaticResource GhostButton}" Content="{l:T Setup_Button_Next}" Command="{Binding NextCommand}" Margin="0,0,8,0"/>
-            <Button Style="{StaticResource PrimaryButton}" Content="{l:T Setup_Button_Apply}" Command="{Binding ApplyCommand}"/>
+            <Button Style="{StaticResource PrimaryButton}" Content="{l:T Setup_Button_Apply}" Command="{Binding ApplyCommand}"
+                    Visibility="{Binding HasChanges, Converter={StaticResource Setup.BoolToVisibility}}"/>
+            <Button Style="{StaticResource PrimaryButton}" Content="{l:T Setup_Button_Go_To_Work}" Command="{Binding GoToWorkCommand}"
+                    Visibility="{Binding IsSummaryEmpty, Converter={StaticResource Setup.BoolToVisibility}}"/>
         </StackPanel>
     </Grid>
 </UserControl>

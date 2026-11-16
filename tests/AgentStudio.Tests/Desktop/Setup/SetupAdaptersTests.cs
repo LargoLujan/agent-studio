@@ -205,7 +205,7 @@ public sealed class SetupAdaptersTests : IDisposable
         Assert.True(profile.Confirmed);
         Assert.True(capability.Confirmed);
         Assert.Equal(2, verifier.Messages.Count);
-        Assert.Equal(Spanish.Format("Setup_Hello_Message", "el perfil de verificación de Node"), verifier.Messages[0]);
+        Assert.Equal(Spanish.Format("Setup_Hello_Message", "las órdenes de comprobación de Node"), verifier.Messages[0]);
         Assert.Equal(Spanish.Format("Setup_Hello_Message", "el equipo con 4 agentes"), verifier.Messages[1]);
     }
 
