@@ -1164,11 +1164,11 @@ public sealed partial class SetupViewModel : ObservableObject
         Notice = notice;
 
         // What was not written (Windows Hello not confirmed, a store that failed) is still the person's: it is put back, with its step on.
-        var kept = NotSaved(result);
-        if (kept.Count > 0)
+        var notSaved = NotSaved(result, edits);
+        if (notSaved.Count > 0)
         {
-            await RestoreEditsAsync(edits, kept).ConfigureAwait(true);
-            var line = Text.Format("Setup_Apply_Kept", string.Join(", ", Enum.GetValues<SetupStep>().Where(kept.Contains).Select(s => SetupTexts.Step(Text, s))));
+            var restored = await RestoreEditsAsync(edits, notSaved).ConfigureAwait(true);
+            var line = string.Join(" ", NotSavedLines(notSaved, restored).Where(l => l.Length > 0));
             Notice = string.IsNullOrEmpty(Notice) ? line : Notice + " " + line;
         }
 
@@ -1191,16 +1191,53 @@ public sealed partial class SetupViewModel : ObservableObject
         await RestoreEditsAsync(edits, new HashSet<SetupStep> { SetupStep.Models, SetupStep.Verification, SetupStep.Skills, SetupStep.Budget }).ConfigureAwait(true);
     }
 
-    /// <summary>The steps whose part was not written: denied or failed. The template carries the team and the models together.</summary>
-    private static HashSet<SetupStep> NotSaved(SetupApplyResult result)
+    /// <summary>
+    /// The steps whose part was not written: denied or failed. The template carries the team and the models in one part, so of the two
+    /// only the ones the person changed are named: the team when its step was on, the models when a row was changed.
+    /// </summary>
+    private static HashSet<SetupStep> NotSaved(SetupApplyResult result, SetupEdits edits)
     {
         var steps = result.Parts.Where(p => p.Outcome is SetupPartOutcome.Denied or SetupPartOutcome.Failed).Select(p => p.Step).ToHashSet();
-        if (steps.Contains(SetupStep.Team))
+        if (steps.Remove(SetupStep.Team))
         {
-            steps.Add(SetupStep.Models);
+            if (edits.TeamOn)
+            {
+                steps.Add(SetupStep.Team);
+            }
+
+            if (edits.Models.Count > 0)
+            {
+                steps.Add(SetupStep.Models);
+            }
         }
 
         return steps;
+    }
+
+    /// <summary>
+    /// «No se guardaron los pasos «Equipo» y «Modelos». Siguen en pantalla…», and apart the ones whose changes could not be put back
+    /// (the file of the commands became one that cannot be used): exactly what was not saved, and whether it is still on screen.
+    /// </summary>
+    private IEnumerable<string> NotSavedLines(IReadOnlySet<SetupStep> notSaved, IReadOnlySet<SetupStep> restored)
+    {
+        var order = Enum.GetValues<SetupStep>();
+        var kept = order.Where(s => notSaved.Contains(s) && restored.Contains(s)).ToList();
+        var lost = order.Where(s => notSaved.Contains(s) && !restored.Contains(s)).ToList();
+        yield return kept.Count == 0 ? string.Empty : Text.Format(kept.Count == 1 ? "Setup_Apply_Kept_One" : "Setup_Apply_Kept_Many", StepList(kept));
+        yield return lost.Count == 0 ? string.Empty : Text.Format(lost.Count == 1 ? "Setup_Apply_Lost_One" : "Setup_Apply_Lost_Many", StepList(lost));
+    }
+
+    /// <summary>«Equipo», «Modelos» y «Límites», in the words and the punctuation of the language of the screen.</summary>
+    private string StepList(IReadOnlyList<SetupStep> steps)
+    {
+        var items = steps.Select(s => Text.Format("Setup_List_Item", SetupTexts.Step(Text, s))).ToList();
+        var head = items[0];
+        for (var i = 1; i < items.Count - 1; i++)
+        {
+            head = Text.Format("Setup_List_Comma", head, items[i]);
+        }
+
+        return items.Count == 1 ? head : Text.Format("Setup_List_And", head, items[^1]);
     }
 
     /// <summary>What the person typed or chose in the steps, to put back after the project is read again.</summary>
@@ -1232,10 +1269,12 @@ public sealed partial class SetupViewModel : ObservableObject
 
     /// <summary>
     /// Puts back what <paramref name="edits"/> holds for <paramref name="steps"/> over the project as it was just read: the size of the
-    /// team first (its agents are the rows of the models), then each step with its mark as the person left it.
+    /// team first (its agents are the rows of the models), then each step with its mark as the person left it. Returns the steps it
+    /// put back: the commands are not, over a file that cannot be used.
     /// </summary>
-    private async Task RestoreEditsAsync(SetupEdits edits, IReadOnlySet<SetupStep> steps)
+    private async Task<IReadOnlySet<SetupStep>> RestoreEditsAsync(SetupEdits edits, IReadOnlySet<SetupStep> steps)
     {
+        var restored = new HashSet<SetupStep>(steps);
         if (steps.Contains(SetupStep.Team) && edits.Size != SelectedSize.Size)
         {
             await ProposeAsync(edits.Size).ConfigureAwait(true);
@@ -1273,6 +1312,10 @@ public sealed partial class SetupViewModel : ObservableObject
             ChecksEdited(initial: true);
             StepOf(SetupStep.Verification).IsIncluded = edits.ChecksOn;
         }
+        else
+        {
+            restored.Remove(SetupStep.Verification);
+        }
 
         if (steps.Contains(SetupStep.Skills))
         {
@@ -1290,6 +1333,7 @@ public sealed partial class SetupViewModel : ObservableObject
         }
 
         RefreshSummary();
+        return restored;
     }
 
     /// <summary>The one rule of when «Aplicar» leads to work: no part was denied or failed, and the registry was written when it had to be.</summary>

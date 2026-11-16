@@ -749,10 +749,6 @@ Elegir cuánto puede durar cada intento.</value>
   <data name="Setup_Verification_Not_Saved" xml:space="preserve">
     <value>Estas órdenes aún no están guardadas. Para guardarlas, marca «Guardar este paso».</value>
   </data>
-  <data name="Setup_Apply_Kept" xml:space="preserve">
-    <value>No se guardó {0}. Tus cambios siguen aquí para que lo intentes otra vez.</value>
-    <comment>{0}: the steps that were not saved.</comment>
-  </data>
   <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
     <value>Las órdenes cambiaron mientras se probaban. Pruébalas otra vez.</value>
   </data>
@@ -765,5 +761,33 @@ Elegir cuánto puede durar cada intento.</value>
   <data name="Setup_Trial_Skipped" xml:space="preserve">
     <value>No se ejecutarán porque van sin aislamiento: {0}.</value>
     <comment>{0}: what the commands that do not run are for.</comment>
+  </data>
+  <data name="Setup_Apply_Kept_One" xml:space="preserve">
+    <value>No se guardó el paso {0}. Sigue en pantalla para que lo intentes otra vez.</value>
+    <comment>{0}: the step, as Setup_List_Item writes it.</comment>
+  </data>
+  <data name="Setup_Apply_Kept_Many" xml:space="preserve">
+    <value>No se guardaron los pasos {0}. Siguen en pantalla para que lo intentes otra vez.</value>
+    <comment>{0}: the steps, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_Apply_Lost_One" xml:space="preserve">
+    <value>No se guardó el paso {0}, y lo que cambiaste no se puede volver a mostrar.</value>
+    <comment>{0}: the step, as Setup_List_Item writes it.</comment>
+  </data>
+  <data name="Setup_Apply_Lost_Many" xml:space="preserve">
+    <value>No se guardaron los pasos {0}, y lo que cambiaste no se puede volver a mostrar.</value>
+    <comment>{0}: the steps, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_List_Item" xml:space="preserve">
+    <value>«{0}»</value>
+    <comment>A name in a list of steps.</comment>
+  </data>
+  <data name="Setup_List_Comma" xml:space="preserve">
+    <value>{0}, {1}</value>
+    <comment>The head of a list and its next item.</comment>
+  </data>
+  <data name="Setup_List_And" xml:space="preserve">
+    <value>{0} y {1}</value>
+    <comment>The head of a list and its last item.</comment>
   </data>
 </root>

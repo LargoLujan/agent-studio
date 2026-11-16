@@ -74,7 +74,7 @@ public sealed class SetupChecksTests
     {
         public VerificationProfile? Stored { get; set; }
 
-        public bool Unreadable { get; init; }
+        public bool Unreadable { get; set; }
 
         public VerificationProfile? Propose(IReadOnlyList<string> relativeFiles) => proposed;
 
@@ -893,7 +893,7 @@ public sealed class SetupChecksTests
         Assert.Equal("dotnet build App.slnx", Row(vm, "build").CommandText);
         Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
-        Assert.Contains(Spanish.Format("Setup_Apply_Kept", Spanish.Get("Setup_Step_Verification")), vm.Notice, StringComparison.Ordinal);
+        Assert.Contains(Spanish.Format("Setup_Apply_Kept_One", Spanish.Format("Setup_List_Item", Spanish.Get("Setup_Step_Verification"))), vm.Notice, StringComparison.Ordinal);
         Assert.NotNull(vm.BuildSelection().Profile);
     }
 
@@ -916,8 +916,34 @@ public sealed class SetupChecksTests
         Assert.True(Step(vm, SetupStep.Models).IsIncluded);
         Assert.Equal("40", vm.MaxAgentRunsText);
         Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
-        Assert.Contains(Spanish.Get("Setup_Step_Models"), vm.Notice, StringComparison.Ordinal);
-        Assert.Contains(Spanish.Get("Setup_Step_Budget"), vm.Notice, StringComparison.Ordinal);
+        // Only the models were changed of what the template carries: the team is not named, and the list reads as a sentence.
+        Assert.Contains("No se guardaron los pasos «Modelos» y «Límites». Siguen en pantalla para que lo intentes otra vez.", vm.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain(Spanish.Get("Setup_Step_Team"), vm.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Commands_that_cannot_be_put_back_over_a_file_that_became_unusable_are_said_lost_and_not_still_on_screen()
+    {
+        var rig = new Rig();
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        rig.Profiles.Unreadable = true;
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanEditChecks);
+        Assert.Contains("No se guardó el paso «Comprobación», y lo que cambiaste no se puede volver a mostrar.", vm.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sigue en pantalla", vm.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_list_of_steps_reads_as_a_sentence_in_english_too()
+    {
+        var english = new ResourceTextProvider(CultureInfo.GetCultureInfo("en"));
+
+        Assert.Equal(
+            "The steps \u201cTeam\u201d and \u201cModels\u201d were not saved. They are still on screen so you can try again.",
+            english.Format("Setup_Apply_Kept_Many", english.Format("Setup_List_And", english.Format("Setup_List_Item", "Team"), english.Format("Setup_List_Item", "Models"))));
     }
 
     [Fact]
