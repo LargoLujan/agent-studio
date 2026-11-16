@@ -246,6 +246,22 @@ Tomadas el 2026-11-16 a las 11:16 («Si a los dos si es lo que recomiendas»):
    permitiendo el app-server solo para leer la cuota.
 3. **El arte de la oficina:** se decide después de la prueba corta de la ola 6.
 
+## 6.1 Restos de la ola 1 (van con la ola 2)
+
+Bajos, del lado seguro, hallados en la última revisión de la ola 1 (2026-11-16):
+
+- «Usar el perfil propuesto» del Orquestador pide Hello pero no deja `ProjectSetupApplied.VerificationProfileHash`; el
+  asistente dice entonces «No las has aceptado en esta app» (falso) y vuelve a pedir confirmación. Registrar el hash
+  también ahí.
+- La reanudación sola por consentimiento de una ejecución cuyo perfil rompe las reglas nuevas guarda el motivo con el
+  detalle técnico en inglés (`LoggedTexts.cs:168`); usar el texto traducido. Cada sesión añade otra alerta
+  `run.not-resumable`: no repetirla.
+- Con el asistente ocupado, la lista de pasos puede quedar marcando un paso que no está en pantalla (solo visual).
+- El comentario de `SetupChecks.cs:43` dice que el análisis de comillas es el del runtime de C; no lo es en `"a""b"` ni
+  con espacios Unicode. La confirmación enseña el resultado real; corregir el comentario o el análisis.
+- Aceptar como origen un historial que trae el propio repositorio hace contar sus entradas `ProjectSetupApplied`; la
+  pregunta ya avisa, pero conviene decirlo también ahí.
+
 ## 7. Fuentes
 
 - Claude Code, entrada en streaming y prioridades: https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode y
