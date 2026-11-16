@@ -17,13 +17,13 @@
     <value>Set up project</value>
   </data>
   <data name="Setup_Info_What" xml:space="preserve">
-    <value>A seven-step assistant that proposes how to prepare this project: team, models, tests and limits. It proposes from the files of the project, with no network and without spending your usage limit. Nothing is applied until you press "Apply".</value>
+    <value>An eight-step assistant to prepare this project: team, models, checks and limits. It proposes from your files, with no network and without spending your usage limit. Nothing is saved until you press "Apply the changes".</value>
   </data>
   <data name="Setup_Info_Actions" xml:space="preserve">
-    <value>Review and change each proposal.
-Skip the steps you do not want.
-See in the summary everything that changes, with what is there now next to it.
-Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
+    <value>Review each step and change what you want.
+Turn a step off to leave it as it is.
+See in the summary everything you chose.
+Apply: saving the check commands or sensitive permissions asks for Windows Hello.</value>
   </data>
   <data name="Setup_Heading" xml:space="preserve">
     <value>Set up project</value>
@@ -59,7 +59,7 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>Use all recommended</value>
   </data>
   <data name="Setup_Include_Step" xml:space="preserve">
-    <value>Apply this step (turn it off to skip it)</value>
+    <value>Save this step (turn it off to leave it as it is)</value>
   </data>
   <data name="Setup_Step_Project" xml:space="preserve">
     <value>Project</value>
@@ -74,13 +74,13 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>Models</value>
   </data>
   <data name="Setup_Step_Verification" xml:space="preserve">
-    <value>Tests</value>
+    <value>Checks</value>
   </data>
   <data name="Setup_Step_Skills" xml:space="preserve">
     <value>Skills</value>
   </data>
   <data name="Setup_Step_Budget" xml:space="preserve">
-    <value>Budget</value>
+    <value>Limits</value>
   </data>
   <data name="Setup_Step_Summary" xml:space="preserve">
     <value>Summary</value>
@@ -176,16 +176,16 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>This comes from the names of the files. Nothing of the project is run and the network is not used.</value>
   </data>
   <data name="Setup_Brief_Hint" xml:space="preserve">
-    <value>Say what the project is, its conventions and its useful links. It reaches the agents as data, never the judge. If you write nothing, nothing is saved.</value>
+    <value>Tell the agents what the project is and how work is done in it. The judge does not read it, so it reviews without influence. If you do not change it, nothing is saved.</value>
   </data>
   <data name="Setup_Brief_Characters" xml:space="preserve">
     <value>{0} characters</value>
   </data>
   <data name="Setup_Team_Size_Label" xml:space="preserve">
-    <value>Size of the template</value>
+    <value>Size of the team</value>
   </data>
   <data name="Setup_Team_Hint" xml:space="preserve">
-    <value>Small: orchestrator, one executor and judge. Medium: and a lighter executor. Large: and a reviewer. Changing the template withdraws the approval of the plan that is waiting.</value>
+    <value>Who works on the project. Small: orchestrator, one executor and judge. Medium: also a lighter executor. Large: also a reviewer.</value>
   </data>
   <data name="Setup_Team_Never_Removes" xml:space="preserve">
     <value>The assistant only adds and changes: it never removes an agent you already have.</value>
@@ -200,7 +200,7 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>No change</value>
   </data>
   <data name="Setup_Models_Hint" xml:space="preserve">
-    <value>The recommendation comes from the local catalog and your history, spends none of your usage limit, and says why. You decide agent by agent.</value>
+    <value>Which model each agent uses and how much it thinks before it answers. We recommend one and say why; you can pick another right here.</value>
   </data>
   <data name="Setup_Models_None" xml:space="preserve">
     <value>The catalog has no model for the program of this agent.</value>
@@ -212,37 +212,22 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>Why: {0}</value>
   </data>
   <data name="Setup_Models_Follows" xml:space="preserve">
-    <value>It already uses the recommended one.</value>
-  </data>
-  <data name="Setup_Models_Accept" xml:space="preserve">
-    <value>Use the recommendation</value>
+    <value>It uses the recommended one.</value>
   </data>
   <data name="Setup_Verification_Hint" xml:space="preserve">
-    <value>The profile says which commands the system runs to build and test, in an isolated copy. It is code that runs on your computer: saving it asks for Windows Hello.</value>
-  </data>
-  <data name="Setup_Verification_Current" xml:space="preserve">
-    <value>Now: profile {0} (fingerprint {1})</value>
-  </data>
-  <data name="Setup_Verification_Current_None" xml:space="preserve">
-    <value>Now: the project has no profile.</value>
-  </data>
-  <data name="Setup_Verification_Proposed" xml:space="preserve">
-    <value>Proposed: profile {0} (fingerprint {1})</value>
+    <value>How do we know the work is right? With the commands that build the project and run your tests.</value>
   </data>
   <data name="Setup_Verification_Unreadable" xml:space="preserve">
-    <value>The profile file you already have cannot be used. Fix it or delete it yourself: the assistant never overwrites it.</value>
+    <value>The commands file you already have cannot be used. Fix it or delete it yourself: the assistant never overwrites it.</value>
   </data>
   <data name="Setup_Verification_Hello_Note" xml:space="preserve">
-    <value>Windows Hello will be asked when you apply.</value>
+    <value>Windows Hello will be asked when you apply, because these commands run on your computer.</value>
   </data>
   <data name="Setup_Verification_Same" xml:space="preserve">
-    <value>It is the profile you already have.</value>
-  </data>
-  <data name="Setup_Verification_Step_Line" xml:space="preserve">
-    <value>{0}: {1}</value>
+    <value>These are the commands you already have.</value>
   </data>
   <data name="Setup_Skills_Hint" xml:space="preserve">
-    <value>These are the skills that best fit the technology and the role of each agent, with their reasons. None is activated by itself: tick the ones you want.</value>
+    <value>Skills for each agent: extra know-how chosen by the technology of the project and its role. None is turned on by itself: tick the ones you want.</value>
   </data>
   <data name="Setup_Skills_None" xml:space="preserve">
     <value>The catalog has no skills that fit this project.</value>
@@ -254,31 +239,31 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>Activate</value>
   </data>
   <data name="Setup_Budget_Hint" xml:space="preserve">
-    <value>These are the limits of each run of this project. The values now are the usual ones.</value>
+    <value>How far each run of this project can go. If you do not change them, the usual ones stay.</value>
   </data>
   <data name="Setup_Budget_Runs" xml:space="preserve">
-    <value>Agent executions per run</value>
+    <value>Agent attempts per run</value>
   </data>
   <data name="Setup_Budget_Parallel" xml:space="preserve">
-    <value>Tasks at once</value>
+    <value>Agents at once</value>
   </data>
   <data name="Setup_Budget_Time" xml:space="preserve">
-    <value>Minutes per attempt</value>
+    <value>Minutes at most per attempt</value>
   </data>
   <data name="Setup_Budget_Time_Hint" xml:space="preserve">
-    <value>Empty: the time the engine decides on its own.</value>
+    <value>How long each attempt of an agent can last, from 1 to 240. Empty: the system decides.</value>
   </data>
   <data name="Setup_Budget_Unattended_Note" xml:space="preserve">
-    <value>Work while you are away. A run can resume by itself after a usage limit or a restart. You give that permission when you approve each plan, not here.</value>
+    <value>Work while you are away: a run can go on by itself after a usage limit or a restart. You give that permission when you approve each plan, not here.</value>
   </data>
   <data name="Setup_Summary_Hint" xml:space="preserve">
-    <value>This is what changes, with what is there now next to it. Nothing is written until you press "Apply the changes".</value>
+    <value>Everything you chose, step by step. What is marked "Saved" is written when you press "Apply the changes"; the rest stays as it is.</value>
   </data>
   <data name="Setup_Summary_Empty" xml:space="preserve">
-    <value>There is nothing to apply: every step is skipped or already as you propose.</value>
+    <value>There is nothing to save: everything stays as it is. Press "Go to work" to start.</value>
   </data>
   <data name="Setup_Summary_Hello" xml:space="preserve">
-    <value>Windows Hello will be asked before the profile or the sensitive permissions are written.</value>
+    <value>Windows Hello will be asked before the check commands or the sensitive permissions are saved.</value>
   </data>
   <data name="Setup_Summary_Line" xml:space="preserve">
     <value>{0}: {1} → {2}</value>
@@ -301,17 +286,15 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
   <data name="Setup_Summary_Agent_Added" xml:space="preserve">
     <value>{0} ({1})</value>
   </data>
-  <data name="Setup_Summary_Profile" xml:space="preserve">
-    <value>profile {0} (fingerprint {1})</value>
-  </data>
   <data name="Setup_Summary_Budget" xml:space="preserve">
-    <value>{0} executions, {1} tasks at once, {2} per attempt</value>
+    <value>{1} agents at once, {0} agent attempts per run, {2} per attempt</value>
+    <comment>{0}: agent attempts per run. {1}: agents at once. {2}: minutes, or the system's own time.</comment>
   </data>
   <data name="Setup_Summary_Minutes" xml:space="preserve">
-    <value>{0} minutes</value>
+    <value>{0} minutes at most</value>
   </data>
   <data name="Setup_Summary_Engine_Time" xml:space="preserve">
-    <value>the time of the engine</value>
+    <value>the time the system decides</value>
   </data>
   <data name="Setup_Results_Heading" xml:space="preserve">
     <value>Result</value>
@@ -323,7 +306,7 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>{0}: {1}. {2}</value>
   </data>
   <data name="Setup_Result_Roster_Changed" xml:space="preserve">
-    <value>You changed the template of agents: approve again the plan that was waiting.</value>
+    <value>You changed the team: approve again the plan that was waiting.</value>
   </data>
   <data name="Setup_Result_Recorded" xml:space="preserve">
     <value>It is noted in the history of the project.</value>
@@ -350,16 +333,16 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>How to build and test (Python)</value>
   </data>
   <data name="Text_setup_models_light_executor" xml:space="preserve">
-    <value>It is the lighter executor of the medium template: for documentation or test tasks.</value>
+    <value>It is the lighter executor of the medium team: for test or writing tasks.</value>
   </data>
   <data name="Text_setup_verification_no_stack" xml:space="preserve">
-    <value>No profile proposed: the technology of the project is not recognised. You can write the profile yourself.</value>
+    <value>We do not recognise the technology of the project. Write the commands yourself; each one has an example below it.</value>
   </data>
   <data name="Text_setup_problem_brief_unreadable" xml:space="preserve">
     <value>The brief could not be read because the history of the project does not verify. Check the history before you save anything.</value>
   </data>
   <data name="Text_setup_problem_profile_unreadable" xml:space="preserve">
-    <value>The test profile file cannot be used. Fix it or delete it yourself.</value>
+    <value>The file of the check commands cannot be used. Fix it or delete it yourself.</value>
   </data>
   <data name="Text_setup_problem_skills_catalog_empty" xml:space="preserve">
     <value>The skills catalog is empty.</value>
@@ -377,13 +360,14 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>The agent "{0}" is not valid: no agent was saved.</value>
   </data>
   <data name="Text_setup_problem_profile_not_saved" xml:space="preserve">
-    <value>The test profile could not be saved: {0}</value>
+    <value>The check commands could not be saved: {0}</value>
   </data>
   <data name="Text_setup_problem_roster_not_saved" xml:space="preserve">
     <value>The team could not be saved: {0} The agents saved before the error stay saved.</value>
   </data>
   <data name="Text_setup_hello_subject_profile" xml:space="preserve">
-    <value>the verification profile of {0}</value>
+    <value>the check commands for {0}</value>
+    <comment>What Windows Hello is asked for (setup.hello.subject-profile). {0}: .NET, Node or Python.</comment>
   </data>
   <data name="Text_setup_hello_subject_team" xml:space="preserve">
     <value>the team with {0} agents</value>
@@ -395,13 +379,13 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>The limits of the project could not be saved: {0}</value>
   </data>
   <data name="Text_setup_budget_agent_runs_out_of_range" xml:space="preserve">
-    <value>Agent executions per run go from 1 to 200.</value>
+    <value>Agent attempts per run go from 1 to 200.</value>
   </data>
   <data name="Text_setup_budget_parallel_tasks_out_of_range" xml:space="preserve">
-    <value>Tasks at once go from 1 to 8.</value>
+    <value>Agents at once go from 1 to 8.</value>
   </data>
   <data name="Text_setup_budget_time_out_of_range" xml:space="preserve">
-    <value>The time per attempt goes from 1 minute to 4 hours (240 minutes).</value>
+    <value>Minutes per attempt go from 1 to 240 (4 hours).</value>
   </data>
   <data name="Text_setup_hello_not_composed" xml:space="preserve">
     <value>This installation cannot ask for Windows Hello, so this is not applied.</value>
@@ -414,5 +398,313 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
   </data>
   <data name="Text_setup_hello_not_asked" xml:space="preserve">
     <value>Windows could not ask you to confirm.</value>
+  </data>
+  <data name="Setup_Project_Hint" xml:space="preserve">
+    <value>This is what we see in your folder. There is nothing to choose here.</value>
+  </data>
+  <data name="Setup_Team_Plan_Note" xml:space="preserve">
+    <value>Changing the team withdraws the approval of the plan that is waiting.</value>
+  </data>
+  <data name="Setup_Models_Now" xml:space="preserve">
+    <value>Now: {0}</value>
+    <comment>{0}: the model and the effort the agent has now.</comment>
+  </data>
+  <data name="Setup_Models_Program" xml:space="preserve">
+    <value>Program: {0}</value>
+    <comment>{0}: the program of the agent (Claude Code, Codex); it does not change here.</comment>
+  </data>
+  <data name="Setup_Models_Model_Label" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="Setup_Models_Effort_Label" xml:space="preserve">
+    <value>Effort</value>
+  </data>
+  <data name="Setup_Models_Model_Name" xml:space="preserve">
+    <value>Model of {0}</value>
+    <comment>Accessible name of the model box. {0}: the agent.</comment>
+  </data>
+  <data name="Setup_Models_Effort_Name" xml:space="preserve">
+    <value>Effort of {0}</value>
+    <comment>Accessible name of the effort box. {0}: the agent.</comment>
+  </data>
+  <data name="Setup_Models_Default_Hint" xml:space="preserve">
+    <value>If you leave the model empty, the agent uses the default of its program.</value>
+  </data>
+  <data name="Setup_Models_Option" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>An entry of the list of models. {0}: the model. {1}: its level.</comment>
+  </data>
+  <data name="Setup_Models_Bad" xml:space="preserve">
+    <value>That model name is not valid: use letters, digits and the signs . _ : / - with no spaces.</value>
+  </data>
+  <data name="Setup_Models_Use" xml:space="preserve">
+    <value>Use the recommended one</value>
+  </data>
+  <data name="Setup_Models_Use_Name" xml:space="preserve">
+    <value>Use the recommended one for {0}</value>
+    <comment>Accessible name of the button. {0}: the agent.</comment>
+  </data>
+  <data name="Setup_Verification_Edit_Hint" xml:space="preserve">
+    <value>Change any command you want. If you leave one empty, it does not run.</value>
+  </data>
+  <data name="Setup_Verification_Step_install" xml:space="preserve">
+    <value>Install dependencies</value>
+    <comment>What the command with the id install is for.</comment>
+  </data>
+  <data name="Setup_Verification_Step_build" xml:space="preserve">
+    <value>Build</value>
+    <comment>What the command with the id build is for.</comment>
+  </data>
+  <data name="Setup_Verification_Step_test" xml:space="preserve">
+    <value>Run the tests</value>
+    <comment>What the command with the id test is for.</comment>
+  </data>
+  <data name="Setup_Verification_Example_build" xml:space="preserve">
+    <value>For example: dotnet build or cargo build</value>
+  </data>
+  <data name="Setup_Verification_Example_test" xml:space="preserve">
+    <value>For example: python -m pytest --junitxml={results}/test.xml</value>
+    <comment>{results} is written as it is: the system puts the folder of the report there. Never passed to a format.</comment>
+  </data>
+  <data name="Setup_Verification_Quotes" xml:space="preserve">
+    <value>A double quote is not closed.</value>
+  </data>
+  <data name="Setup_Verification_No_Program" xml:space="preserve">
+    <value>Start with the program to run.</value>
+  </data>
+  <data name="Setup_Verification_Report" xml:space="preserve">
+    <value>This command has to leave its test report in the folder {results}.</value>
+    <comment>{results} is written as it is. Never passed to a format.</comment>
+  </data>
+  <data name="Setup_Verification_Invalid" xml:space="preserve">
+    <value>These commands cannot be used like this: check that each one starts with a program and has no odd characters.</value>
+  </data>
+  <data name="Setup_Verification_None" xml:space="preserve">
+    <value>With no commands there is nothing to save, and the system will not be able to check the work.</value>
+  </data>
+  <data name="Setup_Verification_Restore_Current" xml:space="preserve">
+    <value>Back to the ones you have now</value>
+  </data>
+  <data name="Setup_Verification_Restore_Proposed" xml:space="preserve">
+    <value>Use the proposal</value>
+  </data>
+  <data name="Setup_Verification_Try" xml:space="preserve">
+    <value>Try it now</value>
+  </data>
+  <data name="Setup_Verification_Try_Hint" xml:space="preserve">
+    <value>It runs on a copy of your latest saved version and cannot change your project. It can read your files and use the network, as when you run the tests yourself. Your unsaved changes do not count.</value>
+  </data>
+  <data name="Setup_Verification_Stop" xml:space="preserve">
+    <value>Stop the trial</value>
+  </data>
+  <data name="Setup_Verification_Trying" xml:space="preserve">
+    <value>Trying… It can take a few minutes.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Passed" xml:space="preserve">
+    <value>It works: every command ended well.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Failed" xml:space="preserve">
+    <value>It does not work: see which command failed and the last thing it wrote.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Stopped" xml:space="preserve">
+    <value>Trial stopped.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Run" xml:space="preserve">
+    <value>The trial could not be started ({0}).</value>
+    <comment>{0}: the kind of the error.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Step_Passed" xml:space="preserve">
+    <value>{0}: passed</value>
+    <comment>{0}: what the command is for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Step_Failed" xml:space="preserve">
+    <value>{0}: failed (code {1})</value>
+    <comment>{0}: what the command is for. {1}: its exit code.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Step_TimedOut" xml:space="preserve">
+    <value>{0}: ran out of time</value>
+    <comment>{0}: what the command is for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Tests" xml:space="preserve">
+    <value>Tests: {0} passed, {1} failed, {2} skipped</value>
+    <comment>The counters of the report of the tests.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_No_Report" xml:space="preserve">
+    <value>It left no test report, so it does not count.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Failed_Test" xml:space="preserve">
+    <value>Failed: {0}</value>
+    <comment>{0}: the name of a test, as its report gives it.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Reached" xml:space="preserve">
+    <value>Did not get to run: {0}</value>
+    <comment>{0}: what the commands are for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Isolated" xml:space="preserve">
+    <value>Not tried because they run without isolation: {0}</value>
+    <comment>{0}: what the commands are for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Output" xml:space="preserve">
+    <value>The last thing the commands wrote</value>
+  </data>
+  <data name="Setup_Verification_Info_Title" xml:space="preserve">
+    <value>Checks</value>
+    <comment>Name of the section for the information button.</comment>
+  </data>
+  <data name="Setup_Verification_Info_What" xml:space="preserve">
+    <value>These are the commands the system runs to know whether the work is right. They run on a copy and cannot change your project, but they can read your files and use the network. Tests only count if they leave their report in the folder {results}. The history keeps the fingerprint of each version you save.</value>
+    <comment>What it is. {results} is written as it is.</comment>
+  </data>
+  <data name="Setup_Verification_Info_Actions" xml:space="preserve">
+    <value>Change any command.
+Leave one empty so it does not run.
+Try them now on your latest saved version.
+Save them: it asks for Windows Hello.</value>
+    <comment>What can be done here, one action per line.</comment>
+  </data>
+  <data name="Setup_Budget_Parallel_Hint" xml:space="preserve">
+    <value>How many agents work at the same time, from 1 to 8.</value>
+  </data>
+  <data name="Setup_Budget_Runs_Hint" xml:space="preserve">
+    <value>How many times in total an agent can be started in one run, from 1 to 200.</value>
+  </data>
+  <data name="Setup_Budget_Providers" xml:space="preserve">
+    <value>Each program also has its own cap of agents at once: {0}.</value>
+    <comment>{0}: each program of the team with its cap, as the adapters fix it (Setup_Budget_Provider, joined).</comment>
+  </data>
+  <data name="Setup_Budget_Provider" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: the program. {1}: how many agents it runs at once at most.</comment>
+  </data>
+  <data name="Setup_Budget_Info_Title" xml:space="preserve">
+    <value>Limits</value>
+    <comment>Name of the section for the information button.</comment>
+  </data>
+  <data name="Setup_Budget_Info_What" xml:space="preserve">
+    <value>The limits stop a run before it goes on too long or spends too much. Besides what you choose here, each program works with a fixed number of agents at once. If you ask for more, they wait their turn.</value>
+    <comment>What it is.</comment>
+  </data>
+  <data name="Setup_Budget_Info_Actions" xml:space="preserve">
+    <value>Choose how many agents work at once.
+Choose how many times an agent can be started.
+Choose how long each attempt can last.</value>
+    <comment>What can be done here, one action per line.</comment>
+  </data>
+  <data name="Setup_Summary_Saves" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="Setup_Summary_Stays" xml:space="preserve">
+    <value>Stays as it is</value>
+  </data>
+  <data name="Setup_Summary_Change" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Setup_Summary_Change_Name" xml:space="preserve">
+    <value>Change {0}</value>
+    <comment>Accessible name of «Cambiar». {0}: the step.</comment>
+  </data>
+  <data name="Setup_Summary_Change_Line" xml:space="preserve">
+    <value>{0} → {1}</value>
+    <comment>{0}: what there is now. {1}: what there will be.</comment>
+  </data>
+  <data name="Setup_Summary_Changes_Heading" xml:space="preserve">
+    <value>What changes:</value>
+  </data>
+  <data name="Setup_Summary_Item" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: an agent or a command. {1}: what it will be.</comment>
+  </data>
+  <data name="Setup_Summary_Skill" xml:space="preserve">
+    <value>{0} for {1}</value>
+    <comment>{0}: the skill. {1}: the agent.</comment>
+  </data>
+  <data name="Setup_Summary_Skills_None" xml:space="preserve">
+    <value>No new skill</value>
+  </data>
+  <data name="Setup_Summary_Check_None" xml:space="preserve">
+    <value>No check commands</value>
+  </data>
+  <data name="Setup_Summary_Check_Count" xml:space="preserve">
+    <value>{0} commands</value>
+    <comment>{0}: how many commands of the check there are now.</comment>
+  </data>
+  <data name="Setup_Summary_Check_New" xml:space="preserve">
+    <value>{0} new commands</value>
+    <comment>{0}: how many commands of the check will be saved.</comment>
+  </data>
+  <data name="Setup_Button_Go_To_Work" xml:space="preserve">
+    <value>Go to work</value>
+  </data>
+  <data name="Setup_Applied_Confirmation" xml:space="preserve">
+    <value>Saved. Now write what you want the team to do.</value>
+  </data>
+  <data name="Text_setup_hello_subject_profile_own" xml:space="preserve">
+    <value>your own check commands</value>
+    <comment>What Windows Hello is asked for (setup.hello.subject-profile-own): commands the person wrote for a technology not recognised.</comment>
+  </data>
+  <data name="Text_setup_check_invalid" xml:space="preserve">
+    <value>These commands cannot be tried like this: check each one.</value>
+    <comment>(setup.check.invalid)</comment>
+  </data>
+  <data name="Text_setup_check_no_isolated_step" xml:space="preserve">
+    <value>No command runs in an isolated copy, so none is tried.</value>
+    <comment>(setup.check.no-isolated-step)</comment>
+  </data>
+  <data name="Text_setup_check_busy" xml:space="preserve">
+    <value>The project is doing something else now. Try again when it ends.</value>
+    <comment>(setup.check.busy)</comment>
+  </data>
+  <data name="Text_setup_check_no_version" xml:space="preserve">
+    <value>The latest saved version of the project could not be read. It needs git and at least one saved version.</value>
+    <comment>(setup.check.no-version)</comment>
+  </data>
+  <data name="Text_setup_check_too_long" xml:space="preserve">
+    <value>The trial took more than {0} minutes and was stopped.</value>
+    <comment>(setup.check.too-long) {0}: the minutes of its budget.</comment>
+  </data>
+  <data name="Text_setup_check_not_run" xml:space="preserve">
+    <value>The trial could not be started: the folder of the project is missing.</value>
+    <comment>(setup.check.not-run)</comment>
+  </data>
+  <data name="Setup_Trial_Window_Title" xml:space="preserve">
+    <value>Try these commands</value>
+  </data>
+  <data name="Setup_Trial_Heading" xml:space="preserve">
+    <value>Run these commands now?</value>
+  </data>
+  <data name="Setup_Trial_What" xml:space="preserve">
+    <value>They run on a copy of your latest saved version and cannot change your project. They can read your files and use the network, as when you run the tests yourself.</value>
+  </data>
+  <data name="Setup_Trial_Not_Accepted" xml:space="preserve">
+    <value>You have not saved or accepted them yet. Look at them before you go on.</value>
+  </data>
+  <data name="Setup_Trial_Commands_Name" xml:space="preserve">
+    <value>Commands that will run</value>
+    <comment>Accessible name of the list of commands.</comment>
+  </data>
+  <data name="Setup_Trial_Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="Setup_Trial_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Confirmed" xml:space="preserve">
+    <value>Nothing was run.</value>
+  </data>
+  <data name="Setup_Verification_Hidden" xml:space="preserve">
+    <value>This command has invisible characters or characters that change the direction of the text. Type it again by hand.</value>
+  </data>
+  <data name="Setup_Verification_Suggestion" xml:space="preserve">
+    <value>For your technology we propose these other commands:</value>
+  </data>
+  <data name="Setup_Verification_Not_Saved" xml:space="preserve">
+    <value>These commands are not saved yet. To save them, tick "Save this step".</value>
+  </data>
+  <data name="Setup_Apply_Kept" xml:space="preserve">
+    <value>{0} was not saved. Your changes are still here so you can try again.</value>
+    <comment>{0}: the steps that were not saved.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
+    <value>The commands changed while they were tried. Try them again.</value>
   </data>
 </root>

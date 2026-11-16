@@ -16,10 +16,13 @@ using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Desktop.Views;
 using AgentStudio.Desktop.Views.Documents;
 using AgentStudio.Desktop.Views.Setup;
+using AgentStudio.Domain.Providers;
 using AgentStudio.Infrastructure.Models;
 using AgentStudio.Memory.Documents;
 using AgentStudio.Security.Redaction;
 using AgentStudio.Tests.Application.Setup;
+using AgentStudio.Tests.Debate.Audit.Fixtures;
+using AgentStudio.Tests.Desktop.Setup;
 using AgentStudio.Tests.Memory.Documents;
 
 namespace AgentStudio.Tests.Desktop.UiInventory;
@@ -63,7 +66,7 @@ internal static class UiScreensShell
 
     private static string Calc => Path.Combine(Folder.Path, "calc");
 
-    private static async Task<SetupViewModel> SetupAsync()
+    private static async Task<SetupViewModel> SetupAsync(SetupStep step = SetupStep.Project)
     {
         var roster = new InMemoryRoster(SetupTeams.Default());
         var service = new ProjectSetupService(
@@ -79,8 +82,19 @@ internal static class UiScreensShell
             models: new BuiltInModelCatalog(),
             learning: null,
             gate: new FakeGate(true));
-        var vm = new SetupViewModel(service);
+
+        // The check step shows «Probarla ahora» after a trial whose last command failed, with its lines and its output.
+        var runner = new SetupTrialRunner();
+        runner.Failing.Add("build");
+        var trial = new SetupCheckTrial(runner, new AuditRepository("0123456789abcdef0123456789abcdef01234567"), new AgentStudio.Tests.Debate.Audit.Fixtures.FakeProjectActivity());
+        var vm = new SetupViewModel(service, trial: trial, providerLimits: _ => [new SetupProviderLimit(ProviderId.ClaudeCode, 2), new SetupProviderLimit(ProviderId.CodexCli, 2)], confirmTrial: new SetupTrialAnswer(true));
         await vm.LoadAsync(SetupFakes.Project);
+        if (step == SetupStep.Verification)
+        {
+            await vm.TryChecksCommand.ExecuteAsync(null);
+        }
+
+        vm.Step = step;
         return vm;
     }
 
@@ -120,6 +134,11 @@ internal static class UiScreensShell
         UiScreens.ScreenAsync("Source file", async () => UiScreens.Of(new FileEditorView(), await FileAsync("main.cs")), 1100, 760),
         UiScreens.ScreenAsync("Binary file", async () => UiScreens.Of(new FileEditorView(), await FileAsync("data.bin")), 1100, 400),
         UiScreens.ScreenAsync("Configurator", async () => UiScreens.Of(new SetupView(), await SetupAsync()), 1000, 800),
+        UiScreens.ScreenAsync("Configurator models", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Models)), 1000, 800),
+        UiScreens.ScreenAsync("Configurator check", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Verification)), 1000, 800),
+        UiScreens.ScreenAsync("Configurator limits", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Budget)), 1000, 800),
+        UiScreens.ScreenAsync("Configurator summary", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Summary)), 1000, 800),
+        UiScreens.Screen("Check trial window", () => UiScreens.OfWindow(new SetupTrialWindow(), new SetupTrialConfirmationViewModel(["dotnet build App.slnx", "dotnet test --no-build"])), 560, 420),
         UiScreens.ScreenAsync("Client documents", async () => UiScreens.Of(new ClientDocumentsView(), await ClientDocumentsAsync()), 1100, 900),
         UiScreens.ScreenAsync("Quick open window", async () =>
         {

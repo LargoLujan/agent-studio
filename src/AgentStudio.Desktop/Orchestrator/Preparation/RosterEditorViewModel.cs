@@ -4,6 +4,7 @@ using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -37,6 +38,23 @@ public static class AgentModels
         provider == ProviderId.ClaudeCode ? ["opus", "sonnet", "haiku"]
         : provider == ProviderId.CodexCli ? [DefaultAgentRoster.RevisionJudgeModel]
         : [];
+
+    /// <summary>
+    /// The model names offered for <paramref name="provider"/> wherever a model is chosen (a new agent of the team, the
+    /// configurator of a project): the names the catalog has for that program, or <see cref="Known"/> when it has none.
+    /// </summary>
+    public static IReadOnlyList<string> Names(ModelCatalog? catalog, ProviderId provider)
+    {
+        var named = catalog?.Entries.Where(e => e.Provider == provider).Select(e => e.Name).ToList() ?? [];
+        return named.Count > 0 ? named : Known(provider);
+    }
+
+    /// <summary>
+    /// The efforts offered for <paramref name="model"/> of <paramref name="provider"/> (the inspector of an agent, the configurator):
+    /// the ones the catalog says the model accepts, or every effort the program takes when the catalog does not say.
+    /// </summary>
+    public static IReadOnlyList<ReasoningEffort> Efforts(ModelCatalog? catalog, ProviderId provider, string? model) =>
+        catalog?.Find(provider, model) is { Efforts.Count: > 0 } entry ? entry.Efforts : ReasoningEfforts.For(provider);
 
     /// <summary>Why <paramref name="model"/> cannot be given to the CLI, in Spanish; null when it can.</summary>
     public static string? Problem(string? model)

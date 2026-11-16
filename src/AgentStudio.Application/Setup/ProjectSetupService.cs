@@ -96,6 +96,9 @@ public sealed class ProjectSetupService
     /// <summary>Whether step 2 can save a brief.</summary>
     public bool CanSaveBrief => _brief is not null;
 
+    /// <summary>The catalog of models step 4 offers to choose from; null when none is composed (the program's own names are offered then).</summary>
+    public ModelCatalog? ModelCatalog => _models?.Current.Catalog;
+
     /// <summary>
     /// The proposals of the seven steps for <paramref name="project"/> (the team of <paramref name="size"/>, or the one of the size
     /// of the project). Reading only: no write, no agent, no network. What cannot be read goes to
@@ -373,7 +376,14 @@ public sealed class ProjectSetupService
             return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Unchanged), null);
         }
 
-        var gate = await ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", profile.Name switch { SetupStacks.DotNet => ".NET", SetupStacks.Node => "Node", SetupStacks.Python => "Python", var other => other }), ct).ConfigureAwait(false);
+        var subject = profile.Name switch
+        {
+            SetupStacks.DotNet => UserText.Of("setup.hello.subject-profile", ".NET"),
+            SetupStacks.Node => UserText.Of("setup.hello.subject-profile", "Node"),
+            SetupStacks.Python => UserText.Of("setup.hello.subject-profile", "Python"),
+            _ => UserText.Of("setup.hello.subject-profile-own"),
+        };
+        var gate = await ConfirmAsync(PresenceAction.ChangeVerificationProfile, subject, ct).ConfigureAwait(false);
         if (!gate.Confirmed)
         {
             return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Denied, gate.Problem), null);

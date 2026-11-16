@@ -74,7 +74,7 @@ public sealed class MainViewModelBuilderTests
     /// <summary>A shell over a fake engine, with the services of the builder and a real configurator over fakes of its ports.</summary>
     private sealed class Rig : IDisposable
     {
-        public Rig(bool withSetup = true, RecordingHost? host = null)
+        public Rig(bool withSetup = true, RecordingHost? host = null, SetupCheckTrial? trial = null)
         {
             Engine = new FakeOrchestrator();
             Roster = new InMemoryRoster(SetupTeams.Default());
@@ -86,7 +86,7 @@ public sealed class MainViewModelBuilderTests
                 new FakeTimeProvider(T0),
                 builder: BuilderServices.None,
                 monitors: Monitors);
-            var setup = withSetup ? new SetupViewModelFactory(SetupService()) : null;
+            var setup = withSetup ? new SetupViewModelFactory(SetupService(), trial, confirmTrial: new AgentStudio.Tests.Desktop.Setup.SetupTrialAnswer(true)) : null;
             Main = new MainViewModel(
                 new InMemorySettingsStore(),
                 new FakeFolderPicker(),
@@ -445,6 +445,47 @@ public sealed class MainViewModelBuilderTests
 
         var stored = await rig.Roster.ListAsync("p-1", TestContext.Current.CancellationToken);
         Assert.Equal(stored.Select(a => a.Model), orchestrator.Context!.Roster.Select(a => a.Model));
+
+        // Everything went well: the person is taken to work, with the confirmation in the status bar (docs/24, wave 1).
+        await WaitForAsync(() => ReferenceEquals(rig.Main.ActiveContent, orchestrator));
+        Assert.Equal(Texts.Get("Setup_Applied_Confirmation"), rig.Main.StatusMessage);
+    }
+
+    [Fact]
+    public async Task Opening_another_project_stops_the_trial_of_the_configurator_and_lets_its_project_go()
+    {
+        var runner = new AgentStudio.Tests.Desktop.Setup.GatedTrialRunner();
+        var activity = new AgentStudio.Tests.Debate.Audit.Fixtures.FakeProjectActivity();
+        using var rig = new Rig(trial: new SetupCheckTrial(runner, new AgentStudio.Tests.Debate.Audit.Fixtures.AuditRepository("0123456789abcdef0123456789abcdef01234567"), activity));
+        var first = Directory.CreateDirectory(rig.Folder.Combine("trial-a")).FullName;
+        var second = Directory.CreateDirectory(rig.Folder.Combine("trial-b")).FullName;
+        await rig.Main.OpenProjectAsync(first);
+        await rig.Main.OpenSetupCommand.ExecuteAsync(null);
+        var setup = Assert.IsType<SetupDocumentViewModel>(rig.Main.ActiveContent).Setup;
+        var trying = setup.TryChecksCommand.ExecuteAsync(null);
+        await WaitForAsync(() => runner.Started);
+
+        await rig.Main.OpenProjectAsync(second);
+        await trying;
+
+        Assert.False(setup.IsTrying);
+        Assert.Equal(1, activity.Released);
+    }
+
+    [Fact]
+    public async Task Go_to_work_of_the_configurator_opens_the_orchestrator_of_the_project()
+    {
+        using var rig = new Rig();
+        await rig.OpenProjectAsync();
+        await rig.Main.OpenSetupCommand.ExecuteAsync(null);
+        var setup = Assert.IsType<SetupDocumentViewModel>(rig.Main.ActiveContent).Setup;
+        setup.Steps[(int)SetupStep.Verification].IsIncluded = false;
+        Assert.True(setup.GoToWorkCommand.CanExecute(null));
+
+        setup.GoToWorkCommand.Execute(null);
+
+        await WaitForAsync(() => rig.Main.ActiveContent is OrchestratorDocumentViewModel);
+        Assert.Single(rig.Main.Documents.OfType<OrchestratorDocumentViewModel>());
     }
 
     // ---- the counter of the agents and the panels follow the monitor of the project ----

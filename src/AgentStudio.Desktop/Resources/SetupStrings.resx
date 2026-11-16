@@ -18,14 +18,14 @@
     <comment>Name of the section for the information button.</comment>
   </data>
   <data name="Setup_Info_What" xml:space="preserve">
-    <value>Un asistente de siete pasos que propone cómo preparar este proyecto: equipo, modelos, pruebas y límites. Propone a partir de los ficheros del proyecto, sin red y sin gastar tu límite de uso. Nada se aplica hasta que pulsas «Aplicar».</value>
+    <value>Un asistente de ocho pasos para preparar este proyecto: equipo, modelos, comprobación y límites. Propone a partir de tus ficheros, sin red y sin gastar tu límite de uso. Nada se guarda hasta que pulsas «Aplicar los cambios».</value>
     <comment>What it is (D-54).</comment>
   </data>
   <data name="Setup_Info_Actions" xml:space="preserve">
-    <value>Revisar y cambiar cada propuesta.
-Saltar los pasos que no quieras.
-Ver en el resumen todo lo que cambia, con lo de antes al lado.
-Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</value>
+    <value>Revisar cada paso y cambiar lo que quieras.
+Apagar un paso para dejarlo como está.
+Ver en el resumen todo lo que has elegido.
+Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows Hello.</value>
     <comment>What can be done here, one action per line (D-54).</comment>
   </data>
   <data name="Setup_Heading" xml:space="preserve">
@@ -66,7 +66,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Usar todas las recomendadas</value>
   </data>
   <data name="Setup_Include_Step" xml:space="preserve">
-    <value>Aplicar este paso (apágalo para saltarlo)</value>
+    <value>Guardar este paso (apágalo para dejarlo como está)</value>
   </data>
   <data name="Setup_Step_Project" xml:space="preserve">
     <value>Proyecto</value>
@@ -81,13 +81,13 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Modelos</value>
   </data>
   <data name="Setup_Step_Verification" xml:space="preserve">
-    <value>Pruebas</value>
+    <value>Comprobación</value>
   </data>
   <data name="Setup_Step_Skills" xml:space="preserve">
     <value>Skills</value>
   </data>
   <data name="Setup_Step_Budget" xml:space="preserve">
-    <value>Presupuesto</value>
+    <value>Límites</value>
   </data>
   <data name="Setup_Step_Summary" xml:space="preserve">
     <value>Resumen</value>
@@ -191,16 +191,16 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Esto sale de los nombres de los ficheros. No se ejecuta nada del proyecto ni se usa la red.</value>
   </data>
   <data name="Setup_Brief_Hint" xml:space="preserve">
-    <value>Cuenta qué es el proyecto, sus convenciones y sus direcciones útiles. Llega a los agentes como dato, nunca al juez. Si no escribes nada, no se guarda.</value>
+    <value>Cuéntales a los agentes qué es el proyecto y cómo se trabaja en él. El juez no la lee, para revisar sin influencias. Si no la cambias, no se guarda.</value>
   </data>
   <data name="Setup_Brief_Characters" xml:space="preserve">
     <value>{0} caracteres</value>
   </data>
   <data name="Setup_Team_Size_Label" xml:space="preserve">
-    <value>Tamaño de la plantilla</value>
+    <value>Tamaño del equipo</value>
   </data>
   <data name="Setup_Team_Hint" xml:space="preserve">
-    <value>Pequeño: orquestador, un ejecutor y juez. Mediano: y un ejecutor ligero. Grande: y un revisor. Cambiar la plantilla retira la aprobación del plan que esté esperando.</value>
+    <value>Quién trabaja en el proyecto. Pequeño: orquestador, un ejecutor y juez. Mediano: además, un ejecutor ligero. Grande: además, un revisor.</value>
   </data>
   <data name="Setup_Team_Never_Removes" xml:space="preserve">
     <value>El asistente solo añade y cambia: no quita ningún agente que ya tengas.</value>
@@ -215,7 +215,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Sin cambios</value>
   </data>
   <data name="Setup_Models_Hint" xml:space="preserve">
-    <value>La recomendación sale del catálogo local y de tu historial, sin gastar tu límite de uso, y dice por qué. Tú decides agente por agente.</value>
+    <value>Qué modelo usa cada agente y cuánto piensa antes de responder. Te recomendamos uno y te decimos por qué; puedes elegir otro aquí mismo.</value>
   </data>
   <data name="Setup_Models_None" xml:space="preserve">
     <value>El catálogo no tiene un modelo para el programa de este agente.</value>
@@ -229,40 +229,22 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>{0}: the reason, one sentence.</comment>
   </data>
   <data name="Setup_Models_Follows" xml:space="preserve">
-    <value>Ya usa lo recomendado.</value>
-  </data>
-  <data name="Setup_Models_Accept" xml:space="preserve">
-    <value>Usar la recomendación</value>
+    <value>Usa la recomendada.</value>
   </data>
   <data name="Setup_Verification_Hint" xml:space="preserve">
-    <value>El perfil dice qué órdenes ejecuta el sistema para compilar y probar, en una copia aislada. Es código que corre en tu equipo: guardarlo pide Windows Hello.</value>
-  </data>
-  <data name="Setup_Verification_Current" xml:space="preserve">
-    <value>Ahora: perfil {0} (huella {1})</value>
-    <comment>{0}: the name of the profile. {1}: its short fingerprint.</comment>
-  </data>
-  <data name="Setup_Verification_Current_None" xml:space="preserve">
-    <value>Ahora: el proyecto no tiene perfil.</value>
-  </data>
-  <data name="Setup_Verification_Proposed" xml:space="preserve">
-    <value>Propuesto: perfil {0} (huella {1})</value>
-    <comment>{0}: the name of the profile. {1}: its short fingerprint.</comment>
+    <value>¿Cómo sabemos que el trabajo funciona? Con las órdenes que compilan y lanzan tus pruebas.</value>
   </data>
   <data name="Setup_Verification_Unreadable" xml:space="preserve">
-    <value>El fichero del perfil que ya tienes no se puede usar. Arréglalo o bórralo tú: el asistente nunca lo sobrescribe.</value>
+    <value>El fichero de órdenes que ya tienes no se puede usar. Arréglalo o bórralo tú: el asistente nunca lo sobrescribe.</value>
   </data>
   <data name="Setup_Verification_Hello_Note" xml:space="preserve">
-    <value>Al aplicar se pedirá Windows Hello.</value>
+    <value>Al aplicar se pedirá Windows Hello, porque estas órdenes se ejecutan en tu equipo.</value>
   </data>
   <data name="Setup_Verification_Same" xml:space="preserve">
-    <value>Es el perfil que ya tienes.</value>
-  </data>
-  <data name="Setup_Verification_Step_Line" xml:space="preserve">
-    <value>{0}: {1}</value>
-    <comment>{0}: the id of the step. {1}: the command it runs.</comment>
+    <value>Son las órdenes que ya tienes.</value>
   </data>
   <data name="Setup_Skills_Hint" xml:space="preserve">
-    <value>Son las skills que más encajan con la tecnología y el papel de cada agente, con sus razones. Ninguna se activa sola: marca las que quieras.</value>
+    <value>Skills para cada agente: conocimientos extra elegidos por la tecnología del proyecto y su papel. Ninguna se activa sola: marca las que quieras.</value>
   </data>
   <data name="Setup_Skills_None" xml:space="preserve">
     <value>El catálogo no tiene skills que encajen con este proyecto.</value>
@@ -274,31 +256,31 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Activar</value>
   </data>
   <data name="Setup_Budget_Hint" xml:space="preserve">
-    <value>Son los límites de cada ejecución de este proyecto. Los valores de ahora son los de siempre.</value>
+    <value>Hasta dónde puede llegar cada ejecución de este proyecto. Si no los cambias, se quedan los de siempre.</value>
   </data>
   <data name="Setup_Budget_Runs" xml:space="preserve">
-    <value>Ejecuciones de agente por ejecución</value>
+    <value>Intentos de agente por ejecución</value>
   </data>
   <data name="Setup_Budget_Parallel" xml:space="preserve">
-    <value>Tareas a la vez</value>
+    <value>Agentes a la vez</value>
   </data>
   <data name="Setup_Budget_Time" xml:space="preserve">
-    <value>Minutos por intento</value>
+    <value>Minutos como máximo por intento</value>
   </data>
   <data name="Setup_Budget_Time_Hint" xml:space="preserve">
-    <value>Vacío: el tiempo que el motor decide por su cuenta.</value>
+    <value>Cuánto puede durar cada intento de un agente, de 1 a 240. Vacío: lo decide el sistema.</value>
   </data>
   <data name="Setup_Budget_Unattended_Note" xml:space="preserve">
-    <value>Trabajo sin ti delante. Una ejecución puede reanudarse sola tras un límite de uso o un reinicio. Das ese permiso al aprobar cada plan, no aquí.</value>
+    <value>Trabajo sin ti delante: una ejecución puede seguir sola tras un límite de uso o un reinicio. Ese permiso se da al aprobar cada plan, no aquí.</value>
   </data>
   <data name="Setup_Summary_Hint" xml:space="preserve">
-    <value>Esto es lo que cambia, con lo de antes al lado. Nada se escribe hasta que pulses «Aplicar los cambios».</value>
+    <value>Todo lo que has elegido, paso a paso. Lo marcado «Se guarda» se escribe al pulsar «Aplicar los cambios»; lo demás se queda como está.</value>
   </data>
   <data name="Setup_Summary_Empty" xml:space="preserve">
-    <value>No hay nada que aplicar: todos los pasos están saltados o ya están como los propones.</value>
+    <value>No hay nada que guardar: todo se queda como está. Pulsa «Ir a trabajar» para empezar.</value>
   </data>
   <data name="Setup_Summary_Hello" xml:space="preserve">
-    <value>Se pedirá Windows Hello antes de escribir el perfil o los permisos delicados.</value>
+    <value>Se pedirá Windows Hello antes de guardar las órdenes de comprobación o los permisos delicados.</value>
   </data>
   <data name="Setup_Summary_Line" xml:space="preserve">
     <value>{0}: {1} → {2}</value>
@@ -323,18 +305,15 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>{0} ({1})</value>
     <comment>{0}: the agent. {1}: its role and program.</comment>
   </data>
-  <data name="Setup_Summary_Profile" xml:space="preserve">
-    <value>perfil {0} (huella {1})</value>
-  </data>
   <data name="Setup_Summary_Budget" xml:space="preserve">
-    <value>{0} ejecuciones, {1} tareas a la vez, {2} por intento</value>
-    <comment>{2}: minutes, or the engine's own time.</comment>
+    <value>{1} agentes a la vez, {0} intentos de agente por ejecución, {2} por intento</value>
+    <comment>{0}: agent attempts per run. {1}: agents at once. {2}: minutes, or the system's own time.</comment>
   </data>
   <data name="Setup_Summary_Minutes" xml:space="preserve">
-    <value>{0} minutos</value>
+    <value>{0} minutos como máximo</value>
   </data>
   <data name="Setup_Summary_Engine_Time" xml:space="preserve">
-    <value>el tiempo del motor</value>
+    <value>el tiempo que decida el sistema</value>
   </data>
   <data name="Setup_Results_Heading" xml:space="preserve">
     <value>Resultado</value>
@@ -348,7 +327,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>{2}: why, one sentence.</comment>
   </data>
   <data name="Setup_Result_Roster_Changed" xml:space="preserve">
-    <value>Cambiaste la plantilla de agentes: vuelve a aprobar el plan que estuviera esperando.</value>
+    <value>Cambiaste el equipo: vuelve a aprobar el plan que estuviera esperando.</value>
   </data>
   <data name="Setup_Result_Recorded" xml:space="preserve">
     <value>Queda anotado en el historial del proyecto.</value>
@@ -382,11 +361,11 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>Heading of the skeleton of the brief (setup.brief.section.stack-python).</comment>
   </data>
   <data name="Text_setup_models_light_executor" xml:space="preserve">
-    <value>Es el ejecutor ligero de la plantilla mediana: para tareas de documentación o de pruebas.</value>
+    <value>Es el ejecutor ligero del equipo mediano: para tareas de pruebas o de textos.</value>
     <comment>Reason of the recommendation of the lighter executor (setup.models.light-executor).</comment>
   </data>
   <data name="Text_setup_verification_no_stack" xml:space="preserve">
-    <value>Sin perfil propuesto: no reconozco la tecnología del proyecto. Puedes escribir el perfil tú.</value>
+    <value>No reconocemos la tecnología del proyecto. Escribe tú las órdenes; debajo de cada una tienes un ejemplo.</value>
     <comment>(setup.verification.no-stack)</comment>
   </data>
   <data name="Text_setup_problem_brief_unreadable" xml:space="preserve">
@@ -394,7 +373,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>(setup.problem.brief-unreadable)</comment>
   </data>
   <data name="Text_setup_problem_profile_unreadable" xml:space="preserve">
-    <value>El fichero del perfil de pruebas no se puede usar. Arréglalo o bórralo tú.</value>
+    <value>El fichero de las órdenes de comprobación no se puede usar. Arréglalo o bórralo tú.</value>
     <comment>(setup.problem.profile-unreadable)</comment>
   </data>
   <data name="Text_setup_problem_skills_catalog_empty" xml:space="preserve">
@@ -418,7 +397,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>(setup.problem.agent-invalid) {0}: the name of the agent.</comment>
   </data>
   <data name="Text_setup_problem_profile_not_saved" xml:space="preserve">
-    <value>No se pudo guardar el perfil de pruebas: {0}</value>
+    <value>No se pudieron guardar las órdenes de comprobación: {0}</value>
     <comment>(setup.problem.profile-not-saved)</comment>
   </data>
   <data name="Text_setup_problem_roster_not_saved" xml:space="preserve">
@@ -426,7 +405,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>(setup.problem.roster-not-saved) {0}: the cause, as the system says it.</comment>
   </data>
   <data name="Text_setup_hello_subject_profile" xml:space="preserve">
-    <value>el perfil de verificación de {0}</value>
+    <value>las órdenes de comprobación de {0}</value>
     <comment>What Windows Hello is asked for (setup.hello.subject-profile). {0}: .NET, Node or Python.</comment>
   </data>
   <data name="Text_setup_hello_subject_team" xml:space="preserve">
@@ -442,15 +421,15 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>(setup.problem.options-not-saved)</comment>
   </data>
   <data name="Text_setup_budget_agent_runs_out_of_range" xml:space="preserve">
-    <value>Las ejecuciones de agente por ejecución van de 1 a 200.</value>
+    <value>Los intentos de agente por ejecución van de 1 a 200.</value>
     <comment>(setup.budget.agent-runs-out-of-range)</comment>
   </data>
   <data name="Text_setup_budget_parallel_tasks_out_of_range" xml:space="preserve">
-    <value>Las tareas a la vez van de 1 a 8.</value>
+    <value>Los agentes a la vez van de 1 a 8.</value>
     <comment>(setup.budget.parallel-tasks-out-of-range)</comment>
   </data>
   <data name="Text_setup_budget_time_out_of_range" xml:space="preserve">
-    <value>El tiempo por intento va de 1 minuto a 4 horas (240 minutos).</value>
+    <value>Los minutos por intento van de 1 a 240 (4 horas).</value>
     <comment>(setup.budget.time-out-of-range)</comment>
   </data>
   <data name="Text_setup_hello_not_composed" xml:space="preserve">
@@ -468,5 +447,313 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
   <data name="Text_setup_hello_not_asked" xml:space="preserve">
     <value>No se pudo pedir la confirmación a Windows.</value>
     <comment>(setup.hello.not-asked)</comment>
+  </data>
+  <data name="Setup_Project_Hint" xml:space="preserve">
+    <value>Esto es lo que vemos en tu carpeta. Aquí no tienes que elegir nada.</value>
+  </data>
+  <data name="Setup_Team_Plan_Note" xml:space="preserve">
+    <value>Cambiar el equipo retira la aprobación del plan que esté esperando.</value>
+  </data>
+  <data name="Setup_Models_Now" xml:space="preserve">
+    <value>Ahora: {0}</value>
+    <comment>{0}: the model and the effort the agent has now.</comment>
+  </data>
+  <data name="Setup_Models_Program" xml:space="preserve">
+    <value>Programa: {0}</value>
+    <comment>{0}: the program of the agent (Claude Code, Codex); it does not change here.</comment>
+  </data>
+  <data name="Setup_Models_Model_Label" xml:space="preserve">
+    <value>Modelo</value>
+  </data>
+  <data name="Setup_Models_Effort_Label" xml:space="preserve">
+    <value>Esfuerzo</value>
+  </data>
+  <data name="Setup_Models_Model_Name" xml:space="preserve">
+    <value>Modelo de {0}</value>
+    <comment>Accessible name of the model box. {0}: the agent.</comment>
+  </data>
+  <data name="Setup_Models_Effort_Name" xml:space="preserve">
+    <value>Esfuerzo de {0}</value>
+    <comment>Accessible name of the effort box. {0}: the agent.</comment>
+  </data>
+  <data name="Setup_Models_Default_Hint" xml:space="preserve">
+    <value>Si dejas el modelo vacío, el agente usa el predeterminado de su programa.</value>
+  </data>
+  <data name="Setup_Models_Option" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>An entry of the list of models. {0}: the model. {1}: its level.</comment>
+  </data>
+  <data name="Setup_Models_Bad" xml:space="preserve">
+    <value>Ese nombre de modelo no vale: usa letras, números y los signos . _ : / - sin espacios.</value>
+  </data>
+  <data name="Setup_Models_Use" xml:space="preserve">
+    <value>Usar la recomendada</value>
+  </data>
+  <data name="Setup_Models_Use_Name" xml:space="preserve">
+    <value>Usar la recomendada para {0}</value>
+    <comment>Accessible name of the button. {0}: the agent.</comment>
+  </data>
+  <data name="Setup_Verification_Edit_Hint" xml:space="preserve">
+    <value>Cambia la orden que quieras. Si dejas una vacía, no se ejecuta.</value>
+  </data>
+  <data name="Setup_Verification_Step_install" xml:space="preserve">
+    <value>Instalar dependencias</value>
+    <comment>What the command with the id install is for.</comment>
+  </data>
+  <data name="Setup_Verification_Step_build" xml:space="preserve">
+    <value>Compilar</value>
+    <comment>What the command with the id build is for.</comment>
+  </data>
+  <data name="Setup_Verification_Step_test" xml:space="preserve">
+    <value>Lanzar las pruebas</value>
+    <comment>What the command with the id test is for.</comment>
+  </data>
+  <data name="Setup_Verification_Example_build" xml:space="preserve">
+    <value>Por ejemplo: dotnet build o cargo build</value>
+  </data>
+  <data name="Setup_Verification_Example_test" xml:space="preserve">
+    <value>Por ejemplo: python -m pytest --junitxml={results}/test.xml</value>
+    <comment>{results} is written as it is: the system puts the folder of the report there. Never passed to a format.</comment>
+  </data>
+  <data name="Setup_Verification_Quotes" xml:space="preserve">
+    <value>Falta cerrar unas comillas.</value>
+  </data>
+  <data name="Setup_Verification_No_Program" xml:space="preserve">
+    <value>Empieza por el programa que hay que ejecutar.</value>
+  </data>
+  <data name="Setup_Verification_Report" xml:space="preserve">
+    <value>Esta orden tiene que dejar su informe de pruebas en la carpeta {results}.</value>
+    <comment>{results} is written as it is. Never passed to a format.</comment>
+  </data>
+  <data name="Setup_Verification_Invalid" xml:space="preserve">
+    <value>Estas órdenes no se pueden usar así: revisa que cada una empiece por un programa y no lleve caracteres raros.</value>
+  </data>
+  <data name="Setup_Verification_None" xml:space="preserve">
+    <value>Sin órdenes no hay nada que guardar, y el sistema no podrá comprobar el trabajo.</value>
+  </data>
+  <data name="Setup_Verification_Restore_Current" xml:space="preserve">
+    <value>Volver a las que tienes ahora</value>
+  </data>
+  <data name="Setup_Verification_Restore_Proposed" xml:space="preserve">
+    <value>Usar la propuesta</value>
+  </data>
+  <data name="Setup_Verification_Try" xml:space="preserve">
+    <value>Probarla ahora</value>
+  </data>
+  <data name="Setup_Verification_Try_Hint" xml:space="preserve">
+    <value>Se ejecuta sobre una copia de tu última versión guardada y no puede cambiar tu proyecto. Puede leer tus ficheros y usar la red, como cuando lanzas las pruebas tú. Tus cambios sin guardar no cuentan.</value>
+  </data>
+  <data name="Setup_Verification_Stop" xml:space="preserve">
+    <value>Parar la prueba</value>
+  </data>
+  <data name="Setup_Verification_Trying" xml:space="preserve">
+    <value>Probando… Puede tardar unos minutos.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Passed" xml:space="preserve">
+    <value>Funciona: todas las órdenes terminaron bien.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Failed" xml:space="preserve">
+    <value>No funciona: mira qué orden falló y lo último que escribió.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Stopped" xml:space="preserve">
+    <value>Prueba parada.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Run" xml:space="preserve">
+    <value>No se pudo lanzar la prueba ({0}).</value>
+    <comment>{0}: the kind of the error.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Step_Passed" xml:space="preserve">
+    <value>{0}: bien</value>
+    <comment>{0}: what the command is for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Step_Failed" xml:space="preserve">
+    <value>{0}: falló (código {1})</value>
+    <comment>{0}: what the command is for. {1}: its exit code.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Step_TimedOut" xml:space="preserve">
+    <value>{0}: se pasó de tiempo</value>
+    <comment>{0}: what the command is for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Tests" xml:space="preserve">
+    <value>Pruebas: {0} bien, {1} mal, {2} saltadas</value>
+    <comment>The counters of the report of the tests.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_No_Report" xml:space="preserve">
+    <value>No dejó informe de pruebas, así que no cuenta.</value>
+  </data>
+  <data name="Setup_Verification_Trial_Failed_Test" xml:space="preserve">
+    <value>Falló: {0}</value>
+    <comment>{0}: the name of a test, as its report gives it.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Reached" xml:space="preserve">
+    <value>No llegaron a ejecutarse: {0}</value>
+    <comment>{0}: what the commands are for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Isolated" xml:space="preserve">
+    <value>No se prueban porque van sin aislamiento: {0}</value>
+    <comment>{0}: what the commands are for.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Output" xml:space="preserve">
+    <value>Lo último que escribieron las órdenes</value>
+  </data>
+  <data name="Setup_Verification_Info_Title" xml:space="preserve">
+    <value>Comprobación</value>
+    <comment>Name of the section for the information button.</comment>
+  </data>
+  <data name="Setup_Verification_Info_What" xml:space="preserve">
+    <value>Son las órdenes que el sistema ejecuta para saber si el trabajo funciona. Corren sobre una copia y no pueden cambiar tu proyecto, pero pueden leer tus ficheros y usar la red. Las pruebas solo cuentan si dejan su informe en la carpeta {results}. El historial guarda la huella de cada versión que guardas.</value>
+    <comment>What it is. {results} is written as it is.</comment>
+  </data>
+  <data name="Setup_Verification_Info_Actions" xml:space="preserve">
+    <value>Cambiar cualquier orden.
+Dejar una vacía para que no se ejecute.
+Probarlas ahora sobre tu última versión guardada.
+Guardarlas: pide Windows Hello.</value>
+    <comment>What can be done here, one action per line.</comment>
+  </data>
+  <data name="Setup_Budget_Parallel_Hint" xml:space="preserve">
+    <value>Cuántos agentes trabajan al mismo tiempo, de 1 a 8.</value>
+  </data>
+  <data name="Setup_Budget_Runs_Hint" xml:space="preserve">
+    <value>Cuántas veces en total se puede lanzar un agente en una ejecución, de 1 a 200.</value>
+  </data>
+  <data name="Setup_Budget_Providers" xml:space="preserve">
+    <value>Además, cada programa tiene su propio tope de agentes a la vez: {0}.</value>
+    <comment>{0}: each program of the team with its cap, as the adapters fix it (Setup_Budget_Provider, joined).</comment>
+  </data>
+  <data name="Setup_Budget_Provider" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: the program. {1}: how many agents it runs at once at most.</comment>
+  </data>
+  <data name="Setup_Budget_Info_Title" xml:space="preserve">
+    <value>Límites</value>
+    <comment>Name of the section for the information button.</comment>
+  </data>
+  <data name="Setup_Budget_Info_What" xml:space="preserve">
+    <value>Los límites frenan una ejecución antes de que se alargue o gaste de más. Además de lo que elijas aquí, cada programa trabaja con un número fijo de agentes a la vez. Si pides más, esperan su turno.</value>
+    <comment>What it is.</comment>
+  </data>
+  <data name="Setup_Budget_Info_Actions" xml:space="preserve">
+    <value>Elegir cuántos agentes trabajan a la vez.
+Elegir cuántas veces se puede lanzar un agente.
+Elegir cuánto puede durar cada intento.</value>
+    <comment>What can be done here, one action per line.</comment>
+  </data>
+  <data name="Setup_Summary_Saves" xml:space="preserve">
+    <value>Se guarda</value>
+  </data>
+  <data name="Setup_Summary_Stays" xml:space="preserve">
+    <value>Se queda como está</value>
+  </data>
+  <data name="Setup_Summary_Change" xml:space="preserve">
+    <value>Cambiar</value>
+  </data>
+  <data name="Setup_Summary_Change_Name" xml:space="preserve">
+    <value>Cambiar {0}</value>
+    <comment>Accessible name of «Cambiar». {0}: the step.</comment>
+  </data>
+  <data name="Setup_Summary_Change_Line" xml:space="preserve">
+    <value>{0} → {1}</value>
+    <comment>{0}: what there is now. {1}: what there will be.</comment>
+  </data>
+  <data name="Setup_Summary_Changes_Heading" xml:space="preserve">
+    <value>Qué cambia:</value>
+  </data>
+  <data name="Setup_Summary_Item" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: an agent or a command. {1}: what it will be.</comment>
+  </data>
+  <data name="Setup_Summary_Skill" xml:space="preserve">
+    <value>{0} para {1}</value>
+    <comment>{0}: the skill. {1}: the agent.</comment>
+  </data>
+  <data name="Setup_Summary_Skills_None" xml:space="preserve">
+    <value>Ninguna skill nueva</value>
+  </data>
+  <data name="Setup_Summary_Check_None" xml:space="preserve">
+    <value>Sin órdenes de comprobación</value>
+  </data>
+  <data name="Setup_Summary_Check_Count" xml:space="preserve">
+    <value>{0} órdenes</value>
+    <comment>{0}: how many commands of the check there are now.</comment>
+  </data>
+  <data name="Setup_Summary_Check_New" xml:space="preserve">
+    <value>{0} órdenes nuevas</value>
+    <comment>{0}: how many commands of the check will be saved.</comment>
+  </data>
+  <data name="Setup_Button_Go_To_Work" xml:space="preserve">
+    <value>Ir a trabajar</value>
+  </data>
+  <data name="Setup_Applied_Confirmation" xml:space="preserve">
+    <value>Guardado. Ahora escribe qué quieres que haga el equipo.</value>
+  </data>
+  <data name="Text_setup_hello_subject_profile_own" xml:space="preserve">
+    <value>tus órdenes propias de comprobación</value>
+    <comment>What Windows Hello is asked for (setup.hello.subject-profile-own): commands the person wrote for a technology not recognised.</comment>
+  </data>
+  <data name="Text_setup_check_invalid" xml:space="preserve">
+    <value>Estas órdenes no se pueden probar así: revisa cada una.</value>
+    <comment>(setup.check.invalid)</comment>
+  </data>
+  <data name="Text_setup_check_no_isolated_step" xml:space="preserve">
+    <value>Ninguna orden va en copia aislada, así que no se prueba ninguna.</value>
+    <comment>(setup.check.no-isolated-step)</comment>
+  </data>
+  <data name="Text_setup_check_busy" xml:space="preserve">
+    <value>Ahora el proyecto hace otra cosa. Prueba de nuevo cuando acabe.</value>
+    <comment>(setup.check.busy)</comment>
+  </data>
+  <data name="Text_setup_check_no_version" xml:space="preserve">
+    <value>No se pudo leer la última versión guardada del proyecto. Hace falta git y al menos una versión guardada.</value>
+    <comment>(setup.check.no-version)</comment>
+  </data>
+  <data name="Text_setup_check_too_long" xml:space="preserve">
+    <value>La prueba tardó más de {0} minutos y se paró.</value>
+    <comment>(setup.check.too-long) {0}: the minutes of its budget.</comment>
+  </data>
+  <data name="Text_setup_check_not_run" xml:space="preserve">
+    <value>No se pudo lanzar la prueba: la carpeta del proyecto no está.</value>
+    <comment>(setup.check.not-run)</comment>
+  </data>
+  <data name="Setup_Trial_Window_Title" xml:space="preserve">
+    <value>Probar estas órdenes</value>
+  </data>
+  <data name="Setup_Trial_Heading" xml:space="preserve">
+    <value>¿Ejecutar estas órdenes ahora?</value>
+  </data>
+  <data name="Setup_Trial_What" xml:space="preserve">
+    <value>Se ejecutan sobre una copia de tu última versión guardada y no pueden cambiar tu proyecto. Pueden leer tus ficheros y usar la red, como cuando lanzas las pruebas tú.</value>
+  </data>
+  <data name="Setup_Trial_Not_Accepted" xml:space="preserve">
+    <value>Todavía no las has guardado ni aceptado. Míralas antes de seguir.</value>
+  </data>
+  <data name="Setup_Trial_Commands_Name" xml:space="preserve">
+    <value>Órdenes que se ejecutarán</value>
+    <comment>Accessible name of the list of commands.</comment>
+  </data>
+  <data name="Setup_Trial_Run" xml:space="preserve">
+    <value>Ejecutar</value>
+  </data>
+  <data name="Setup_Trial_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Confirmed" xml:space="preserve">
+    <value>No se ejecutó nada.</value>
+  </data>
+  <data name="Setup_Verification_Hidden" xml:space="preserve">
+    <value>Esta orden lleva caracteres invisibles o que cambian la dirección del texto. Escríbela de nuevo a mano.</value>
+  </data>
+  <data name="Setup_Verification_Suggestion" xml:space="preserve">
+    <value>Para tu tecnología te proponemos estas otras órdenes:</value>
+  </data>
+  <data name="Setup_Verification_Not_Saved" xml:space="preserve">
+    <value>Estas órdenes aún no están guardadas. Para guardarlas, marca «Guardar este paso».</value>
+  </data>
+  <data name="Setup_Apply_Kept" xml:space="preserve">
+    <value>No se guardó {0}. Tus cambios siguen aquí para que lo intentes otra vez.</value>
+    <comment>{0}: the steps that were not saved.</comment>
+  </data>
+  <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
+    <value>Las órdenes cambiaron mientras se probaban. Pruébalas otra vez.</value>
   </data>
 </root>

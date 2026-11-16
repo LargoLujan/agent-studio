@@ -634,11 +634,16 @@
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                           ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"/>
+                        <!-- The box where an editable combo box is typed takes the Tab and the reader's focus, so it carries the combo's name. -->
                         <TextBox x:Name="PART_EditableTextBox" Style="{StaticResource ComboBox.EditableTextBox}" Visibility="Collapsed"
                                  Margin="{TemplateBinding Padding}"
                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                 IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                 IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}"
+                                 AutomationProperties.Name="{Binding (AutomationProperties.Name), RelativeSource={RelativeSource TemplatedParent}}"/>
+                        <!-- With the keyboard in that box, the 2 px Accent frame of a text box is drawn over the outline. -->
+                        <Border x:Name="FocusFrame" BorderBrush="{StaticResource AccentBrush}" BorderThickness="2" CornerRadius="4"
+                                IsHitTestVisible="False" Visibility="Collapsed"/>
                         <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="2" AllowsTransparency="True" Focusable="False"
                                IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
                                PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
@@ -669,6 +674,9 @@
                             <Setter Property="IsTabStop" Value="False"/>
                             <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden"/>
+                        </Trigger>
+                        <Trigger SourceName="PART_EditableTextBox" Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusFrame" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

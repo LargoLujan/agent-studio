@@ -110,6 +110,29 @@ public sealed partial class SetupStringsTests
         Assert.True(Spanish.Get("Setup_Info_Actions").Split('\n').Length >= 3);
     }
 
+    [Fact]
+    public void The_check_step_says_the_truth_about_what_the_commands_can_reach_and_carries_no_jargon()
+    {
+        // Low integrity only stops writes: the code the commands run can read the person's files and use the network.
+        foreach (var key in new[] { "Setup_Verification_Try_Hint", "Setup_Verification_Info_What" })
+        {
+            Assert.DoesNotContain("sin red", Spanish.Get(key), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("usar la red", Spanish.Get(key), StringComparison.Ordinal);
+            Assert.DoesNotContain("no network", English.Get(key), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("use the network", English.Get(key), StringComparison.Ordinal);
+        }
+
+        var (neutral, satellites) = ResourceFiles()["SetupStrings"];
+        foreach (var file in new[] { neutral, satellites["en"] })
+        {
+            Assert.All(Read(file), text =>
+            {
+                Assert.DoesNotContain("TRX", text.Value, StringComparison.Ordinal);
+                Assert.DoesNotContain("(commit)", text.Value, StringComparison.OrdinalIgnoreCase);
+            });
+        }
+    }
+
     private static string Placeholders(string text) =>
         string.Join(",", Regex.Matches(text, @"\{\d+\}").Select(m => m.Value).Distinct().Order(StringComparer.Ordinal));
 }

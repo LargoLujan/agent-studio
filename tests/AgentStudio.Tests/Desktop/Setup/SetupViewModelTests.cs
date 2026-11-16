@@ -5,6 +5,7 @@ using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Setup;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Security;
 using AgentStudio.Infrastructure.Models;
 using AgentStudio.Tests.Application.Setup;
@@ -84,7 +85,7 @@ public sealed class SetupViewModelTests
         Assert.Contains(vm.ProjectLines, l => l.Contains("main", StringComparison.Ordinal));
         Assert.Equal(["Orquestador", "Ejecutor", "Juez"], vm.TeamRows.Select(r => r.Name));
         Assert.Equal(3, vm.ModelRows.Count);
-        Assert.Contains(vm.VerificationLines, l => l.Contains("dotnet", StringComparison.Ordinal));
+        Assert.Contains(vm.CheckRows, r => r.CommandText.StartsWith("dotnet", StringComparison.Ordinal));
         Assert.Contains(vm.SkillRows, r => r.SkillName == "dotnet-testing");
         Assert.DoesNotContain(vm.SkillRows, r => r.SkillName == "dotnet-linked");
         Assert.Equal("12", vm.MaxAgentRunsText);
@@ -106,17 +107,18 @@ public sealed class SetupViewModelTests
 
         var vm = await rig.OpenAsync();
 
-        // The profile would change; the template of the project is the default one, so the team has nothing to add.
+        // The template of the project is the default one, so the team has nothing to add; the commands proposed for the stack
+        // fill the check, but only an edit or a tick of the person saves them (docs/24, wave 1).
         Assert.False(Step(vm, SetupStep.Brief).IsIncluded);
         Assert.False(Step(vm, SetupStep.Team).IsIncluded);
         Assert.False(Step(vm, SetupStep.Models).IsIncluded);
-        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.False(Step(vm, SetupStep.Skills).IsIncluded);
         Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
         Assert.False(Step(vm, SetupStep.Project).CanSkip);
         Assert.False(Step(vm, SetupStep.Summary).CanSkip);
-        Assert.True(vm.WillAskHello);
-        Assert.Single(vm.SummaryLines);
+        Assert.False(vm.WillAskHello);
+        Assert.Empty(vm.SummaryLines);
     }
 
     [Fact]
@@ -198,7 +200,7 @@ public sealed class SetupViewModelTests
     }
 
     [Fact]
-    public async Task Each_model_shows_what_the_agent_has_the_recommendation_and_why_and_taking_it_goes_into_the_summary()
+    public async Task Each_model_shows_what_the_agent_has_the_recommendation_and_why_and_is_changed_right_there()
     {
         var vm = await new Rig().OpenAsync();
         var executor = vm.ModelRows.Single(r => r.Name == "Ejecutor");
@@ -206,25 +208,64 @@ public sealed class SetupViewModelTests
         Assert.Contains(Spanish.Get("Setup_Model_Default"), executor.Current, StringComparison.Ordinal);
         Assert.NotNull(executor.Recommended);
         Assert.StartsWith(Spanish.Get("Setup_Models_Why").Split('{')[0], executor.Why, StringComparison.Ordinal);
-        Assert.True(executor.CanAccept);
-        Assert.False(executor.IsAccepted);
+        Assert.Equal(string.Empty, executor.ModelText);
+        Assert.Null(executor.SelectedEffort!.Effort);
+        Assert.Contains(executor.Models, m => m.Model == "claude-sonnet-5-5");
+        Assert.True(executor.CanUseRecommendation);
+        Assert.False(executor.IsEdited);
         Assert.True(vm.HasRecommendations);
         Assert.DoesNotContain(vm.SummaryLines, l => l.Contains("Ejecutor", StringComparison.Ordinal));
 
-        executor.IsAccepted = true;
+        // Another model, typed by its alias: the efforts become the ones it takes, and the step turns on.
+        executor.ModelText = "sonnet";
+        executor.SelectedEffort = executor.Efforts.Single(e => e.Effort == ReasoningEffort.High);
 
+        Assert.True(executor.IsEdited);
+        Assert.True(executor.IsValid);
         Assert.True(Step(vm, SetupStep.Models).IsIncluded);
-        Assert.Contains(vm.SummaryLines, l => l.Contains("Ejecutor", StringComparison.Ordinal));
+        Assert.Contains(vm.SummaryLines, l => l.Contains("Ejecutor", StringComparison.Ordinal) && l.Contains("sonnet", StringComparison.Ordinal));
+        Assert.Equal("sonnet", vm.BuildSelection().Roster!.Single(a => a.Name == "Ejecutor").Model.Model);
+
+        // «Usar la recomendada» puts the recommendation back in the row.
+        executor.UseRecommendedCommand.Execute(null);
+
+        Assert.True(executor.Follows);
+        Assert.False(executor.CanUseRecommendation);
+        Assert.Equal(Spanish.Get("Setup_Models_Follows"), executor.FollowsText);
     }
 
     [Fact]
-    public async Task Use_all_recommended_takes_each_recommendation_the_agents_do_not_follow_yet()
+    public async Task A_model_name_the_program_would_refuse_says_why_and_blocks_apply_and_empty_is_the_programs_own()
+    {
+        var vm = await new Rig().OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = false;
+        var executor = vm.ModelRows.Single(r => r.Name == "Ejecutor");
+
+        executor.ModelText = "opus; rm -rf";
+
+        Assert.Equal(Spanish.Get("Setup_Models_Bad"), executor.Problem);
+        Assert.True(Step(vm, SetupStep.Models).IsIncluded);
+        Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.True(vm.HasInvalidEdits);
+        Assert.False(vm.IsSummaryEmpty);
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
+
+        executor.ModelText = "  ";
+
+        Assert.Equal(string.Empty, executor.Problem);
+        Assert.False(executor.IsEdited);
+        Assert.False(Step(vm, SetupStep.Models).IsIncluded);
+    }
+
+    [Fact]
+    public async Task Use_all_recommended_takes_each_recommendation_the_rows_do_not_say_yet()
     {
         var vm = await new Rig().OpenAsync();
 
         vm.UseAllRecommendedCommand.Execute(null);
 
-        Assert.All(vm.ModelRows.Where(r => r.CanAccept), r => Assert.True(r.IsAccepted));
+        Assert.All(vm.ModelRows.Where(r => r.Recommended is not null), r => Assert.True(r.Follows));
+        Assert.False(vm.HasRecommendations);
         Assert.True(Step(vm, SetupStep.Models).IsIncluded);
         Assert.Equal(3, vm.SummaryLines.Count(l => l.StartsWith(Spanish.Get("Setup_Step_Models") + ":", StringComparison.Ordinal)));
     }
@@ -256,7 +297,7 @@ public sealed class SetupViewModelTests
         Assert.Empty(rig.Gate.Asked);
 
         // What was applied is no longer a proposal: the steps read the project again, and there is nothing left to apply.
-        Assert.All(vm.ModelRows, r => Assert.False(r.CanAccept));
+        Assert.All(vm.ModelRows, r => Assert.False(r.CanUseRecommendation));
         Assert.DoesNotContain(vm.SummaryLines, l => l.StartsWith(Spanish.Get("Setup_Step_Models") + ":", StringComparison.Ordinal));
         Assert.True(vm.HasResults);
     }
@@ -291,6 +332,7 @@ public sealed class SetupViewModelTests
     {
         var rig = new Rig { Gate = new FakeGate(false) };
         var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
 
         await vm.ApplyCommand.ExecuteAsync(null);
 
@@ -299,7 +341,8 @@ public sealed class SetupViewModelTests
         Assert.Contains(vm.ResultLines, l =>
             l.Contains(Spanish.Get("Setup_Outcome_Denied"), StringComparison.Ordinal) && l.Contains(Spanish.Get("Text_setup_hello_not_confirmed"), StringComparison.Ordinal));
         Assert.Empty(rig.Recorder.Entries);
-        Assert.Equal(string.Empty, vm.Notice);
+        Assert.Equal(Spanish.Format("Setup_Apply_Kept", Spanish.Get("Setup_Step_Verification")), vm.Notice);
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
     }
 
     [Fact]
@@ -307,6 +350,7 @@ public sealed class SetupViewModelTests
     {
         var rig = new Rig();
         var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
 
         await vm.ApplyCommand.ExecuteAsync(null);
 
@@ -375,8 +419,29 @@ public sealed class SetupViewModelTests
         vm.TimeMinutesText = minutes;
 
         Assert.Equal(Spanish.Get(key), vm.BudgetProblem);
-        Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(vm.HasInvalidEdits);
         Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
+        Assert.Null(vm.BuildSelection().Options);
+    }
+
+    [Fact]
+    public async Task A_number_of_the_limits_that_cannot_be_used_blocks_apply_even_with_other_changes()
+    {
+        var vm = await new Rig().OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+        Assert.True(vm.ApplyCommand.CanExecute(null));
+
+        vm.MaxParallelTasksText = "9";
+
+        Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.False(vm.ApplyCommand.CanExecute(null));
+
+        vm.MaxParallelTasksText = "3";
+
+        Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(vm.ApplyCommand.CanExecute(null));
     }
 
     [Fact]
@@ -432,15 +497,16 @@ public sealed class SetupViewModelTests
         var english = await new Rig().OpenAsync(English);
 
         Assert.Equal(Spanish.Get("Setup_Step_Verification"), spanish.Steps[(int)SetupStep.Verification].Title);
-        Assert.Equal("Tests", english.Steps[(int)SetupStep.Verification].Title);
+        Assert.Equal("Checks", english.Steps[(int)SetupStep.Verification].Title);
         Assert.Equal(spanish.ProjectLines.Count, english.ProjectLines.Count);
         Assert.Contains(english.ProjectLines, l => l.StartsWith("Technology:", StringComparison.Ordinal));
         Assert.Contains("## What the project is", english.BriefText, StringComparison.Ordinal);
         Assert.Contains("## " + Spanish.Get("Text_setup_brief_section_what"), spanish.BriefText, StringComparison.Ordinal);
         Assert.Equal("small", english.Sizes[0].Label);
         Assert.Contains("effort", english.ModelRows[0].Current, StringComparison.Ordinal);
-        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), spanish.VerificationStatus);
-        Assert.Equal("Windows Hello will be asked when you apply.", english.VerificationStatus);
+        Assert.Equal(Spanish.Get("Setup_Verification_Not_Saved"), spanish.VerificationStatus);
+        Assert.Equal(English.Get("Setup_Verification_Not_Saved"), english.VerificationStatus);
+        Assert.StartsWith("These commands are not saved yet", english.VerificationStatus, StringComparison.Ordinal);
         Assert.DoesNotContain(english.ModelRows.Select(r => r.Why), w => w is not null && w.StartsWith('['));
     }
 
