@@ -629,6 +629,49 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task A_cancelled_windows_hello_keeps_the_commands_typed_and_their_step_on_and_says_what_was_not_saved()
+    {
+        var rig = new Rig { Gate = new FakeGate(false) };
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        vm.MaxParallelTasksText = "2";
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        // The limits needed no confirmation and were saved; the commands were not, and they are still on screen.
+        Assert.Equal(new ProjectRunOptions(12, 2, null), rig.Options.Stored);
+        Assert.Null(rig.Profiles.Stored);
+        Assert.Equal("dotnet build App.slnx", Row(vm, "build").CommandText);
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.Contains(Spanish.Format("Setup_Apply_Kept", Spanish.Get("Setup_Step_Verification")), vm.Notice, StringComparison.Ordinal);
+        Assert.NotNull(vm.BuildSelection().Profile);
+    }
+
+    [Fact]
+    public async Task A_store_that_fails_keeps_the_models_and_the_limits_typed_with_their_steps_on()
+    {
+        var rig = new Rig();
+        rig.Roster.FailOnSave = 1;
+        rig.Options.Failure = new IOException("The options folder is read-only.");
+        var vm = await rig.OpenAsync();
+        var executor = vm.ModelRows.Single(r => r.Name == "Ejecutor");
+        executor.ModelText = "sonnet";
+        vm.MaxAgentRunsText = "40";
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        executor = vm.ModelRows.Single(r => r.Name == "Ejecutor");
+        Assert.Equal("sonnet", executor.ModelText);
+        Assert.True(executor.IsEdited);
+        Assert.True(Step(vm, SetupStep.Models).IsIncluded);
+        Assert.Equal("40", vm.MaxAgentRunsText);
+        Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.Contains(Spanish.Get("Setup_Step_Models"), vm.Notice, StringComparison.Ordinal);
+        Assert.Contains(Spanish.Get("Setup_Step_Budget"), vm.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Only_a_result_with_nothing_denied_or_failed_and_the_registry_written_leads_to_work()
     {
         SetupApplyResult Result(SetupPartOutcome outcome, UserText? problem = null) =>

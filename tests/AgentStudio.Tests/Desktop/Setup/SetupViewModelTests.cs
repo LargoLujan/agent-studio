@@ -341,7 +341,8 @@ public sealed class SetupViewModelTests
         Assert.Contains(vm.ResultLines, l =>
             l.Contains(Spanish.Get("Setup_Outcome_Denied"), StringComparison.Ordinal) && l.Contains(Spanish.Get("Text_setup_hello_not_confirmed"), StringComparison.Ordinal));
         Assert.Empty(rig.Recorder.Entries);
-        Assert.Equal(string.Empty, vm.Notice);
+        Assert.Equal(Spanish.Format("Setup_Apply_Kept", Spanish.Get("Setup_Step_Verification")), vm.Notice);
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
     }
 
     [Fact]

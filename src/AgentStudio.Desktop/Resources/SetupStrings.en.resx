@@ -700,4 +700,8 @@ Choose how long each attempt can last.</value>
   <data name="Setup_Verification_Not_Saved" xml:space="preserve">
     <value>These commands are not saved yet. To save them, tick "Save this step".</value>
   </data>
+  <data name="Setup_Apply_Kept" xml:space="preserve">
+    <value>{0} was not saved. Your changes are still here so you can try again.</value>
+    <comment>{0}: the steps that were not saved.</comment>
+  </data>
 </root>

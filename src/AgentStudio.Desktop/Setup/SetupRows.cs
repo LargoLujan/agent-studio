@@ -241,6 +241,13 @@ public sealed partial class SetupModelRowViewModel : ObservableObject
         SelectedEffort = Efforts.FirstOrDefault(e => e.Effort == recommendation.Effort) ?? SelectedEffort;
     }
 
+    /// <summary>Puts back a model and an effort the person had chosen (after the project is read again).</summary>
+    internal void Restore(string model, ReasoningEffort? effort)
+    {
+        ModelText = model;
+        SelectedEffort = Efforts.FirstOrDefault(e => e.Effort == effort) ?? SelectedEffort;
+    }
+
     partial void OnSelectedModelChanged(SetupModelOption? value)
     {
         if (value is not null && !string.Equals(value.Model, Normalize(ModelText), StringComparison.OrdinalIgnoreCase))

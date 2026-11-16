@@ -8,7 +8,10 @@ using AgentStudio.Application.Setup;
 using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Models;
+using AgentStudio.Domain.Skills;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -1070,6 +1073,7 @@ public sealed partial class SetupViewModel : ObservableObject
         }
 
         var selection = BuildSelection();
+        var edits = CaptureEdits();
         IsBusy = true;
         BusyText = Text.Get("Setup_Applying");
         ErrorMessage = string.Empty;
@@ -1100,12 +1104,122 @@ public sealed partial class SetupViewModel : ObservableObject
         ResultLines.AddRange(lines);
         Notice = notice;
 
+        // What was not written (Windows Hello not confirmed, a store that failed) is still the person's: it is put back, with its step on.
+        var kept = NotSaved(result);
+        if (kept.Count > 0)
+        {
+            await RestoreEditsAsync(edits, kept).ConfigureAwait(true);
+            var line = Text.Format("Setup_Apply_Kept", string.Join(", ", Enum.GetValues<SetupStep>().Where(kept.Contains).Select(s => SetupTexts.Step(Text, s))));
+            Notice = string.IsNullOrEmpty(Notice) ? line : Notice + " " + line;
+        }
+
         if (WentWell(result))
         {
             var confirmation = Text.Get("Setup_Applied_Confirmation");
             Notice = string.IsNullOrEmpty(notice) ? confirmation : confirmation + " " + notice;
             WorkRequested?.Invoke(this, new SetupWorkRequestedEventArgs(confirmation));
         }
+    }
+
+    /// <summary>The steps whose part was not written: denied or failed. The template carries the team and the models together.</summary>
+    private static HashSet<SetupStep> NotSaved(SetupApplyResult result)
+    {
+        var steps = result.Parts.Where(p => p.Outcome is SetupPartOutcome.Denied or SetupPartOutcome.Failed).Select(p => p.Step).ToHashSet();
+        if (steps.Contains(SetupStep.Team))
+        {
+            steps.Add(SetupStep.Models);
+        }
+
+        return steps;
+    }
+
+    /// <summary>What the person typed or chose in the steps, to put back after the project is read again.</summary>
+    private sealed record SetupEdits(
+        string Brief,
+        SetupSize Size,
+        bool TeamOn,
+        IReadOnlyList<(AgentId Agent, string Model, ReasoningEffort? Effort)> Models,
+        string CheckName,
+        IReadOnlyList<(VerificationStep Step, string Text)> Checks,
+        bool ChecksOn,
+        IReadOnlyList<(AgentId Agent, SkillId Skill)> Skills,
+        string Runs,
+        string Parallel,
+        string Minutes);
+
+    private SetupEdits CaptureEdits() => new(
+        BriefText,
+        SelectedSize.Size,
+        StepOf(SetupStep.Team).IsIncluded,
+        [.. ModelRows.Where(r => r.IsEdited).Select(r => (r.Proposal.Agent.Id, r.ModelText, r.SelectedEffort?.Effort))],
+        _checkName,
+        [.. CheckRows.Select(r => (r.Step, r.CommandText))],
+        StepOf(SetupStep.Verification).IsIncluded,
+        [.. SkillRows.Where(r => r.IsChosen && !r.AlreadyActive).Select(r => (r.Agent, r.Skill))],
+        MaxAgentRunsText,
+        MaxParallelTasksText,
+        TimeMinutesText);
+
+    /// <summary>
+    /// Puts back what <paramref name="edits"/> holds for <paramref name="steps"/> over the project as it was just read: the size of the
+    /// team first (its agents are the rows of the models), then each step with its mark as the person left it.
+    /// </summary>
+    private async Task RestoreEditsAsync(SetupEdits edits, IReadOnlySet<SetupStep> steps)
+    {
+        if (steps.Contains(SetupStep.Team) && edits.Size != SelectedSize.Size)
+        {
+            await ProposeAsync(edits.Size).ConfigureAwait(true);
+        }
+
+        if (steps.Contains(SetupStep.Brief))
+        {
+            BriefText = edits.Brief;
+        }
+
+        if (steps.Contains(SetupStep.Models))
+        {
+            foreach (var (agent, model, effort) in edits.Models)
+            {
+                ModelRows.FirstOrDefault(r => r.Proposal.Agent.Id == agent)?.Restore(model, effort);
+            }
+        }
+
+        if (steps.Contains(SetupStep.Team))
+        {
+            StepOf(SetupStep.Team).IsIncluded = edits.TeamOn;
+        }
+
+        if (steps.Contains(SetupStep.Verification) && CanEditChecks)
+        {
+            _checkName = edits.CheckName;
+            CheckRows.Clear();
+            foreach (var (step, line) in edits.Checks)
+            {
+                var row = new SetupCheckRowViewModel(step, Text) { CommandText = line };
+                row.Changed += (_, _) => ChecksEdited(initial: false);
+                CheckRows.Add(row);
+            }
+
+            ChecksEdited(initial: true);
+            StepOf(SetupStep.Verification).IsIncluded = edits.ChecksOn;
+        }
+
+        if (steps.Contains(SetupStep.Skills))
+        {
+            foreach (var row in SkillRows.Where(r => !r.AlreadyActive && edits.Skills.Contains((r.Agent, r.Skill))))
+            {
+                row.IsChosen = true;
+            }
+        }
+
+        if (steps.Contains(SetupStep.Budget))
+        {
+            MaxAgentRunsText = edits.Runs;
+            MaxParallelTasksText = edits.Parallel;
+            TimeMinutesText = edits.Minutes;
+        }
+
+        RefreshSummary();
     }
 
     /// <summary>The one rule of when «Aplicar» leads to work: no part was denied or failed, and the registry was written when it had to be.</summary>
