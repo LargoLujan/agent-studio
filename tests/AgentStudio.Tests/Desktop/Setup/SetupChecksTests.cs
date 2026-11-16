@@ -967,6 +967,35 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task Unticking_the_team_after_choosing_a_model_for_a_new_agent_never_drops_it_in_silence()
+    {
+        var vm = await new Rig().OpenAsync();
+        vm.SelectedSize = vm.Sizes.Single(s => s.Size == SetupSize.Large);
+        await WaitForAsync(() => vm.TeamRows.Count == 5);
+        Step(vm, SetupStep.Verification).IsIncluded = false;
+        var reviewer = vm.ModelRows.Single(r => r.Name == "Revisor");
+        var model = reviewer.Models[0].Model;
+        reviewer.ModelText = model;
+        Assert.True(Step(vm, SetupStep.Team).IsIncluded);
+
+        Step(vm, SetupStep.Team).IsIncluded = false;
+
+        Assert.Equal(Spanish.Format("Setup_Models_Needs_Team", Spanish.Format("Setup_List_Item", "Revisor")), vm.ModelsProblem);
+        Assert.True(vm.HasInvalidEdits);
+        Assert.False(vm.IsSummaryEmpty);
+        Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
+        Assert.Contains(
+            vm.SummaryBlocks.Single(b => b.Step == SetupStep.Models).Lines,
+            l => l.StartsWith("Revisor: ", StringComparison.Ordinal) && l.Contains(model, StringComparison.Ordinal) && l.EndsWith("no se guardará porque «Equipo» está desmarcado", StringComparison.Ordinal));
+
+        Step(vm, SetupStep.Team).IsIncluded = true;
+
+        Assert.Equal(string.Empty, vm.ModelsProblem);
+        Assert.True(vm.ApplyCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void Only_a_result_with_nothing_denied_or_failed_and_the_registry_written_leads_to_work()
     {
         SetupApplyResult Result(SetupPartOutcome outcome, UserText? problem = null) =>

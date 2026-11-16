@@ -293,8 +293,23 @@ public sealed partial class SetupViewModel : ObservableObject
     /// </summary>
     public bool HasInvalidEdits =>
         (StepOf(SetupStep.Models).IsIncluded && ModelRows.Any(r => r.IsEdited && !r.IsValid))
+        || OrphanModels().Count > 0
         || (StepOf(SetupStep.Verification).IsIncluded && ChecksProblem() is not null)
         || BudgetProblem.Length > 0;
+
+    /// <summary>Why a model chosen cannot be saved as things are (a new agent with «Equipo» unticked), or empty.</summary>
+    [ObservableProperty]
+    private string _modelsProblem = string.Empty;
+
+    /// <summary>
+    /// The rows with a model chosen for an agent the team does not have yet while «Equipo» is unticked: the template would leave them
+    /// out, so they are never dropped in silence. The summary names them and «Aplicar» waits until the person ticks «Equipo» or puts
+    /// the model back.
+    /// </summary>
+    private IReadOnlyList<SetupModelRowViewModel> OrphanModels() =>
+        _proposal is { } proposal && StepOf(SetupStep.Models).IsIncluded && !StepOf(SetupStep.Team).IsIncluded
+            ? [.. ModelRows.Where(r => r.IsEdited && r.IsValid && proposal.Team.Changes.Any(c => c.IsAdded && c.After.Id == r.Proposal.Agent.Id))]
+            : [];
 
     /// <summary>There is something to apply: «Aplicar los cambios» is offered instead of «Ir a trabajar».</summary>
     public bool HasChanges => !IsSummaryEmpty;
@@ -954,7 +969,12 @@ public sealed partial class SetupViewModel : ObservableObject
 
         Block(SetupStep.Brief, [selection.BriefText is { } written ? text.Format("Setup_Summary_Brief_After", written.Trim().Length) : briefBefore]);
         Block(SetupStep.Team, [.. team.Select(a => text.Format("Setup_Summary_Item", a.Name, SetupTexts.AgentLine(text, a)))]);
-        Block(SetupStep.Models, [.. team.Select(a => text.Format("Setup_Summary_Item", a.Name, SetupTexts.Power(text, a.Model.Model, a.Effort)))]);
+        var orphans = OrphanModels();
+        ModelsProblem = orphans.Count == 0 ? string.Empty : text.Format("Setup_Models_Needs_Team", NameList(orphans.Select(r => r.Name).ToList()));
+        Block(SetupStep.Models, [
+            .. team.Select(a => text.Format("Setup_Summary_Item", a.Name, SetupTexts.Power(text, a.Model.Model, a.Effort))),
+            .. orphans.Select(r => text.Format("Setup_Summary_Not_Saved_Team", r.Name, SetupTexts.Power(text, r.Edited.Model.Model, r.Edited.Effort))),
+        ]);
         Block(SetupStep.Verification, checks is null
             ? [text.Get("Setup_Summary_Check_None")]
             : [.. checks.Steps.Select(s => text.Format("Setup_Summary_Item", CheckRows.FirstOrDefault(r => r.Step.Id == s.Id)?.Label ?? s.Title, Command(s)))]);
@@ -1092,6 +1112,7 @@ public sealed partial class SetupViewModel : ObservableObject
         !IsBusy && !IsTrying && _project is not null && SummaryLines.Count > 0
         && (!StepOf(SetupStep.Budget).IsIncluded || ParseBudget(out _) is not null)
         && (!StepOf(SetupStep.Models).IsIncluded || ModelRows.All(r => r.IsValid))
+        && OrphanModels().Count == 0
         && (!StepOf(SetupStep.Verification).IsIncluded || ChecksProblem() is null);
 
     private string? ChecksProblem()
@@ -1228,9 +1249,12 @@ public sealed partial class SetupViewModel : ObservableObject
     }
 
     /// <summary>«Equipo», «Modelos» y «Límites», in the words and the punctuation of the language of the screen.</summary>
-    private string StepList(IReadOnlyList<SetupStep> steps)
+    private string StepList(IReadOnlyList<SetupStep> steps) => NameList([.. steps.Select(s => SetupTexts.Step(Text, s))]);
+
+    /// <summary>Names as a list of the language of the screen: «A», «B» y «C».</summary>
+    private string NameList(IReadOnlyList<string> names)
     {
-        var items = steps.Select(s => Text.Format("Setup_List_Item", SetupTexts.Step(Text, s))).ToList();
+        var items = names.Select(n => Text.Format("Setup_List_Item", n)).ToList();
         var head = items[0];
         for (var i = 1; i < items.Count - 1; i++)
         {

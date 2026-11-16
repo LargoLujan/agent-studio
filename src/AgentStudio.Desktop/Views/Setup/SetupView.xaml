@@ -227,6 +227,7 @@
                         <CheckBox Style="{StaticResource Setup.CheckBox}" Content="{l:T Setup_Include_Step}" IsChecked="{Binding Steps[3].IsIncluded}"/>
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Models_Hint}"/>
                         <TextBlock Style="{StaticResource Setup.Hint}" Text="{l:T Setup_Models_Default_Hint}"/>
+                        <TextBlock Style="{StaticResource Setup.OptionalError}" Margin="0,0,0,8" Text="{Binding ModelsProblem}"/>
                         <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,0,0,8" Content="{l:T Setup_Button_Use_All}"
                                 Command="{Binding UseAllRecommendedCommand}" Visibility="{Binding HasRecommendations, Converter={StaticResource Setup.BoolToVisibility}}"/>
                         <ItemsControl ItemsSource="{Binding ModelRows}" Focusable="False">

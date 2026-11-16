@@ -741,4 +741,12 @@ Choose how long each attempt can last.</value>
     <value>{0} and {1}</value>
     <comment>The head of a list and its last item.</comment>
   </data>
+  <data name="Setup_Models_Needs_Team" xml:space="preserve">
+    <value>{0} is a new agent: its model is only saved with the team. Tick "Team" or leave the model as it was.</value>
+    <comment>{0}: the agents, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_Summary_Not_Saved_Team" xml:space="preserve">
+    <value>{0}: {1}, will not be saved because "Team" is not ticked</value>
+    <comment>{0}: a new agent. {1}: the model and the effort chosen for it.</comment>
+  </data>
 </root>

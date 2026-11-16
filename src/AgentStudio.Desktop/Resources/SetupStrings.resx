@@ -790,4 +790,12 @@ Elegir cuánto puede durar cada intento.</value>
     <value>{0} y {1}</value>
     <comment>The head of a list and its last item.</comment>
   </data>
+  <data name="Setup_Models_Needs_Team" xml:space="preserve">
+    <value>{0} es un agente nuevo: su modelo solo se guarda con el equipo. Marca «Equipo» o deja el modelo como estaba.</value>
+    <comment>{0}: the agents, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_Summary_Not_Saved_Team" xml:space="preserve">
+    <value>{0}: {1}, no se guardará porque «Equipo» está desmarcado</value>
+    <comment>{0}: a new agent. {1}: the model and the effort chosen for it.</comment>
+  </data>
 </root>
