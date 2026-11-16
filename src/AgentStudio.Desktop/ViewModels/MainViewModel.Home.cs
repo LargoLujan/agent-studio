@@ -192,8 +192,28 @@ public sealed partial class MainViewModel
 
         if (!ProjectProgressReader.HasStorage(root))
         {
-            // Never opened here; but a versioned profile says it was prepared elsewhere (a fresh clone), so it is not one to set up.
-            welcome.NextStep = _setupFactory is null || ProjectProgressReader.HasVersionedProfile(root) ? NewRequestStep() : SetUpStep();
+            if (_setupFactory is null)
+            {
+                welcome.NextStep = NewRequestStep();
+                return;
+            }
+
+            // Never opened here; but a versioned profile that loads says it was prepared elsewhere (a fresh clone): not one to set up.
+            bool prepared;
+            try
+            {
+                prepared = await ProjectProgressReader.HasValidVersionedProfileAsync(root, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (!ct.IsCancellationRequested && read == _nextStepReads && SameProject(root, ProjectPath))
+            {
+                welcome.NextStep = RunStep(root) ?? (prepared ? NewRequestStep() : SetUpStep());
+            }
+
             return;
         }
 
