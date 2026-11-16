@@ -71,7 +71,7 @@
     <value>The audit is against the latest frozen requirements: {0} (fingerprint {1}). To use others, freeze them first. You do it in "Requirements", in the orchestrator.</value>
   </data>
   <data name="Audit_Requirements_Missing" xml:space="preserve">
-    <value>This project has no frozen requirements yet. Go to "Requirements", in the orchestrator, and freeze them. Then you can audit.</value>
+    <value>There are no frozen requirements yet. They are frozen in the orchestrator, and then you can audit.</value>
   </data>
   <data name="Audit_Notice_NoService" xml:space="preserve">
     <value>The audit service is missing: the project cannot be audited.</value>
@@ -104,7 +104,7 @@
     <value>Open the project to audit it.</value>
   </data>
   <data name="Audit_Problem_NoRequirements" xml:space="preserve">
-    <value>You cannot audit without frozen requirements. Go to "Requirements", in the orchestrator, and freeze them.</value>
+    <value>You cannot audit without frozen requirements.</value>
   </data>
   <data name="Audit_Problem_PickJudge" xml:space="preserve">
     <value>Choose the judge of the audit.</value>
@@ -303,5 +303,13 @@ Read in the report whether it is reliable and why.</value>
   </data>
   <data name="Text_audit_project_busy" xml:space="preserve">
     <value>The project is busy with another activity with agents. Wait for it to finish.</value>
+  </data>
+  <data name="Audit_View_GoToRequirements" xml:space="preserve">
+    <value>Go to the requirements</value>
+    <comment>Button under the message that the project has no frozen requirements.</comment>
+  </data>
+  <data name="Audit_View_GoToRequirementsHint" xml:space="preserve">
+    <value>Opens "Requirements" in the orchestrator. There you write what you want and freeze it.</value>
+    <comment>Tooltip of the button.</comment>
   </data>
 </root>

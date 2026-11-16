@@ -58,16 +58,20 @@ public sealed partial class MainViewModel
         AttachPanels();
     }
 
-    /// <summary>«Agentes», «Herramientas» and «Pruebas»: the entries of the bar that belong to the visual builder.</summary>
+    /// <summary>«Agentes», «Herramientas» and «Resultados de pruebas»: the entries of the bar that belong to the visual builder.</summary>
     private IEnumerable<ActivityItemViewModel> AgentActivities()
     {
-        yield return new ActivityItemViewModel("agents", Texts.Get("Shell_Activity_Agents"), "", null, null, OpenAgentsCommand);
+        yield return new ActivityItemViewModel("agents", Texts.Get("Shell_Activity_Agents"), "\uE716", null, null, OpenAgentsCommand) { Group = ActivityGroup.Inside };
     }
 
-    private IEnumerable<ActivityItemViewModel> BuilderToolActivities()
+    private IEnumerable<ActivityItemViewModel> ToolActivities()
     {
-        yield return new ActivityItemViewModel("tools", Texts.Get("Shell_Activity_Tools"), "", null, null, OpenToolsCommand);
-        yield return new ActivityItemViewModel("tests", Texts.Get("Shell_Activity_Tests"), "", null, PanelIds.Tests, TogglePanelCommand);
+        yield return new ActivityItemViewModel("tools", Texts.Get("Shell_Activity_Tools"), "\uE90F", null, null, OpenToolsCommand);
+    }
+
+    private IEnumerable<ActivityItemViewModel> TestResultActivities()
+    {
+        yield return new ActivityItemViewModel("tests", Texts.Get("Shell_Activity_Tests"), "\uE73E", null, PanelIds.Tests, TogglePanelCommand);
     }
 
     private OrchestratorDocumentViewModel? CurrentOrchestrator =>

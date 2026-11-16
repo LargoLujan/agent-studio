@@ -12,7 +12,7 @@ public sealed partial class MainViewModel
 
     private IEnumerable<ActivityItemViewModel> BackgroundRunActivities()
     {
-        yield return new ActivityItemViewModel("background-runs", Texts.Get("BackgroundRuns_Title"), "\uE9F9", null, null, OpenBackgroundRunsCommand);
+        yield return new ActivityItemViewModel("background-runs", Texts.Get("BackgroundRuns_Title"), "\uE9F9", null, null, OpenBackgroundRunsCommand) { Group = ActivityGroup.Project };
     }
 
     [RelayCommand]

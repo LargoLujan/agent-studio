@@ -17,7 +17,7 @@ public sealed partial class MainViewModel
     {
         if (_workDocument is not null)
         {
-            yield return new ActivityItemViewModel("work", Texts.Get("Work_Title"), "", null, null, OpenWorkCommand);
+            yield return new ActivityItemViewModel("work", Texts.Get("Work_Title"), "\uE8FD", null, null, OpenWorkCommand) { Group = ActivityGroup.Inside };
         }
     }
 

@@ -140,7 +140,9 @@ public sealed class MainWindowTests
         Assert.Equal(new GridLength(240), explorer);
         Assert.Equal(new GridLength(180), terminal);
         Assert.Equal([PanelIds.AutoDoctor, PanelIds.Journal], folded);
-        Assert.True(documentsWidth >= 900, $"The documents get only {documentsWidth:F0} of 1280.");
+        // docs/24 §3.1: the activity bar shows the name of each entry (188 px wide instead of 44), so the documents keep at least
+        // 800 of 1280 instead of 900; folding the bar to its icons gives the rest back.
+        Assert.True(documentsWidth >= 800, $"The documents get only {documentsWidth:F0} of 1280.");
         Assert.Equal(340, pinnedWidth, 0);
     }
 
@@ -174,6 +176,66 @@ public sealed class MainWindowTests
         Assert.Equal([false, false], onHover);
         Assert.Equal([340d, 420d], flyoutWidths);
         Assert.Equal(340, pinnedWidth, 0);
+    }
+
+    /// <summary>
+    /// docs/24 §1, row 14 (b): the divider between the documents and the bottom panels (Terminal, Problemas, Salida, Pruebas). Once
+    /// the terminal is shown, the divider is there, takes the mouse, and both sides have room beyond their least height; hiding and
+    /// showing the panel, and leaving the project and coming back (its layout restored), keep the height of the panel.
+    /// </summary>
+    [Fact]
+    public async Task TheDividerOfTheBottomPanels_IsThere_WithRoomToMoveBothWays_AndKeepsItsHeight()
+    {
+        using var temp = new TempDirectory();
+        var first = temp.CreateDirectory("first");
+        var second = temp.CreateDirectory("second");
+
+        var seen = await WpfHost.RunAsync(async () =>
+        {
+            var vm = ShellFactory.CreateMain();
+            var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            await vm.OpenProjectAsync(first);
+            LayOut(window);
+            vm.ToggleTerminalCommand.Execute(null);
+            LayOutAgain(window);
+
+            var dock = Dock(window);
+            var column = Descendants<LayoutPanelControl>(dock).Single(p => ((LayoutPanel)((ILayoutControl)p).Model).Orientation == Orientation.Vertical);
+            var parts = Enumerable.Range(0, VisualTreeHelper.GetChildrenCount(column)).Select(i => VisualTreeHelper.GetChild(column, i)).OfType<FrameworkElement>().ToList();
+            var resizer = parts.OfType<LayoutGridResizerControl>().Single(r => r.Visibility == Visibility.Visible);
+            var documents = parts.OfType<LayoutDocumentPaneControl>().Single();
+            var bottom = parts.OfType<LayoutAnchorablePaneControl>().Single();
+            var documentsModel = (LayoutDocumentPane)((ILayoutControl)documents).Model;
+            var bottomModel = (LayoutAnchorablePane)((ILayoutControl)bottom).Model;
+            var shown = (
+                resizer.ActualHeight, resizer.IsHitTestVisible, resizer.IsEnabled, resizer.Cursor,
+                documents.ActualHeight, documentsModel.DockMinHeight, bottom.ActualHeight, bottomModel.DockMinHeight, bottomModel.DockHeight);
+
+            vm.ToggleTerminalCommand.Execute(null);
+            LayOutAgain(window);
+            vm.ToggleTerminalCommand.Execute(null);
+            LayOutAgain(window);
+            var afterHideAndShow = bottomModel.DockHeight;
+            await vm.OpenProjectAsync(second);
+            LayOutAgain(window);
+            await vm.OpenProjectAsync(first);
+            LayOutAgain(window);
+            var restored = ((LayoutAnchorablePane)Panel(window, PanelIds.Terminal).Parent).DockHeight;
+
+            // Each change was laid out at once: nothing of this window is left for the layout of the next test, which shares the dispatcher.
+            WpfHost.FlushBindings();
+            return (Shown: shown, AfterHideAndShow: afterHideAndShow, Restored: restored);
+        });
+
+        var (thickness, hitTest, enabled, cursor, documentsHeight, documentsMin, bottomHeight, bottomMin, height) = seen.Shown;
+        Assert.True(thickness > 0, "The divider has no thickness.");
+        Assert.True(hitTest && enabled, "The divider does not take the mouse.");
+        Assert.Same(Cursors.SizeNS, cursor);
+        Assert.True(documentsHeight > documentsMin + 24, $"The documents are {documentsHeight:F0} high, at their least {documentsMin:F0}: the divider cannot go up.");
+        Assert.True(bottomHeight > bottomMin + 24, $"The panels are {bottomHeight:F0} high, at their least {bottomMin:F0}: the divider cannot go down.");
+        Assert.Equal(new GridLength(180), height);
+        Assert.Equal(height, seen.AfterHideAndShow);
+        Assert.Equal(height, seen.Restored);
     }
 
     [Fact]
@@ -320,36 +382,63 @@ public sealed class MainWindowTests
         Assert.False(closed);
     }
 
-    /// <summary>V10: the bar takes no focus, so the keyboard ring goes on the button that has it and never around the whole bar.</summary>
+    /// <summary>
+    /// V10: the bar takes no focus, so the keyboard ring goes on the button that has it and never around the whole bar. docs/24
+    /// §3.1: each entry shows its name beside its icon, in groups with a caption; the button on top leaves only the icons, and
+    /// each entry keeps its name for a screen reader and in its tooltip.
+    /// </summary>
     [Fact]
-    public void TheActivityBar_TakesNoFocus_ButItsButtonsDo()
+    public void TheActivityBar_TakesNoFocus_ButItsButtonsDo_AndShowsTheNamesInGroups()
     {
         using var temp = new TempDirectory();
 
-        var (bar, buttons, names) = WpfHost.Run(() =>
+        var (bar, buttons, groups, names, titlesShown, width, collapsedTitles, collapsedWidth, collapsedNames, toggleName) = WpfHost.Run(() =>
         {
             var vm = ShellFactory.CreateMain();
             var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Path)));
             LayOut(window);
             var activityBar = (ItemsControl)window.FindName("ActivityBar");
-            var items = UIElementAutomationPeer.CreatePeerForElement(activityBar).GetChildren() ?? [];
+            var host = (FrameworkElement)window.FindName("ActivityBarHost");
+            var groups = (UIElementAutomationPeer.CreatePeerForElement(activityBar).GetChildren() ?? []).Select(i => i.GetName()).ToList();
+            var entries = Descendants<Button>(activityBar).ToList();
+            List<string> Titles() => [.. entries.SelectMany(b => Descendants<TextBlock>(b)).Where(t => t.Visibility == Visibility.Visible && t.FontFamily.Source != "Segoe MDL2 Assets").Select(t => t.Text)];
+            var shown = Titles();
+            var expanded = host.ActualWidth;
+            vm.ToggleActivityBarCommand.Execute(null);
+            LayOutAgain(window);
             return (
                 activityBar.Focusable,
-                Descendants<Button>(activityBar).Select(b => b.Focusable).ToList(),
-                items.Select(i => i.GetName()).ToList());
+                entries.Select(b => b.Focusable).ToList(),
+                groups,
+                entries.Select(b => AutomationProperties.GetName(b)).ToList(),
+                shown,
+                expanded,
+                Titles(),
+                host.ActualWidth,
+                entries.Select(b => AutomationProperties.GetName(b)).ToList(),
+                AutomationProperties.GetName((Button)window.FindName("ActivityBarToggle")));
         });
 
         Assert.False(bar);
-        Assert.Equal(10, buttons.Count);
+        Assert.Equal(11, buttons.Count);
         Assert.All(buttons, Assert.True);
 
-        // A screen reader names each entry by its title (A1), not by the type behind it.
-        Assert.Equal(
-            [
-                "Explorador", "Orquestador", Texts.Get("BackgroundRuns_Title"), Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Terminal", "Auto Doctor", "Historial (bitácora)",
-            ],
-            names);
+        // A screen reader names each group by its caption and each entry by its title (A1), not by the type behind it.
+        Assert.Equal(["Proyecto", "El proyecto por dentro", "Más"], groups);
+        string[] expected =
+        [
+            "Inicio", "Orquestador", Texts.Get("BackgroundRuns_Title"), "Explorador", "Skills", Texts.Get("Shell_Activity_Agents"),
+            Texts.Get("Shell_Activity_Tools"), "Auto Doctor", "Historial (bitácora)", "Terminal", "Resultados de pruebas",
+        ];
+        Assert.Equal(expected, names);
+        Assert.Equal(expected, titlesShown);
+        Assert.InRange(width, 150, 200);
+
+        // Folded: only the icons, the names still there for a screen reader, and the button says it shows them again.
+        Assert.Empty(collapsedTitles);
+        Assert.InRange(collapsedWidth, 40, 56);
+        Assert.Equal(expected, collapsedNames);
+        Assert.Equal("Mostrar los nombres", toggleName);
     }
 
     /// <summary>
@@ -380,7 +469,7 @@ public sealed class MainWindowTests
         });
 
         Assert.Equal(
-            ["Explorador", "Bienvenida | Calc.cs, con cambios sin guardar"],
+            ["Explorador", "Inicio | Calc.cs, con cambios sin guardar"],
             tabs);
         Assert.Equal(["Auto Doctor", "Bitácora de hoy"], sideTabs);
 

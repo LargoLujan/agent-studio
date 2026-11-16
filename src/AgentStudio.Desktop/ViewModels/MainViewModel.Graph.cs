@@ -19,7 +19,7 @@ public sealed partial class MainViewModel
     {
         if (_graphDocument is not null)
         {
-            yield return new ActivityItemViewModel("graph", Texts.Get("Graph_Title"), "", null, null, OpenGraphCommand);
+            yield return new ActivityItemViewModel("graph", Texts.Get("Graph_Title"), "\uE968", null, null, OpenGraphCommand);
         }
     }
 

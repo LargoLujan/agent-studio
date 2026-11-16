@@ -264,11 +264,16 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     [ObservableProperty]
     private string? _errorMessage;
 
-    /// <summary>Opens the project and reads its latest frozen requirements and its judges once; called when the tab is opened.</summary>
+    /// <summary>
+    /// Opens the project and reads its latest frozen requirements and its judges once; called when the tab is opened. While the
+    /// project has no frozen requirements, opening the tab again reads them again: the person may have frozen them in the
+    /// orchestrator through «Ir a los requisitos».
+    /// </summary>
     public async Task OpenAsync()
     {
         if (_opened)
         {
+            await ReadRequirementsAgainAsync().ConfigureAwait(true);
             return;
         }
 
@@ -430,8 +435,47 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         Problems = Validate();
         OnPropertyChanged(nameof(Problems));
         OnPropertyChanged(nameof(HasProblems));
+        OnPropertyChanged(nameof(ShowsGoToRequirements));
         PrepareCommand.NotifyCanExecuteChanged();
         AuditCommand.NotifyCanExecuteChanged();
+        GoToRequirementsCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// The project has no frozen requirements and the shell can take the person to them: «Ir a los requisitos» is offered under
+    /// the message that says they are missing (docs/24 §2, principle 4).
+    /// </summary>
+    public bool ShowsGoToRequirements => Project is not null && _requirements is null && _backend.Requirements is not null && _screens is { CanNavigate: true };
+
+    /// <summary>«Ir a los requisitos»: the orchestrator of the project on «Requisitos», where they are frozen. Nothing is frozen here.</summary>
+    [RelayCommand(CanExecute = nameof(ShowsGoToRequirements))]
+    private Task GoToRequirementsAsync() => _screens is { } screens ? screens.OpenRequirementsAsync(ProjectRoot) : Task.CompletedTask;
+
+    /// <summary>The tab opened again without frozen requirements: they are read again, and the preparation follows them.</summary>
+    private async Task ReadRequirementsAgainAsync()
+    {
+        if (_requirements is not null || IsBusy || _loading || Project is not { } project || _backend.Requirements is not { } store)
+        {
+            return;
+        }
+
+        try
+        {
+            _requirements = await store.LatestAsync(project.ProjectId, CancellationToken.None).ConfigureAwait(true);
+        }
+#pragma warning disable CA1031 // The store is behind a port: a failure is shown in the document, never thrown into the UI.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
+            return;
+        }
+
+        if (_requirements is { } set)
+        {
+            RequirementsText = Texts.Format("Audit_Requirements_Latest", DebateTexts.Plural(set.Requirements.Count, "Debate_Count_Requirement"), DebateTexts.Short(set.ContentHash));
+            Changed();
+        }
     }
 
     private List<string> Validate()

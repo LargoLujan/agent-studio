@@ -13,34 +13,72 @@
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The «Orquestador» tab: engine status, the preparation (request, frozen requirements, agents, verification
          profile), the plan under review (validation, approval, run), the canvas with the properties of the selected node,
-         and the monitor of the run with the previous runs. The tab fills its pane; only when the pane is shorter than what
-         the bands and the least height of the canvas and the monitor need does it scroll, so neither is ever cut off. -->
+         and the monitor of the run with the previous runs. The tab fills its pane (docs/24 §1, rows 14 and 15): the bands take at
+         most half of its height and scroll inside when they need more, and always leave 300 px for the canvas, the divider and the
+         monitor (120 + 8 + 120 and some room), so the divider always has room to move. The canvas and the monitor start with the
+         same height. Only a pane shorter than 400 px scrolls as a whole, so the bands keep 100 px at least and nothing is lost. -->
     <UserControl.Resources>
-        <views:SumConverter x:Key="Orchestrator.Sum"/>
+        <!-- The bands: at most half of the tab, and never the 300 px the canvas and the monitor keep; 100 px at least. -->
+        <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeight" Factor="0.5" Reserve="300" Minimum="100"/>
+        <!-- «Resumen del plan»: three lines at least, about twelve at most, and never more than a quarter of the tab. -->
+        <views:ShareOfLengthConverter x:Key="Orchestrator.SummaryMaxHeight" Factor="0.25" Minimum="64" Maximum="220"/>
+
+        <!-- The divider between the canvas and the monitor: 8 px to take with the mouse, a line in the middle, the cursor that
+             says it moves up and down, and the keyboard (Tab reaches it, the arrows move it). -->
+        <Style x:Key="Orchestrator.RowSplitter" TargetType="GridSplitter">
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="ResizeDirection" Value="Rows"/>
+            <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+            <Setter Property="Cursor" Value="SizeNS"/>
+            <Setter Property="Focusable" Value="True"/>
+            <Setter Property="IsTabStop" Value="True"/>
+            <Setter Property="KeyboardIncrement" Value="24"/>
+            <Setter Property="ShowsPreview" Value="False"/>
+            <Setter Property="Background" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Border Background="Transparent">
+                            <Border x:Name="Line" Height="2" VerticalAlignment="Center" Background="{TemplateBinding Background}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Line" Property="Background" Value="{StaticResource BorderStrongBrush}"/>
+                                <Setter TargetName="Line" Property="Height" Value="4"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Line" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Line" Property="Height" Value="4"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Line" Property="Background" Value="{StaticResource FocusRingBrush}"/>
+                                <Setter TargetName="Line" Property="Height" Value="4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
                   Background="{StaticResource BackgroundBrush}">
-        <Grid x:Name="Layout" Background="{StaticResource BackgroundBrush}" Height="{Binding ViewportHeight, ElementName=Scroller}">
-            <!-- The bands as tall as their content, plus the least of the canvas (260), the splitter (4) and the bottom (260). -->
-            <Grid.MinHeight>
-                <MultiBinding Converter="{StaticResource Orchestrator.Sum}" ConverterParameter="524">
-                    <Binding ElementName="StatusBand" Path="ActualHeight"/>
-                    <Binding ElementName="PreparationBand" Path="ActualHeight"/>
-                    <Binding ElementName="ReviewBand" Path="ActualHeight"/>
-                </MultiBinding>
-            </Grid.MinHeight>
+    <Grid x:Name="Layout" Background="{StaticResource BackgroundBrush}" Height="{Binding ViewportHeight, ElementName=Scroller}" MinHeight="400">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition x:Name="CanvasRow" Height="*" MinHeight="120"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="3*" MinHeight="260"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="2*" MinHeight="260"/>
+                <RowDefinition x:Name="MonitorRow" Height="*" MinHeight="120"/>
             </Grid.RowDefinitions>
 
+            <ScrollViewer x:Name="Bands" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                          MaxHeight="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeight}}">
+            <StackPanel>
             <!-- Engine and project status: what is missing is said, never filled in. -->
-            <Border x:Name="StatusBand" Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+            <Border x:Name="StatusBand" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,0,1" Padding="12,8">
                 <StackPanel>
                     <DockPanel LastChildFill="True">
@@ -52,8 +90,8 @@
                                      Fill="{Binding EngineTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
                             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"
                                        Text="{Binding EngineStatus}" AutomationProperties.Name="{l:T Orchestrator_Review_EngineName}"/>
-                            <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
-                                       FontFamily="{StaticResource MonoFont}" Text="{Binding ProjectRoot}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                       FontFamily="{StaticResource MonoFont}" Text="{Binding ProjectRoot}" ToolTip="{Binding ProjectRoot}"/>
                         </WrapPanel>
                     </DockPanel>
                     <ItemsControl ItemsSource="{Binding Missing}" Margin="18,4,0,0" Focusable="False"
@@ -65,6 +103,12 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <!-- The line that says there are no frozen requirements is also the way to them (docs/24 §2, principle 4). -->
+                    <Button x:Name="GoToRequirementsButton" Style="{StaticResource ToolbarButton}" Margin="18,6,0,0" HorizontalAlignment="Left"
+                            Content="{l:T Orchestrator_Review_GoToRequirements}" Command="{Binding ShowRequirementsCommand}"
+                            ToolTip="{l:T Orchestrator_Review_GoToRequirementsHelp}"
+                            AutomationProperties.HelpText="{l:T Orchestrator_Review_GoToRequirementsHelp}"
+                            Visibility="{Binding ShowsGoToRequirements, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
                     <!-- The decision log cannot be trusted (ADR-0010): why, and, for a history no anchor recognises at this
                          location, the person's only way forward. -->
                     <StackPanel Margin="18,6,0,0" Visibility="{Binding HasIntegrityProblem, Converter={StaticResource Orchestrator.BoolToVisibility}}">
@@ -81,26 +125,30 @@
             </Border>
 
             <!-- The request, the requirements, the agents and the verification profile. -->
-            <views:PreparationView x:Name="PreparationBand" Grid.Row="1"/>
+            <views:PreparationView x:Name="PreparationBand"/>
 
             <!-- The plan under review. Its summary and «Pedir plan» share a row while there is room; where the plan stands
                  takes the whole width, so it never shrinks to a sliver whatever the buttons need; the buttons wrap. -->
-            <Border x:Name="ReviewBand" Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+            <Border x:Name="ReviewBand" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,0,1" Padding="12,8">
                 <StackPanel>
-                    <views:AdaptiveColumnsPanel ColumnSpacing="12" RowSpacing="6">
-                        <DockPanel views:AdaptiveColumnsPanel.Weight="3" MinWidth="240">
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,5,8,0"
-                                       VerticalAlignment="Top" Text="{l:T Orchestrator_Review_PlanSummary}"/>
-                            <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding PlanSummary, UpdateSourceTrigger=PropertyChanged}"
-                                     AutomationProperties.Name="{l:T Orchestrator_Review_PlanSummary}"/>
-                        </DockPanel>
-                        <WrapPanel MinWidth="250" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <!-- «Resumen del plan» (docs/24 §1, row 16): the whole width of the band, its words wrapped, three lines at least
+                         and about twelve at most, then it scrolls. The person writes it for a plan drawn by hand; while a run is
+                         on screen the plan is fixed, and so is its summary. «Pedir plan» and «Cancelar» go above it, beside its label. -->
+                    <DockPanel Margin="0,0,0,4">
+                        <WrapPanel DockPanel.Dock="Right">
                             <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_RequestPlan}" Command="{Binding RequestPlanCommand}"
                                     ToolTip="{l:T Orchestrator_Review_RequestPlanHelp}"/>
                             <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_CancelPlanning}" Command="{Binding CancelPlanningCommand}"/>
                         </WrapPanel>
-                    </views:AdaptiveColumnsPanel>
+                        <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Bottom" Text="{l:T Orchestrator_Review_PlanSummary}"/>
+                    </DockPanel>
+                    <TextBox x:Name="PlanSummaryBox" Style="{StaticResource MultilineFieldTextBox}" HorizontalAlignment="Stretch"
+                             TextWrapping="Wrap" AcceptsReturn="False" VerticalScrollBarVisibility="Auto" MinLines="3" MinHeight="64"
+                             MaxHeight="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.SummaryMaxHeight}}"
+                             IsReadOnly="{Binding Canvas.IsReadOnly}"
+                             Text="{Binding PlanSummary, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{l:T Orchestrator_Review_PlanSummary}"/>
 
                     <!-- Where the plan stands, in words that wrap within the whole band. -->
                     <WrapPanel x:Name="PlanState" Margin="0,4,0,0">
@@ -151,9 +199,11 @@
                     </WrapPanel>
                 </StackPanel>
             </Border>
+            </StackPanel>
+            </ScrollViewer>
 
             <!-- Canvas | properties and plan details. -->
-            <Grid Grid.Row="3">
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*" MinWidth="240"/>
                     <ColumnDefinition Width="Auto"/>
@@ -244,11 +294,13 @@
                 </Border>
             </Grid>
 
-            <GridSplitter Grid.Row="4" Height="4" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"
-                          ResizeBehavior="PreviousAndNext" ResizeDirection="Rows" Focusable="False"/>
+            <GridSplitter x:Name="RowSplitter" Grid.Row="2" Style="{StaticResource Orchestrator.RowSplitter}"
+                          ToolTip="{l:T Orchestrator_Review_SplitterHelp}"
+                          AutomationProperties.Name="{l:T Orchestrator_Review_SplitterName}"
+                          AutomationProperties.HelpText="{l:T Orchestrator_Review_SplitterHelp}"/>
 
             <!-- Run monitor | previous runs: side by side while both have room, the list under the monitor otherwise. -->
-            <views:AdaptiveColumnsPanel x:Name="BottomColumns" Grid.Row="5" FillHeight="True" ColumnSpacing="0" RowSpacing="0">
+            <views:AdaptiveColumnsPanel x:Name="BottomColumns" Grid.Row="3" FillHeight="True" ColumnSpacing="0" RowSpacing="0">
                 <views:RunMonitorView DataContext="{Binding Monitor}" views:AdaptiveColumnsPanel.Weight="3" views:AdaptiveColumnsPanel.RowWeight="2" MinWidth="420"/>
                 <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1,0,0,0" Padding="12,10" views:AdaptiveColumnsPanel.Weight="1" MinWidth="240">
@@ -322,6 +374,6 @@
                     </DockPanel>
                 </Border>
             </views:AdaptiveColumnsPanel>
-        </Grid>
+    </Grid>
     </ScrollViewer>
 </UserControl>

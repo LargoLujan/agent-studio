@@ -158,13 +158,66 @@ public sealed class ProjectAuditDocumentViewModelTests
         Assert.True(document.HasProposal);
     }
 
+    /// <summary>docs/24 §2, principle 4: the message that says the requirements are missing comes with the way to them.</summary>
     [Fact]
-    public async Task Without_frozen_requirements_nothing_is_audited_and_the_document_says_where_to_freeze_them()
+    public async Task Without_frozen_requirements_nothing_is_audited_and_the_document_takes_you_to_freeze_them()
     {
-        var (document, _, _) = await DocumentAsync(withRequirements: false);
+        var (document, _, navigation) = await DocumentAsync(withRequirements: false);
 
-        Assert.Contains("No se puede auditar sin requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos.", document.Problems);
+        Assert.Contains("No se puede auditar sin requisitos congelados.", document.Problems);
+        Assert.Equal("Aún no hay requisitos congelados. Se congelan en el orquestador, y después podrás auditar.", document.RequirementsText);
         Assert.False(document.PrepareCommand.CanExecute(null));
+        Assert.True(document.ShowsGoToRequirements);
+        Assert.True(document.GoToRequirementsCommand.CanExecute(null));
+
+        await document.GoToRequirementsCommand.ExecuteAsync(null);
+
+        Assert.Equal([Root], navigation.RequirementsOpened);
+    }
+
+    /// <summary>Back from «Requisitos» with them frozen, opening the tab again reads them: the way does not end at the same message.</summary>
+    [Fact]
+    public async Task Requirements_frozen_after_the_tab_opened_are_read_when_it_opens_again()
+    {
+        var store = new FakeRequirementStore();
+        var backend = new DebateScreenBackend(
+            Challenges: new FakeVerdictChallenges(),
+            Audits: new FakeProjectAuditService(),
+            Workspace: new FakeWorkspace(),
+            Roster: new FakeRoster(() => Roster),
+            Requirements: store,
+            Verdicts: new FakeVerdictStore());
+        var screens = new DebateScreens(backend, new FakeClock(Now), () => new FakeReviewNavigation());
+        var document = new ProjectAuditDocumentViewModel(Root, backend, new FakeClock(Now), screens, new InlineSynchronizationContext());
+        await document.OpenAsync();
+        Assert.True(document.ShowsGoToRequirements);
+
+        await store.SaveAsync("p-1", Requirements, TestContext.Current.CancellationToken);
+        await document.OpenAsync();
+
+        Assert.False(document.ShowsGoToRequirements);
+        Assert.False(document.GoToRequirementsCommand.CanExecute(null));
+        Assert.DoesNotContain("No se puede auditar sin requisitos congelados.", document.Problems);
+        Assert.StartsWith("Se audita contra los últimos requisitos congelados: 2 requisitos", document.RequirementsText, StringComparison.Ordinal);
+        Assert.True(document.PrepareCommand.CanExecute(null));
+    }
+
+    /// <summary>Without a shell to go to, the button is not offered: a way that leads nowhere is not shown.</summary>
+    [Fact]
+    public async Task Without_a_shell_to_navigate_the_way_to_the_requirements_is_not_offered()
+    {
+        var backend = new DebateScreenBackend(
+            Challenges: new FakeVerdictChallenges(),
+            Audits: new FakeProjectAuditService(),
+            Workspace: new FakeWorkspace(),
+            Roster: new FakeRoster(() => Roster),
+            Requirements: new FakeRequirementStore(),
+            Verdicts: new FakeVerdictStore());
+        var document = new ProjectAuditDocumentViewModel(Root, backend, new FakeClock(Now), new DebateScreens(backend, new FakeClock(Now)), new InlineSynchronizationContext());
+
+        await document.OpenAsync();
+
+        Assert.False(document.ShowsGoToRequirements);
     }
 
     private static MetricValue<long> MetricValueNone => MetricValue<long>.NotExposed("no judge runs");

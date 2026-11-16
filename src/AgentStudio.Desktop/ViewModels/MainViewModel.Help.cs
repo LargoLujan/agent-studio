@@ -26,7 +26,7 @@ public sealed partial class MainViewModel
     {
         if (_help is not null)
         {
-            yield return new ActivityItemViewModel("help", Texts.Get("Help_Activity"), "", null, null, OpenHelpCommand) { Shortcut = "F1" };
+            yield return new ActivityItemViewModel("help", Texts.Get("Help_Activity"), "\uE897", null, null, OpenHelpCommand) { Shortcut = "F1", Group = ActivityGroup.Footer };
         }
     }
 

@@ -110,12 +110,15 @@ public sealed class Phase4ShellTests : IDisposable
     {
         var shell = Create();
 
+        // docs/24 §3.1: «Memoria» and «Skills» are inside the project, «Consumo» in «Cuentas».
         Assert.Equal(
             [
-                "Explorador", "Orquestador", Texts.Get("BackgroundRuns_Title"), Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial (bitácora)",
+                "Inicio", "Orquestador", Texts.Get("BackgroundRuns_Title"), "Explorador", "Memoria", "Skills", Texts.Get("Shell_Activity_Agents"),
+                "Consumo", Texts.Get("Shell_Activity_Tools"), "Auto Doctor", "Historial (bitácora)", "Terminal", Texts.Get("Shell_Activity_Tests"),
             ],
             shell.Main.Activities.Select(a => a.Title));
+        Assert.Equal(ActivityGroup.Inside, shell.Main.Activities.Single(a => a.Id == "memory").Group);
+        Assert.Equal(ActivityGroup.Accounts, shell.Main.Activities.Single(a => a.Id == "usage").Group);
         foreach (var id in new[] { "skills", "usage", "memory" })
         {
             var activity = shell.Main.Activities.Single(a => a.Id == id);
@@ -125,18 +128,20 @@ public sealed class Phase4ShellTests : IDisposable
         }
     }
 
+    /// <summary>docs/24 §3.2: the welcome tab no longer repeats the ways into the screens; the bar has them with their names.</summary>
     [Fact]
-    public async Task With_a_project_the_welcome_tab_offers_usage_and_memory_too()
+    public async Task With_a_project_the_welcome_tab_proposes_one_step_and_the_bar_keeps_usage_and_memory()
     {
         var shell = Create();
         await shell.Main.OpenProjectAsync(_temp.CreateDirectory("calc"));
 
         shell.Main.ShowWelcomeCommand.Execute(null);
+        await shell.Main.NextStepRead;
 
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(shell.Main.ActiveContent);
-        Assert.Equal(["Orquestador", "Ir al fichero", "Consumo", "Memoria", "Terminal"], welcome.ProjectActions.Select(a => a.Title));
-        Assert.Same(shell.Main.OpenUsageCommand, welcome.ProjectActions[2].Command);
-        Assert.Same(shell.Main.OpenMemoryCommand, welcome.ProjectActions[3].Command);
+        Assert.NotNull(welcome.NextStep);
+        Assert.Contains(shell.Main.ActivitySections.SelectMany(s => s.Items), a => a.Id == "usage");
+        Assert.Contains(shell.Main.ActivitySections.SelectMany(s => s.Items), a => a.Id == "memory");
     }
 
     [Fact]
