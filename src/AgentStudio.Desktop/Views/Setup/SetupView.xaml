@@ -109,14 +109,16 @@
             <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
         </Style>
 
-        <!-- A step of the list: the current one is marked, a skipped one is dimmed. -->
-        <Style x:Key="Setup.StepButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <!-- A step of the list: an entry of a list box, so the mouse, the arrows and a screen reader choose it, and the selected one is
+             the step on screen (the reader says it is selected). A skipped step is dimmed. -->
+        <Style x:Key="Setup.StepItem" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Title}"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsCurrent}" Value="True">
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsIncluded}" Value="False">
                     <Setter Property="Opacity" Value="0.6"/>
@@ -168,16 +170,15 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <ItemsControl Grid.Column="0" Margin="0,0,16,0" ItemsSource="{Binding Steps}" Focusable="False"
-                          AutomationProperties.Name="{l:T Setup_Steps_Label}">
-                <ItemsControl.ItemTemplate>
+            <ListBox x:Name="StepList" Grid.Column="0" Margin="0,0,16,0" ItemsSource="{Binding Steps}" SelectedItem="{Binding CurrentStepItem}"
+                     BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemContainerStyle="{StaticResource Setup.StepItem}"
+                     AutomationProperties.Name="{l:T Setup_Steps_Label}">
+                <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Button Style="{StaticResource Setup.StepButton}" Content="{Binding Title}" AutomationProperties.Name="{Binding Title}"
-                                Command="{Binding DataContext.GoToCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}"/>
+                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                 <StackPanel>

@@ -1,5 +1,8 @@
 using System.Windows;
 using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media;
 using AgentStudio.Application.Setup;
@@ -143,7 +146,7 @@ public sealed class SetupViewTests
                 AutomationProperties.GetName(list),
                 Descendants<TextBlock>(view).Any(t => t.Text == Texts.Current.Get("Setup_Heading")),
                 Descendants<InfoButton>(view).Select(b => b.InfoKey).ToList(),
-                Descendants<Button>(view).Where(b => b.CommandParameter is SetupStepViewModel).Select(b => AutomationProperties.GetName(b)).ToList(),
+                Descendants<ListBoxItem>(view).Where(i => i.DataContext is SetupStepViewModel).Select(i => AutomationProperties.GetName(i)).ToList(),
                 Descendants<Button>(view).Select(b => b.Content as string).Where(c => c is not null).ToList());
         });
 
@@ -154,6 +157,45 @@ public sealed class SetupViewTests
         Assert.Contains(Texts.Current.Get("Setup_Button_Apply"), buttons);
         Assert.Contains(Texts.Current.Get("Setup_Button_Next"), buttons);
         Assert.Contains(Texts.Current.Get("Setup_Button_Back"), buttons);
+    }
+
+    [Fact]
+    public async Task Each_step_of_the_list_is_chosen_with_the_mouse_the_keyboard_or_a_screen_reader_and_the_current_one_is_selected()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+
+        var (afterChoice, afterReader, readerSelected, afterNext, nextSelected, tabStop) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            var list = Descendants<ListBox>(view).Single(l => ReferenceEquals(l.ItemsSource, vm.Steps));
+
+            // The mouse and the arrows choose an entry: the list selects it.
+            list.SelectedItem = vm.Steps[(int)SetupStep.Models];
+            var afterChoice = vm.Step;
+
+            // A screen reader chooses it through the pattern of a selectable item.
+            var peer = (ListBoxAutomationPeer)UIElementAutomationPeer.CreatePeerForElement(list);
+            var item = peer.GetChildren().Single(c => c.GetName() == vm.Steps[(int)SetupStep.Budget].Title);
+            ((ISelectionItemProvider)item.GetPattern(PatternInterface.SelectionItem)).Select();
+            var afterReader = vm.Step;
+            var readerSelected = ((ISelectionItemProvider)item.GetPattern(PatternInterface.SelectionItem)).IsSelected;
+
+            // «Siguiente» still goes on, and the list marks the step it reached.
+            vm.NextCommand.Execute(null);
+            view.UpdateLayout();
+            var summary = peer.GetChildren().Single(c => c.GetName() == vm.Steps[(int)SetupStep.Summary].Title);
+            // The Tab reaches the list on the entry of the step on screen, and the arrows move from there (a list box takes the Tab once).
+            var current = (ListBoxItem)list.ItemContainerGenerator.ContainerFromItem(vm.Steps[(int)SetupStep.Summary]);
+            return (afterChoice, afterReader, readerSelected, vm.Step, ((ISelectionItemProvider)summary.GetPattern(PatternInterface.SelectionItem)).IsSelected,
+                current.Focusable && KeyboardNavigation.GetIsTabStop(current) && KeyboardNavigation.GetTabNavigation(list) == KeyboardNavigationMode.Once);
+        });
+
+        Assert.Equal(SetupStep.Models, afterChoice);
+        Assert.Equal(SetupStep.Budget, afterReader);
+        Assert.True(readerSelected, "The entry chosen by the reader is not selected.");
+        Assert.Equal(SetupStep.Summary, afterNext);
+        Assert.True(nextSelected, "The entry of the step «Siguiente» reached is not selected.");
+        Assert.True(tabStop, "The list of steps does not take the Tab.");
     }
 
     [Fact]

@@ -801,12 +801,35 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The step of the list that is on screen: choosing another in the list (the mouse, the arrows, a screen reader) goes to it, the
+    /// same jump as «Cambiar» of the summary and as an entry of the list. While the project is read it stays where it is.
+    /// </summary>
+    public SetupStepViewModel CurrentStepItem
+    {
+        get => StepOf(Step);
+        set
+        {
+            if (value is not null && value.Step != Step && !IsBusy)
+            {
+                ChangeStep(value.Step);
+            }
+            else
+            {
+                // A choice that is not taken: the list shows the step on screen again.
+                OnPropertyChanged();
+            }
+        }
+    }
+
     partial void OnStepChanged(SetupStep value)
     {
         foreach (var item in Steps)
         {
             item.IsCurrent = item.Step == value;
         }
+
+        OnPropertyChanged(nameof(CurrentStepItem));
 
         if (value == SetupStep.Summary)
         {
