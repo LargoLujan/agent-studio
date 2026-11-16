@@ -392,6 +392,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         // The tests of HEAD that run are of the project that was open: they are stopped (the copy is cleaned when the verifier ends).
         Tests.CancelHeadTestsCommand.Execute(null);
+        StopSetupTrials(value);
         AttachPanels();
     }
 

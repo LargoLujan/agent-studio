@@ -313,6 +313,12 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>Reads the project and fills every step with its proposal. Writes nothing.</summary>
     public async Task LoadAsync(ProjectContext? project)
     {
+        // A trial of another project stops: it would hold that project for nothing.
+        if (_project is { } before && (project is null || !string.Equals(before.ProjectId, project.ProjectId, StringComparison.Ordinal)))
+        {
+            CancelTrial();
+        }
+
         _project = project;
         OnPropertyChanged(nameof(HasProject));
         ErrorMessage = string.Empty;
@@ -649,7 +655,9 @@ public sealed partial class SetupViewModel : ObservableObject
         {
             TrialStatus = text.Render(refused.Text);
         }
-        catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException or ArgumentException)
+#pragma warning disable CA1031 // As the tests of HEAD of the panel: whatever the verifier or its stores throw (the database of evidence too) is said here, never thrown into the UI.
+        catch (Exception ex)
+#pragma warning restore CA1031
         {
             TrialStatus = text.Format("Setup_Verification_Trial_Not_Run", ex.GetType().Name);
         }
@@ -665,6 +673,12 @@ public sealed partial class SetupViewModel : ObservableObject
         _proposal is not { Verification: { CurrentUnreadable: false, Current: { } saved } } || saved.ContentHash != profile.ContentHash;
 
     private string LabelOf(VerificationStep step) => CheckRows.FirstOrDefault(r => r.Step.Id == step.Id)?.Label ?? step.Title;
+
+    /// <summary>
+    /// Stops a trial that runs, as «Parar la prueba» does: the shell calls it when another project is opened. The verifier kills the
+    /// commands and the project is let go when it returns.
+    /// </summary>
+    public void CancelTrial() => _trialStop?.Cancel();
 
     private bool CanStopTrial() => IsTrying;
 

@@ -576,6 +576,39 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task Stopping_the_trial_or_opening_another_project_cancels_it_and_lets_the_project_go()
+    {
+        var activity = new FakeProjectActivity();
+        var runner = new GatedTrialRunner();
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), activity) };
+        var vm = await rig.OpenAsync();
+
+        var trying = vm.TryChecksCommand.ExecuteAsync(null);
+        await WaitForAsync(() => runner.Started);
+        Assert.Equal([ProjectActivityKind.Audit], activity.Entered);
+
+        await vm.LoadAsync(new AgentStudio.Application.Projects.ProjectContext("otro", @"C:\proyectos\otro"));
+        await trying;
+
+        Assert.False(vm.IsTrying);
+        Assert.Equal(1, activity.Released);
+    }
+
+    [Fact]
+    public async Task Whatever_the_verifier_throws_is_said_on_the_screen_and_never_escapes_the_command()
+    {
+        var runner = new GatedTrialRunner { Failure = new FormatException("The database of evidence is damaged.") };
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()) };
+        var vm = await rig.OpenAsync();
+        runner.Release();
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Equal(Spanish.Format("Setup_Verification_Trial_Not_Run", nameof(FormatException)), vm.TrialStatus);
+        Assert.False(vm.IsTrying);
+    }
+
+    [Fact]
     public async Task Without_the_trial_composed_the_button_is_not_offered()
     {
         var vm = await new Rig().OpenAsync();

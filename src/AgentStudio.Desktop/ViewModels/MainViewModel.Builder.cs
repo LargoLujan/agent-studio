@@ -275,6 +275,18 @@ public sealed partial class MainViewModel
         }
     }
 
+    /// <summary>A configurator of a project that is no longer the open one stops its «Probarla ahora», which holds that project.</summary>
+    private void StopSetupTrials(string? openRoot)
+    {
+        foreach (var (root, document) in _setups)
+        {
+            if (!SameProject(root, openRoot))
+            {
+                document.Setup.CancelTrial();
+            }
+        }
+    }
+
     /// <summary>
     /// Integration seam (docs/24, wave 1): puts the focus in the request box of <paramref name="orchestrator"/> once the configurator
     /// took the person there. The package that adds that method to the orchestrator implements this partial method; until then it
