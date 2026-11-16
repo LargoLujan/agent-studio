@@ -214,6 +214,34 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal("La ejecución de este proyecto está en pausa. Mira dónde se quedó y reanúdala cuando quieras.", (await StepAsync(paused)).Reason);
     }
 
+    /// <summary>
+    /// Review fix 4: a question of the run does not change its phase (other tasks go on), so «Inicio» follows the questions too: it
+    /// says the run waits for your answer while one waits, and that the agents work once it is answered.
+    /// </summary>
+    [Fact]
+    public async Task A_question_of_the_run_changes_what_inicio_says_of_it()
+    {
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()));
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        await StepAsync(shell);
+        var welcome = shell.Documents.OfType<WelcomeDocumentViewModel>().Single();
+        orchestrator.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), orchestrator.Context!.Project!);
+        await shell.NextStepRead;
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_Run"), welcome.NextStep?.Reason);
+
+        var question = new AgentStudio.Desktop.Orchestrator.Questions.QuestionViewModel(
+            new PendingQuestion("T1-q1", Tid("T1"), Aid("exec1"), 1, "¿Uso decimal o double?", Eid("EV-1"), [], T0), _ => Task.CompletedTask);
+        orchestrator.Monitor.PendingQuestions.Add(question);
+        await shell.NextStepRead;
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_RunWaiting"), welcome.NextStep?.Reason);
+
+        orchestrator.Monitor.PendingQuestions.Remove(question);
+        await shell.NextStepRead;
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_Run"), welcome.NextStep?.Reason);
+    }
+
     [Fact]
     public async Task Changing_project_drops_the_step_of_the_project_left()
     {

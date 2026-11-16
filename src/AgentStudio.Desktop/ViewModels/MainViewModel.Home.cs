@@ -159,6 +159,9 @@ public sealed partial class MainViewModel
 
     private CancellationTokenSource? _nextStepCancellation;
 
+    /// <summary>A question of a run came or was answered: what «Inicio» says of the run follows it (waiting for your answer, or working).</summary>
+    private void OnQuestionsChangedForHome(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RefreshNextStep();
+
     /// <summary>
     /// The next step (docs/24 §3.2) from what is known without opening anything the app did not open already. A run going on comes
     /// first, since it is the most certain thing and can go on in a project never set up. A folder where Agent Studio never wrote was
@@ -194,12 +197,13 @@ public sealed partial class MainViewModel
             return;
         }
 
-        if (!_orchestrators.TryGetValue(root, out var document) || document.Context is not { Project: { } project } context)
+        if (!_orchestrators.TryGetValue(root, out var document) || document.Context is not { Project: { } project } opened)
         {
             welcome.NextStep = NewRequestStep();
             return;
         }
 
+        var context = opened;
         bool? applied;
         try
         {
@@ -216,6 +220,15 @@ public sealed partial class MainViewModel
         {
             return;
         }
+
+        // What the orchestrator has open is read again: it may have been reloaded (requirements frozen, a profile saved) meanwhile.
+        if (!_orchestrators.TryGetValue(root, out var after) || after.Context is not { Project: not null } current)
+        {
+            welcome.NextStep = RunStep(root) ?? NewRequestStep();
+            return;
+        }
+
+        context = current;
 
         var configured = applied == true || (context.Roster.Count > 0 && context.Verification is not null);
         welcome.NextStep = RunStep(root)
