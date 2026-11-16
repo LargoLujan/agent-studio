@@ -233,7 +233,19 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_Run"), welcome.NextStep?.Reason);
 
         var question = new AgentStudio.Desktop.Orchestrator.Questions.QuestionViewModel(
-            new PendingQuestion("T1-q1", Tid("T1"), Aid("exec1"), 1, "¿Uso decimal o double?", Eid("EV-1"), [], T0), _ => Task.CompletedTask);
+            new PendingQuestion(
+                "T1-q1",
+                Tid("T1"),
+                Aid("exec1"),
+                1,
+                new AgentStudio.Domain.Questions.AgentQuestion(
+                    "¿Uso decimal o double?",
+                    "Calc.Multiply necesita un tipo.",
+                    [new AgentStudio.Domain.Questions.QuestionOption("a", "decimal", "Exacto", AgentStudio.Domain.Questions.QuestionEffort.Small, true), new AgentStudio.Domain.Questions.QuestionOption("b", "double", "Rápido", AgentStudio.Domain.Questions.QuestionEffort.Small, false)],
+                    false),
+                Eid("EV-1"),
+                [],
+                T0), _ => Task.CompletedTask);
         orchestrator.Monitor.PendingQuestions.Add(question);
         await shell.NextStepRead;
         Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_RunWaiting"), welcome.NextStep?.Reason);

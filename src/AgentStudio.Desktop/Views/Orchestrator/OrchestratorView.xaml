@@ -20,6 +20,8 @@
     <UserControl.Resources>
         <!-- The bands: at most 40 % of the tab, and never the 360 px the canvas and the monitor keep; 100 px at least. -->
         <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeight" Factor="0.4" Reserve="360" Minimum="100"/>
+        <!-- With a warning on the plan: 60 %, leaving the canvas, the divider and the monitor their least (120 + 8 + 120). -->
+        <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeightWarned" Factor="0.6" Reserve="248" Minimum="100"/>
         <!-- «Resumen del plan»: three lines at least, about twelve at most, and never more than a quarter of the tab. -->
         <views:ShareOfLengthConverter x:Key="Orchestrator.SummaryMaxHeight" Factor="0.25" Minimum="64" Maximum="220"/>
 
@@ -74,8 +76,22 @@
                 <RowDefinition x:Name="MonitorRow" Height="*" MinHeight="120"/>
             </Grid.RowDefinitions>
 
-            <ScrollViewer x:Name="Bands" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
-                          MaxHeight="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeight}}">
+            <!-- When the plan carries a warning (writers without isolation, writing that cannot be delivered), the bands may take 60 % so
+                 the warning and «Aprobar plan» fit together (ADR-0018 §3); the canvas and the monitor then keep their least height. -->
+            <ScrollViewer x:Name="Bands" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="MaxHeight" Value="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeight}}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasIsolationWarning}" Value="True">
+                                <Setter Property="MaxHeight" Value="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeightWarned}}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasDeliveryWarning}" Value="True">
+                                <Setter Property="MaxHeight" Value="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeightWarned}}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
             <StackPanel>
             <!-- Engine and project status: what is missing is said, never filled in. -->
             <Border x:Name="StatusBand" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"

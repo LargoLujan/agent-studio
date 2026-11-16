@@ -235,6 +235,7 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
     /// <summary>
     /// Review fix 1 (ADR-0018 §3): what «Aprobar plan» approves is said before it. A plan whose steps run without isolation warns
     /// above the button, and with the bands scrolled to «Aprobar plan» the warning is in view too: it cannot be reached without it.
+    /// With a warning the bands may take 60 % of the tab, so the warnings of a long plan and the button fit together.
     /// </summary>
     [Fact]
     public async Task The_warning_of_a_plan_comes_before_approve_and_is_in_view_with_it()
@@ -244,7 +245,7 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         var backend = Backends.Complete(new FakeOrchestrator()) with { Verification = new FakeProfileSource(profile) };
         var (tab, document) = await OpenInTheWindowAsync(backend, withRun: false, "ola1-orquestador-aviso.png");
 
-        var (warns, approveInView, warningInView, warningAbove) = WpfHost.Run(() =>
+        var (warns, approveInView, warningInView, warningAbove, where) = WpfHost.Run(() =>
         {
             document.Canvas.LoadTasks(AgentStudio.Tests.Domain.Orchestration.PlanFixtures.Plan().Tasks, CanvasLayout.Empty);
             document.PlanSummary = "Añadir Calc.Multiply(a, b) con su prueba, revisada por el juez antes de integrarla en la rama del proyecto.";
@@ -258,13 +259,16 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
             OffscreenRender.Render(host, tab.Width, tab.Height);
             var warningBottom = warning.TransformToAncestor(bands).Transform(new Point(0, warning.ActualHeight)).Y;
             var approveTop = approve.TransformToAncestor(bands).Transform(new Point(0, 0)).Y;
-            return (document.HasIsolationWarning, InView(approve, bands), InView(warning, bands), warningBottom <= approveTop + 0.5);
+            var warningTop = warning.TransformToAncestor(bands).Transform(new Point(0, 0)).Y;
+            OffscreenRender.SaveIfRequested(OffscreenRender.Render(host, tab.Width, tab.Height), "ola1-orquestador-aviso-aprobar.png");
+            var where = $"warning {warningTop:F0}..{warningBottom:F0}, «Aprobar plan» from {approveTop:F0}, viewport {bands.ViewportHeight:F0}";
+            return (document.HasIsolationWarning, InView(approve, bands), InView(warning, bands), warningBottom <= approveTop + 0.5, where);
         });
 
         Assert.True(warns, "The plan has no warning: the test does not test anything.");
         Assert.True(approveInView, "«Aprobar plan» was brought into view, and it is not.");
         Assert.True(warningAbove, "The warning is not above «Aprobar plan».");
-        Assert.True(warningInView, "With «Aprobar plan» in view, its warning is not.");
+        Assert.True(warningInView, $"With «Aprobar plan» in view, its warning is not: {where}.");
     }
 
     [Fact]
