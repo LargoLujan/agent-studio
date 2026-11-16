@@ -156,7 +156,18 @@
                     </Button>
                     <ItemsControl x:Name="ActivityFooter" DockPanel.Dock="Bottom" ItemsSource="{Binding FooterActivities}" Margin="0,4"
                                   Focusable="False" ItemTemplate="{StaticResource Shell.ActivityEntry}"/>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <!-- Folded to its icons, the bar is too narrow for a scroll bar: the wheel and the keyboard still scroll it. -->
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsActivityBarCollapsed}" Value="True">
+                                        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
                         <ItemsControl x:Name="ActivityBar" ItemsSource="{Binding ActivitySections}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:ActivitySection}">

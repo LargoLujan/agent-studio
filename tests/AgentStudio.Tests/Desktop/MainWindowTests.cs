@@ -212,11 +212,18 @@ public sealed class MainWindowTests
                 documents.ActualHeight, documentsModel.DockMinHeight, bottom.ActualHeight, bottomModel.DockMinHeight, bottomModel.DockHeight);
 
             vm.ToggleTerminalCommand.Execute(null);
+            LayOutAgain(window);
             vm.ToggleTerminalCommand.Execute(null);
+            LayOutAgain(window);
             var afterHideAndShow = bottomModel.DockHeight;
             await vm.OpenProjectAsync(second);
+            LayOutAgain(window);
             await vm.OpenProjectAsync(first);
+            LayOutAgain(window);
             var restored = ((LayoutAnchorablePane)Panel(window, PanelIds.Terminal).Parent).DockHeight;
+
+            // Each change was laid out at once: nothing of this window is left for the layout of the next test, which shares the dispatcher.
+            WpfHost.FlushBindings();
             return (Shown: shown, AfterHideAndShow: afterHideAndShow, Restored: restored);
         });
 
