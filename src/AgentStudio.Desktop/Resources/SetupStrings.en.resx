@@ -224,7 +224,7 @@ Apply: saving the check commands or sensitive permissions asks for Windows Hello
     <value>Windows Hello will be asked when you apply, because these commands run on your computer.</value>
   </data>
   <data name="Setup_Verification_Same" xml:space="preserve">
-    <value>These are the commands you already have.</value>
+    <value>These are the commands you already accepted.</value>
   </data>
   <data name="Setup_Skills_Hint" xml:space="preserve">
     <value>Skills for each agent: extra know-how chosen by the technology of the project and its role. None is turned on by itself: tick the ones you want.</value>
@@ -706,5 +706,8 @@ Choose how long each attempt can last.</value>
   </data>
   <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
     <value>The commands changed while they were tried. Try them again.</value>
+  </data>
+  <data name="Setup_Verification_Same_Unaccepted" xml:space="preserve">
+    <value>These are the commands in the file of your project. You have not accepted them in this app: check them before you try them.</value>
   </data>
 </root>

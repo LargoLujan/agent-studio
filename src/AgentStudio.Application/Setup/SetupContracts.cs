@@ -151,6 +151,16 @@ public sealed record SetupVerificationProposal(VerificationProfile? Current, Ver
 {
     /// <summary>Whether applying the proposal would change the profile in force.</summary>
     public bool WouldChange => Proposed is not null && !CurrentUnreadable && Current?.ContentHash != Proposed.ContentHash;
+
+    /// <summary>
+    /// The content hashes of the profiles the person accepted in this app: every one the configurator wrote after Windows Hello, as
+    /// <c>ProjectSetupApplied</c> names it in the verified decision log. The file of the profile alone is no acceptance (a cloned
+    /// repository can carry it). Empty when the log does not verify or cannot be read: then nothing counts as accepted.
+    /// </summary>
+    public IReadOnlySet<string> Accepted { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>The profile in force is one the person accepted in this app.</summary>
+    public bool CurrentAccepted => Current is not null && Accepted.Contains(Current.ContentHash);
 }
 
 /// <summary>One skill recommended to one agent (step 6), with the reasons of the deterministic recommender (docs/14 D-28).</summary>

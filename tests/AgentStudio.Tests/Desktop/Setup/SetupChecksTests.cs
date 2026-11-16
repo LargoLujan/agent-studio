@@ -135,7 +135,7 @@ public sealed class SetupChecksTests
 
         Assert.Equal(proposal.Steps.Count, vm.CheckRows.Count);
         Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
-        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
         Assert.Null(vm.BuildSelection().Profile);
         Assert.Equal(proposal.ContentHash, SetupChecks.Profile(proposal.Name, vm.CheckRows, Spanish, out var problem)!.ContentHash);
         Assert.Null(problem);
@@ -312,7 +312,7 @@ public sealed class SetupChecksTests
 
         Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.StartsWith("C:\\tools\\dotnet.exe", Assert.Single(vm.CheckRows).CommandText, StringComparison.Ordinal);
-        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
         Assert.True(vm.HasProposalSuggestion);
         Assert.Equal(2, vm.ProposalLines.Count);
         Assert.Contains(vm.ProposalLines, l => l.Contains("dotnet test --no-build", StringComparison.Ordinal));
@@ -471,18 +471,20 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
-    public async Task The_saved_profile_untouched_runs_without_the_question_and_edited_it_asks_again()
+    public async Task A_profile_accepted_here_with_windows_hello_runs_without_the_question_and_edited_it_asks_again()
     {
         var runner = new SetupTrialRunner();
         var answer = new SetupTrialAnswer(true);
-        var saved = DotNetVerificationProfile.Propose();
         var rig = new Rig
         {
-            Profiles = new StackProfiles(DotNetVerificationProfile.Propose()) { Stored = saved },
             Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
             Answer = answer,
         };
         var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+        await vm.ApplyCommand.ExecuteAsync(null);
+        Assert.Single(rig.Gate.Asked);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
 
         await vm.TryChecksCommand.ExecuteAsync(null);
 
@@ -494,6 +496,44 @@ public sealed class SetupChecksTests
 
         Assert.Single(answer.Asked);
         Assert.Equal(2, runner.Calls.Count);
+    }
+
+    [Fact]
+    public async Task A_profile_only_in_the_file_of_the_repository_is_not_taken_as_accepted_and_always_asks()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var rig = new Rig
+        {
+            Profiles = new StackProfiles(DotNetVerificationProfile.Propose()) { Stored = DotNetVerificationProfile.Propose() },
+            Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
+            Answer = answer,
+        };
+        var vm = await rig.OpenAsync();
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Single(answer.Asked);
+        Assert.Single(runner.Calls);
+    }
+
+    [Fact]
+    public async Task With_a_log_that_does_not_verify_nothing_counts_as_accepted()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()), Answer = answer };
+        var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+        await vm.ApplyCommand.ExecuteAsync(null);
+        rig.Recorder.Broken = true;
+        await vm.LoadAsync(SetupFakes.Project);
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Single(answer.Asked);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
     }
 
     [Fact]

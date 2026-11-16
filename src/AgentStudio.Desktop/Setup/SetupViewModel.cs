@@ -571,7 +571,7 @@ public sealed partial class SetupViewModel : ObservableObject
             : problem is not null ? string.Empty
             : edited is null && proposal.Verification.Proposed is null && proposal.Verification.Current is null ? text.Render(UserText.Of(proposal.Verification.NoProposalCode ?? "setup.verification.no-stack"))
             : edited is null ? text.Get("Setup_Verification_None")
-            : !ChecksWouldChange(edited) ? text.Get("Setup_Verification_Same")
+            : !ChecksWouldChange(edited) ? text.Get(proposal.Verification.CurrentAccepted ? "Setup_Verification_Same" : "Setup_Verification_Same_Unaccepted")
             : StepOf(SetupStep.Verification).IsIncluded ? text.Get("Setup_Verification_Hello_Note")
             : text.Get("Setup_Verification_Not_Saved");
     }
@@ -668,9 +668,12 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>Whether <paramref name="profile"/> is not exactly the profile the project has saved, which the person accepted with Windows Hello.</summary>
+    /// <summary>
+    /// Whether <paramref name="profile"/> is not one the person accepted in this app (with Windows Hello, as the decision log says).
+    /// The file of the profile alone does not count: a cloned repository can carry it with any command in it.
+    /// </summary>
     private bool NeedsTrialConfirmation(VerificationProfile profile) =>
-        _proposal is not { Verification: { CurrentUnreadable: false, Current: { } saved } } || saved.ContentHash != profile.ContentHash;
+        _proposal?.Verification.Accepted.Contains(profile.ContentHash) != true;
 
     private string LabelOf(VerificationStep step) => CheckRows.FirstOrDefault(r => r.Step.Id == step.Id)?.Label ?? step.Title;
 

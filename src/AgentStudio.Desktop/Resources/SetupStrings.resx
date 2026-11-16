@@ -241,7 +241,7 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <value>Al aplicar se pedirá Windows Hello, porque estas órdenes se ejecutan en tu equipo.</value>
   </data>
   <data name="Setup_Verification_Same" xml:space="preserve">
-    <value>Son las órdenes que ya tienes.</value>
+    <value>Son las órdenes que ya aceptaste.</value>
   </data>
   <data name="Setup_Skills_Hint" xml:space="preserve">
     <value>Skills para cada agente: conocimientos extra elegidos por la tecnología del proyecto y su papel. Ninguna se activa sola: marca las que quieras.</value>
@@ -755,5 +755,8 @@ Elegir cuánto puede durar cada intento.</value>
   </data>
   <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
     <value>Las órdenes cambiaron mientras se probaban. Pruébalas otra vez.</value>
+  </data>
+  <data name="Setup_Verification_Same_Unaccepted" xml:space="preserve">
+    <value>Son las órdenes del fichero de tu proyecto. No las has aceptado en esta app: revísalas antes de probarlas.</value>
   </data>
 </root>
