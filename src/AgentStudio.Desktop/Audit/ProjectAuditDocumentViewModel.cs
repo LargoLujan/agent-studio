@@ -154,6 +154,12 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     private readonly DebateScreens? _screens;
     private readonly SynchronizationContext? _ui;
     private FrozenRequirementSet? _requirements;
+
+    /// <summary>The read of the requirements going on, which a second ask waits for instead of reading again.</summary>
+    private Task? _refreshing;
+
+    /// <summary>The error a failed read of the requirements left on screen, which the next read that succeeds takes away.</summary>
+    private string? _refreshError;
     private bool _opened;
     private bool _loading;
 
@@ -455,7 +461,22 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     /// The tab opened again, or came back into view, without frozen requirements: they are read again, and the preparation follows
     /// them. Nothing while it has not opened, while it loads or audits, or once it has them.
     /// </summary>
-    public async Task RefreshRequirementsAsync()
+    /// <remarks>
+    /// One read at a time: the tab coming back into view and the shell opening it ask together, and both wait for the same read. A
+    /// read that succeeds takes away the error a failed one left.
+    /// </remarks>
+    public Task RefreshRequirementsAsync()
+    {
+        if (_refreshing is { IsCompleted: false } going)
+        {
+            return going;
+        }
+
+        _refreshing = ReadRequirementsAsync();
+        return _refreshing;
+    }
+
+    private async Task ReadRequirementsAsync()
     {
         if (_requirements is not null || IsBusy || _loading || Project is not { } project || _backend.Requirements is not { } store)
         {
@@ -470,9 +491,16 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
+            ErrorMessage = _refreshError = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
             return;
         }
+
+        if (_refreshError is not null && ErrorMessage == _refreshError)
+        {
+            ErrorMessage = null;
+        }
+
+        _refreshError = null;
 
         if (_requirements is { } set)
         {

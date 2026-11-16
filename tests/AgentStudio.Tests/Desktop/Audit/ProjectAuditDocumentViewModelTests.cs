@@ -1,3 +1,4 @@
+using System.IO;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Audit;
@@ -217,6 +218,74 @@ public sealed class ProjectAuditDocumentViewModelTests
 
         await document.OpenAsync();
 
+        Assert.False(document.ShowsGoToRequirements);
+    }
+
+    /// <summary>A store of requirements whose reads the test answers one by one: none at first, then what each step says.</summary>
+    private sealed class StepByStepRequirements : AgentStudio.Application.Persistence.IRequirementStore
+    {
+        public Queue<Func<Task<AgentStudio.Domain.Requirements.FrozenRequirementSet?>>> Answers { get; } = new();
+
+        public int Reads { get; private set; }
+
+        public Task SaveAsync(string projectId, AgentStudio.Domain.Requirements.FrozenRequirementSet requirements, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<AgentStudio.Domain.Requirements.FrozenRequirementSet?> FindAsync(string projectId, string contentHash, CancellationToken cancellationToken) =>
+            Task.FromResult<AgentStudio.Domain.Requirements.FrozenRequirementSet?>(null);
+
+        public Task<AgentStudio.Domain.Requirements.FrozenRequirementSet?> LatestAsync(string projectId, CancellationToken cancellationToken)
+        {
+            Reads++;
+            return Answers.Count > 0 ? Answers.Dequeue()() : Task.FromResult<AgentStudio.Domain.Requirements.FrozenRequirementSet?>(null);
+        }
+    }
+
+    private static async Task<ProjectAuditDocumentViewModel> WithStepByStepRequirementsAsync(StepByStepRequirements store)
+    {
+        var backend = new DebateScreenBackend(
+            Challenges: new FakeVerdictChallenges(),
+            Audits: new FakeProjectAuditService(),
+            Workspace: new FakeWorkspace(),
+            Roster: new FakeRoster(() => Roster),
+            Requirements: store,
+            Verdicts: new FakeVerdictStore());
+        var document = new ProjectAuditDocumentViewModel(Root, backend, new FakeClock(Now), new DebateScreens(backend, new FakeClock(Now), () => new FakeReviewNavigation()), new InlineSynchronizationContext());
+        await document.OpenAsync();
+        return document;
+    }
+
+    /// <summary>Review fix 5: the tab coming back into view and the shell opening it ask together, and the requirements are read once.</summary>
+    [Fact]
+    public async Task Two_asks_to_read_the_requirements_again_at_once_read_them_once()
+    {
+        var store = new StepByStepRequirements();
+        var document = await WithStepByStepRequirementsAsync(store);
+        var gate = new TaskCompletionSource<AgentStudio.Domain.Requirements.FrozenRequirementSet?>();
+        store.Answers.Enqueue(() => gate.Task);
+
+        var first = document.RefreshRequirementsAsync();
+        var second = document.RefreshRequirementsAsync();
+        gate.SetResult(Requirements);
+        await Task.WhenAll(first, second);
+
+        Assert.Equal(2, store.Reads);
+        Assert.False(document.ShowsGoToRequirements);
+    }
+
+    /// <summary>Review fix 5: a read that fails leaves its error on screen; the next read that succeeds takes it away.</summary>
+    [Fact]
+    public async Task A_read_of_the_requirements_that_succeeds_takes_away_the_error_of_one_that_failed()
+    {
+        var store = new StepByStepRequirements();
+        var document = await WithStepByStepRequirementsAsync(store);
+        store.Answers.Enqueue(() => Task.FromException<AgentStudio.Domain.Requirements.FrozenRequirementSet?>(new IOException("locked")));
+        store.Answers.Enqueue(() => Task.FromResult<AgentStudio.Domain.Requirements.FrozenRequirementSet?>(Requirements));
+
+        await document.RefreshRequirementsAsync();
+        Assert.NotNull(document.ErrorMessage);
+
+        await document.RefreshRequirementsAsync();
+        Assert.Null(document.ErrorMessage);
         Assert.False(document.ShowsGoToRequirements);
     }
 
