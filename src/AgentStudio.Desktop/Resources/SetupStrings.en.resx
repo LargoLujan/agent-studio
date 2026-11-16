@@ -713,4 +713,8 @@ Choose how long each attempt can last.</value>
   <data name="Setup_Verification_Quote_In_Program" xml:space="preserve">
     <value>The name of the program cannot have double quotes inside it.</value>
   </data>
+  <data name="Setup_Trial_Skipped" xml:space="preserve">
+    <value>These will not run because they have no isolation: {0}.</value>
+    <comment>{0}: what the commands that do not run are for.</comment>
+  </data>
 </root>

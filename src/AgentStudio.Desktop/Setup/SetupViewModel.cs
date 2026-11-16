@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
@@ -615,9 +616,15 @@ public sealed partial class SetupViewModel : ObservableObject
 
         var text = Text;
 
-        // Commands the person has not accepted yet (none saved, or edited here) run only once they say so, with the commands in front of them.
-        if (NeedsTrialConfirmation(profile)
-            && (_confirmTrial is null || !_confirmTrial.Confirm([.. profile.Steps.Select(s => text.Format("Setup_Summary_Item", LabelOf(s), Command(s)))], CancellationToken.None)))
+        // Commands the person has not accepted yet (none saved, or edited here) run only once they say so, with in front of them exactly
+        // the commands that will run (the isolated ones, as SetupCheckTrial runs) and a line for the ones that will not.
+        var running = profile.Steps.Where(s => s.Isolation == ProcessIsolation.LowIntegrity).ToList();
+        var notRunning = profile.Steps.Where(s => s.Isolation != ProcessIsolation.LowIntegrity).Select(LabelOf).ToList();
+        if (running.Count > 0 && NeedsTrialConfirmation(profile)
+            && (_confirmTrial is null || !_confirmTrial.Confirm(
+                [.. running.Select(s => text.Format("Setup_Summary_Item", LabelOf(s), Command(s)))],
+                notRunning.Count == 0 ? null : text.Format("Setup_Trial_Skipped", string.Join(", ", notRunning)),
+                CancellationToken.None)))
         {
             TrialPassed = null;
             TrialLines.Clear();

@@ -14,18 +14,22 @@ namespace AgentStudio.Desktop.Setup;
 public interface ISetupTrialConfirmation
 {
     /// <summary>Whether the person chose «Ejecutar»; anything else, closing the window included, is no.</summary>
-    /// <param name="commands">Each command as it will run, «what it is for: program and arguments».</param>
-    bool Confirm(IReadOnlyList<string> commands, CancellationToken cancellationToken);
+    /// <param name="commands">Each command that will run, «what it is for: program and arguments», and only those.</param>
+    /// <param name="skipped">The line that says which commands do not run and why, or null when every one runs.</param>
+    bool Confirm(IReadOnlyList<string> commands, string? skipped, CancellationToken cancellationToken);
 }
 
 /// <summary>The question of <see cref="ISetupTrialConfirmation"/>: the commands, and «Ejecutar» or «Cancelar» (the default).</summary>
-public sealed partial class SetupTrialConfirmationViewModel(IReadOnlyList<string> commands) : ObservableObject
+public sealed partial class SetupTrialConfirmationViewModel(IReadOnlyList<string> commands, string? skipped = null) : ObservableObject
 {
     /// <summary>Raised when the person answered, so the window closes.</summary>
     public event EventHandler? CloseRequested;
 
-    /// <summary>The commands as they will run, one per line.</summary>
+    /// <summary>The commands that will run, one per line.</summary>
     public IReadOnlyList<string> Commands { get; } = commands ?? throw new ArgumentNullException(nameof(commands));
+
+    /// <summary>Which commands do not run and why, in one line; empty when every one runs.</summary>
+    public string Skipped { get; } = skipped ?? string.Empty;
 
     /// <summary>True for «Ejecutar», false for «Cancelar»; null while unanswered (a closed window is a no).</summary>
     public bool? Answer { get; private set; }
@@ -51,7 +55,7 @@ public sealed partial class SetupTrialConfirmationViewModel(IReadOnlyList<string
 /// </summary>
 public sealed class WpfSetupTrialConfirmation(IInterfaceLock? interfaceLock = null) : ISetupTrialConfirmation
 {
-    public bool Confirm(IReadOnlyList<string> commands, CancellationToken cancellationToken)
+    public bool Confirm(IReadOnlyList<string> commands, string? skipped, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(commands);
         using var withdrawal = new LockWithdrawal(interfaceLock, cancellationToken);
@@ -61,7 +65,7 @@ public sealed class WpfSetupTrialConfirmation(IInterfaceLock? interfaceLock = nu
             return false;
         }
 
-        var model = new SetupTrialConfirmationViewModel(commands);
+        var model = new SetupTrialConfirmationViewModel(commands, skipped);
         var window = new SetupTrialWindow { DataContext = model };
         if (System.Windows.Application.Current?.MainWindow is { IsVisible: true } owner && !ReferenceEquals(owner, window))
         {

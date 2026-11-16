@@ -583,6 +583,57 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task The_question_lists_exactly_the_commands_that_will_run_and_says_which_will_not_and_why()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var profile = DotNetVerificationProfile.Propose() with
+        {
+            Steps = [.. DotNetVerificationProfile.Propose().Steps, new VerificationStep("lint", "Revisar estilo", "tool", ["lint"], EvidenceKind.CommandOutput, TestReportFormat.None, null, TimeSpan.FromMinutes(1), ProcessIsolation.None)],
+        };
+        var rig = new Rig
+        {
+            Profiles = new StackProfiles(profile),
+            Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
+            Answer = answer,
+        };
+        var vm = await rig.OpenAsync();
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        var asked = Assert.Single(answer.Asked);
+        Assert.Equal(2, asked.Count);
+        Assert.DoesNotContain(asked, c => c.Contains("lint", StringComparison.Ordinal));
+        Assert.Equal(Spanish.Format("Setup_Trial_Skipped", "Revisar estilo"), Assert.Single(answer.Skipped));
+        Assert.Equal(["build", "test"], runner.Calls.Single().Steps.Select(s => s.Id));
+    }
+
+    [Fact]
+    public void The_question_never_grows_past_the_work_area_and_its_buttons_stay_in_view_with_many_commands()
+    {
+        var (maxHeight, workArea, runBottom, cancelBottom, scrollable) = WpfHost.Run(() =>
+        {
+            var window = new AgentStudio.Desktop.Views.Setup.SetupTrialWindow
+            {
+                DataContext = new SetupTrialConfirmationViewModel([.. Enumerable.Range(1, 80).Select(i => $"Paso {i}: tool --flag {i}")], "No se ejecutarán: x."),
+            };
+            var content = (System.Windows.FrameworkElement)window.Content;
+            content.Measure(new System.Windows.Size(560, 400));
+            content.Arrange(new System.Windows.Rect(0, 0, 560, 400));
+            content.UpdateLayout();
+            double Bottom(string name) =>
+                ((System.Windows.FrameworkElement)window.FindName(name)).TransformToAncestor(content).TransformBounds(new System.Windows.Rect(0, 0, 1, ((System.Windows.FrameworkElement)window.FindName(name)).ActualHeight)).Bottom;
+            var scroller = (System.Windows.Controls.ScrollViewer)window.FindName("CommandsScroller");
+            return (window.MaxHeight, System.Windows.SystemParameters.WorkArea.Height, Bottom("RunButton"), Bottom("CancelButton"), scroller.ScrollableHeight);
+        });
+
+        Assert.Equal(workArea, maxHeight);
+        Assert.True(runBottom <= 400, $"«Ejecutar» ends at {runBottom}.");
+        Assert.True(cancelBottom <= 400, $"«Cancelar» ends at {cancelBottom}.");
+        Assert.True(scrollable > 0, "The list does not scroll.");
+    }
+
+    [Fact]
     public async Task Without_the_question_composed_commands_not_accepted_never_run()
     {
         var runner = new SetupTrialRunner();
@@ -985,9 +1036,12 @@ internal sealed class SetupTrialAnswer(bool yes) : ISetupTrialConfirmation
 
     public List<IReadOnlyList<string>> Asked { get; } = [];
 
-    public bool Confirm(IReadOnlyList<string> commands, CancellationToken cancellationToken)
+    public List<string?> Skipped { get; } = [];
+
+    public bool Confirm(IReadOnlyList<string> commands, string? skipped, CancellationToken cancellationToken)
     {
         Asked.Add(commands);
+        Skipped.Add(skipped);
         return Yes;
     }
 }
