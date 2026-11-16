@@ -710,4 +710,7 @@ Choose how long each attempt can last.</value>
   <data name="Setup_Verification_Same_Unaccepted" xml:space="preserve">
     <value>These are the commands in the file of your project. You have not accepted them in this app: check them before you try them.</value>
   </data>
+  <data name="Setup_Verification_Quote_In_Program" xml:space="preserve">
+    <value>The name of the program cannot have double quotes inside it.</value>
+  </data>
 </root>

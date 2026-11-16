@@ -759,4 +759,7 @@ Elegir cuánto puede durar cada intento.</value>
   <data name="Setup_Verification_Same_Unaccepted" xml:space="preserve">
     <value>Son las órdenes del fichero de tu proyecto. No las has aceptado en esta app: revísalas antes de probarlas.</value>
   </data>
+  <data name="Setup_Verification_Quote_In_Program" xml:space="preserve">
+    <value>El nombre del programa no puede llevar comillas dentro.</value>
+  </data>
 </root>

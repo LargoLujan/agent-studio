@@ -126,6 +126,52 @@ public sealed class SetupChecksTests
         Assert.Null(SetupCommandLine.Parse("dotnet \"build"));
     }
 
+    public static TheoryData<string> Tricky() =>
+    [
+        "a\" \"b",
+        "\"",
+        "\"\"",
+        "",
+        " ",
+        @"C:\Program Files\dotnet\",
+        @"C:\a\\b\",
+        @"x\""y",
+        @"\\server\share\x y",
+        @"a\\\""b c",
+        "--name=\"x y\"",
+        "{results}/test.xml",
+    ];
+
+    [Theory]
+    [MemberData(nameof(Tricky))]
+    public void An_argument_goes_to_one_line_and_back_as_the_same_single_argument(string argument)
+    {
+        var line = SetupCommandLine.Render(@"C:\Program Files\tool\run.exe", ["first", argument, "last"]);
+
+        Assert.Equal([@"C:\Program Files\tool\run.exe", "first", argument, "last"], SetupCommandLine.Parse(line));
+    }
+
+    [Fact]
+    public void An_argument_with_double_quotes_shows_them_escaped_so_it_can_never_look_like_two()
+    {
+        Assert.Equal("tool \"a\\\" \\\"b\"", SetupCommandLine.Render("tool", ["a\" \"b"]));
+        Assert.Equal(["tool", "a\" \"b"], SetupCommandLine.Parse("tool \"a\\\" \\\"b\""));
+        Assert.Equal(["tool", "a", "b"], SetupCommandLine.Parse("tool \"a\" \"b\""));
+    }
+
+    [Fact]
+    public async Task A_program_with_a_double_quote_in_its_name_is_refused_on_the_screen_and_by_the_rules()
+    {
+        var vm = await new Rig().OpenAsync();
+
+        Row(vm, "build").CommandText = "\"dot\\\"net\" build";
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Quote_In_Program"), Row(vm, "build").Problem);
+        Assert.Contains(
+            VerificationRules.Check(DotNetVerificationProfile.Propose().Steps[0] with { Executable = "dot\"net" }),
+            p => p.Contains("executable contains a double quote", StringComparison.Ordinal));
+    }
+
     [Theory]
     [MemberData(nameof(Stacks))]
     public async Task Untouched_rows_make_the_very_same_profile_so_nothing_changes_against_the_one_in_force(string stack)

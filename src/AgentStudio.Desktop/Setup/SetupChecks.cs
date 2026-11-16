@@ -8,21 +8,42 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace AgentStudio.Desktop.Setup;
 
 /// <summary>
-/// A command of the check as the one line the person edits: the program, then its arguments, separated by spaces, and double
-/// quotes around a part that has spaces. Nothing here goes through a shell: the parts become the executable and the arguments of
-/// the step, each passed on its own.
+/// A command of the check as the one line the person edits, written as the process receives it: the program, then its arguments,
+/// separated by spaces, with the rules of the Windows command line that <c>ProcessStartInfo.ArgumentList</c> and the isolated launch
+/// (<c>WindowsCommandLine</c>) apply. A part that is empty or has a space or a double quote goes between double quotes; inside them a
+/// double quote is <c>\"</c>, and the backslashes just before a quote are doubled. So <c>a" "b</c>, one argument, shows as
+/// <c>"a\" \"b"</c> and never as two. Nothing here goes through a shell: the parts become the executable and the arguments of the step,
+/// each passed on its own.
 /// </summary>
 public static class SetupCommandLine
 {
-    /// <summary>The line of a program and its arguments; a part that is empty or has a space goes between double quotes.</summary>
+    private const char Quote = '"';
+    private const char Backslash = '\\';
+
+    /// <summary>The line of a program and its arguments, each part written as the command line of the process carries it.</summary>
     public static string Render(string executable, IReadOnlyList<string> arguments)
     {
         ArgumentNullException.ThrowIfNull(executable);
         ArgumentNullException.ThrowIfNull(arguments);
-        return string.Join(' ', new[] { executable }.Concat(arguments).Select(Quote));
+        var line = new StringBuilder();
+        foreach (var part in new[] { executable }.Concat(arguments))
+        {
+            if (line.Length > 0)
+            {
+                line.Append(' ');
+            }
+
+            Append(line, part);
+        }
+
+        return line.ToString();
     }
 
-    /// <summary>The parts of <paramref name="line"/>, the program first; null when a double quote is not closed.</summary>
+    /// <summary>
+    /// The parts of <paramref name="line"/>, the program first, read as the C runtime reads a command line: 2N backslashes before a
+    /// double quote are N backslashes and the quote opens or closes a quoted part, 2N+1 are N backslashes and a literal quote, and
+    /// backslashes before anything else are themselves. Null when a double quote is not closed.
+    /// </summary>
     public static IReadOnlyList<string>? Parse(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
@@ -30,9 +51,43 @@ public static class SetupCommandLine
         var current = new StringBuilder();
         var quoted = false;
         var started = false;
-        foreach (var character in line)
+        var index = 0;
+        while (index < line.Length)
         {
-            if (character == '"')
+            var character = line[index];
+            if (character == Backslash)
+            {
+                var backslashes = 0;
+                while (index < line.Length && line[index] == Backslash)
+                {
+                    backslashes++;
+                    index++;
+                }
+
+                if (index < line.Length && line[index] == Quote)
+                {
+                    current.Append(Backslash, backslashes / 2);
+                    if (backslashes % 2 == 1)
+                    {
+                        current.Append(Quote);
+                    }
+                    else
+                    {
+                        quoted = !quoted;
+                    }
+
+                    index++;
+                }
+                else
+                {
+                    current.Append(Backslash, backslashes);
+                }
+
+                started = true;
+                continue;
+            }
+
+            if (character == Quote)
             {
                 quoted = !quoted;
                 started = true;
@@ -51,6 +106,8 @@ public static class SetupCommandLine
                 current.Append(character);
                 started = true;
             }
+
+            index++;
         }
 
         if (quoted)
@@ -66,7 +123,57 @@ public static class SetupCommandLine
         return parts;
     }
 
-    private static string Quote(string part) => part.Length == 0 || part.Any(char.IsWhiteSpace) ? "\"" + part + "\"" : part;
+    // The algorithm of System.PasteArguments.AppendArgument (dotnet/runtime), the one WindowsCommandLine follows.
+    private static void Append(StringBuilder line, string part)
+    {
+        if (part.Length != 0 && !part.Any(c => char.IsWhiteSpace(c) || c == Quote))
+        {
+            line.Append(part);
+            return;
+        }
+
+        line.Append(Quote);
+        var index = 0;
+        while (index < part.Length)
+        {
+            var character = part[index++];
+            if (character == Backslash)
+            {
+                var backslashes = 1;
+                while (index < part.Length && part[index] == Backslash)
+                {
+                    index++;
+                    backslashes++;
+                }
+
+                if (index == part.Length)
+                {
+                    line.Append(Backslash, backslashes * 2);
+                }
+                else if (part[index] == Quote)
+                {
+                    line.Append(Backslash, (backslashes * 2) + 1).Append(Quote);
+                    index++;
+                }
+                else
+                {
+                    line.Append(Backslash, backslashes);
+                }
+
+                continue;
+            }
+
+            if (character == Quote)
+            {
+                line.Append(Backslash).Append(Quote);
+                continue;
+            }
+
+            line.Append(character);
+        }
+
+        line.Append(Quote);
+    }
 }
 
 /// <summary>
@@ -131,6 +238,12 @@ public sealed partial class SetupCheckRowViewModel : ObservableObject
             if (parts.Count == 0 || string.IsNullOrWhiteSpace(parts[0]))
             {
                 return _text.Get("Setup_Verification_No_Program");
+            }
+
+            // No command line can name a program with a double quote in it: the launch would refuse it.
+            if (parts[0].Contains('"', StringComparison.Ordinal))
+            {
+                return _text.Get("Setup_Verification_Quote_In_Program");
             }
 
             // A mark of direction or a zero-width character would make the line show one command and run another.
