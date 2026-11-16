@@ -14,11 +14,6 @@
          project and its verification profile. A one-line summary stays when the band is hidden. The three sections share the
          width in columns while each has room, the requirements alone on top and the other two under them when it is
          narrower, and one under another when narrower still (AdaptiveColumnsPanel): never a horizontal scroll bar. -->
-    <UserControl.Resources>
-        <!-- The sections take at most 30 % of the height of the tab (between 120 and 380), read from the tab itself, never from a
-             scroller whose height depends on them: the canvas and the monitor stay in sight. -->
-        <views:ShareOfLengthConverter x:Key="Preparation.MaxHeight" Factor="0.3" Minimum="120" Maximum="380"/>
-    </UserControl.Resources>
     <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
         <DockPanel>
             <DockPanel DockPanel.Dock="Top">
@@ -34,9 +29,9 @@
                            Text="{Binding PreparationSummary}" ToolTip="{Binding PreparationSummary}" AutomationProperties.Name="{l:T Orchestrator_Prep_SummaryName}"/>
             </DockPanel>
 
-            <ScrollViewer x:Name="Sections" Margin="0,8,0,0" VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
-                          MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=views:OrchestratorView}, Converter={StaticResource Preparation.MaxHeight}, FallbackValue=380}"
-                          Visibility="{Binding IsPreparationExpanded, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <!-- No scroller of its own: the bands of the tab scroll, so the mouse wheel moves what is under the pointer (docs/24). -->
+            <Border x:Name="Sections" Margin="0,8,0,0" VerticalAlignment="Top"
+                    Visibility="{Binding IsPreparationExpanded, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                 <views:AdaptiveColumnsPanel x:Name="Columns" ColumnSpacing="22" RowSpacing="16" Margin="0,0,4,0">
 
                     <!-- The request and the requirements. -->
@@ -150,7 +145,7 @@
                     <views:PreparationChatView DataContext="{Binding Builder.Chat}" views:AdaptiveColumnsPanel.Weight="2" MinWidth="320"
                                                Visibility="{Binding DataContext.Builder, RelativeSource={RelativeSource AncestorType=views:PreparationView}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                 </views:AdaptiveColumnsPanel>
-            </ScrollViewer>
+            </Border>
         </DockPanel>
     </Border>
 </UserControl>

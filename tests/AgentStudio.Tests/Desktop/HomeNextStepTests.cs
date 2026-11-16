@@ -1,6 +1,8 @@
 using System.IO;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Audit;
+using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Session;
@@ -9,9 +11,11 @@ using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Tests.Application.Diagnostics;
+using AgentStudio.Tests.Desktop.Debate;
 using AgentStudio.Tests.Desktop.Memory;
 using AgentStudio.Tests.Desktop.Orchestrator;
 using AgentStudio.Tests.Domain.Orchestration;
+using AgentStudio.Tests.Memory;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Time.Testing;
 using static AgentStudio.Tests.Domain.TestData;
@@ -19,9 +23,10 @@ using static AgentStudio.Tests.Domain.TestData;
 namespace AgentStudio.Tests.Desktop;
 
 /// <summary>
-/// «Inicio» with the next step of the open project (docs/24 §3.2): one button chosen from what the shell can read (whether the
-/// configurator was applied, whether there are frozen requirements, whether a run goes on), never from what it cannot. And the
-/// way to «Requisitos» that «Auditar» asks the shell for. The engine is a double: nothing is planned or run.
+/// «Inicio» with the next step of the open project (docs/24 §3.2): one button chosen from what the shell knows without opening
+/// anything it did not open already (whether Agent Studio wrote in the folder, what the orchestrator of the project has open,
+/// whether the configurator was applied, whether a run goes on), never from what it cannot know. And the way to «Requisitos»
+/// that «Auditar» asks the shell for. The engine is a double: nothing is planned or run.
 /// </summary>
 public sealed class HomeNextStepTests : IDisposable
 {
@@ -40,13 +45,7 @@ public sealed class HomeNextStepTests : IDisposable
         }
     }
 
-    private sealed class FailingWorkspace : IProjectWorkspace
-    {
-        public Task<ProjectContext> OpenAsync(string projectRoot, CancellationToken cancellationToken) =>
-            Task.FromException<ProjectContext>(new IOException("locked"));
-    }
-
-    /// <summary>A project folder where Agent Studio already wrote: its database exists (empty: the reader never opens it).</summary>
+    /// <summary>A project folder where Agent Studio already wrote: its database exists (empty: nothing here opens it).</summary>
     private string ProjectWithStorage(string name)
     {
         var root = _temp.CreateDirectory(name);
@@ -54,7 +53,14 @@ public sealed class HomeNextStepTests : IDisposable
         return root;
     }
 
-    private static MainViewModel Shell(ProjectProgressReader? progress, OrchestrationBackend? backend = null) => new(
+    private static LogRecorder Applied()
+    {
+        var log = new LogRecorder();
+        log.Entries.Add(LogRecorder.Entry(DecisionKind.ProjectSetupApplied));
+        return log;
+    }
+
+    private static MainViewModel Shell(ProjectProgressReader? progress, OrchestrationBackend? backend = null, DebateScreens? debates = null) => new(
         new InMemorySettingsStore(),
         new FakeFolderPicker(),
         new FakeUnsavedChangesPrompt(),
@@ -63,8 +69,10 @@ public sealed class HomeNextStepTests : IDisposable
         new JournalViewModel(TimeProvider.System),
         new QuickOpenViewModel(),
         orchestrators: new OrchestratorDocumentFactory(new OrchestrationSession(backend ?? Backends.Complete(new FakeOrchestrator())), new MemoryLayoutStore(), new FakeTimeProvider(T0)),
+        debates: debates,
         progress: progress);
 
+    /// <summary>Shows «Inicio» and waits for its step.</summary>
     private static async Task<NextStepViewModel> StepAsync(MainViewModel shell)
     {
         shell.ShowWelcomeCommand.Execute(null);
@@ -73,59 +81,73 @@ public sealed class HomeNextStepTests : IDisposable
         return Assert.IsType<NextStepViewModel>(welcome.NextStep);
     }
 
+    /// <summary>Opens the orchestrator of the open project (as the person does), then shows «Inicio».</summary>
+    private static async Task<NextStepViewModel> StepWithTheOrchestratorOpenAsync(MainViewModel shell)
+    {
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        return await StepAsync(shell);
+    }
+
     // ---- what is read ----
 
     [Fact]
-    public async Task A_folder_where_agent_studio_never_wrote_is_a_project_never_set_up_and_is_not_opened()
+    public void A_folder_has_storage_only_once_agent_studio_wrote_its_database_there()
     {
-        var workspace = new FakeProjectWorkspace();
-        var reader = new ProjectProgressReader(workspace, new LogRecorder(), new FakeRequirementStore());
-
-        var progress = await reader.ReadAsync(_temp.CreateDirectory("nuevo"), TestContext.Current.CancellationToken);
-
-        Assert.Equal(ProjectProgress.Untouched, progress);
-        Assert.Empty(workspace.Opened);
+        Assert.False(ProjectProgressReader.HasStorage(_temp.CreateDirectory("nuevo")));
+        Assert.True(ProjectProgressReader.HasStorage(ProjectWithStorage("usado")));
     }
 
     [Fact]
-    public async Task The_configurator_applied_is_the_entry_of_the_log_that_auto_doctor_reads_and_the_requirements_come_from_their_store()
+    public async Task The_configurator_applied_is_the_entry_of_the_log_that_auto_doctor_reads()
     {
-        var log = new LogRecorder();
-        log.Entries.Add(LogRecorder.Entry(DecisionKind.ProjectSetupApplied));
-        var reader = new ProjectProgressReader(new FakeProjectWorkspace(), log, new FakeRequirementStore(PlanFixtures.Requirements()));
+        var project = new ProjectContext("p-1", _temp.Path);
 
-        Assert.Equal(new ProjectProgress(true, true), await reader.ReadAsync(ProjectWithStorage("listo"), TestContext.Current.CancellationToken));
-
-        var empty = new ProjectProgressReader(new FakeProjectWorkspace(), new LogRecorder(), new FakeRequirementStore());
-        Assert.Equal(new ProjectProgress(false, false), await empty.ReadAsync(ProjectWithStorage("vacio"), TestContext.Current.CancellationToken));
+        Assert.True(await new ProjectProgressReader(Applied()).SetupAppliedAsync(project, TestContext.Current.CancellationToken));
+        Assert.False(await new ProjectProgressReader(new LogRecorder()).SetupAppliedAsync(project, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>What cannot be read is «not known», never «no»: a log that does not verify, a store that fails, a project that does not open.</summary>
+    /// <summary>What cannot be read is «not known», never «no»: a log that does not verify, a log that fails, no log, a project not open.</summary>
     [Fact]
     public async Task What_cannot_be_read_is_not_known_never_no()
     {
-        var root = ProjectWithStorage("roto");
-        var broken = new LogRecorder { Verification = new DecisionLogVerification(false, 3, "The hash of the entry 3 does not match.") };
-        broken.Entries.Add(LogRecorder.Entry(DecisionKind.ProjectSetupApplied));
+        var project = new ProjectContext("p-1", _temp.Path);
+        var broken = Applied();
+        broken.Verification = new DecisionLogVerification(false, 3, "The hash of the entry 3 does not match.");
         var failing = new LogRecorder { LoadFailure = new IOException("locked") };
 
-        Assert.Null((await new ProjectProgressReader(new FakeProjectWorkspace(), broken, new FakeRequirementStore()).ReadAsync(root, TestContext.Current.CancellationToken)).SetupApplied);
-        Assert.Null((await new ProjectProgressReader(new FakeProjectWorkspace(), failing, new FakeRequirementStore()).ReadAsync(root, TestContext.Current.CancellationToken)).SetupApplied);
-        Assert.Equal(ProjectProgress.Unknown, await new ProjectProgressReader(new FailingWorkspace(), broken, new FakeRequirementStore()).ReadAsync(root, TestContext.Current.CancellationToken));
-        Assert.Equal(ProjectProgress.Unknown, await new ProjectProgressReader(null, null, null).ReadAsync(root, TestContext.Current.CancellationToken));
+        Assert.Null(await new ProjectProgressReader(broken).SetupAppliedAsync(project, TestContext.Current.CancellationToken));
+        Assert.Null(await new ProjectProgressReader(failing).SetupAppliedAsync(project, TestContext.Current.CancellationToken));
+        Assert.Null(await new ProjectProgressReader(null).SetupAppliedAsync(project, TestContext.Current.CancellationToken));
+        Assert.Null(await new ProjectProgressReader(Applied()).SetupAppliedAsync(new ProjectContext(string.Empty, _temp.Path), TestContext.Current.CancellationToken));
     }
 
     // ---- the step ----
 
+    /// <summary>
+    /// Review fix 3: «Inicio» never opens a project the app did not open yet. With storage and the orchestrator not opened, the step
+    /// claims nothing, and the workspace was never asked to open it.
+    /// </summary>
     [Fact]
-    public async Task A_project_set_up_without_frozen_requirements_asks_for_its_first_request_and_the_button_leaves_the_keyboard_in_the_box()
+    public async Task Before_the_orchestrator_opens_the_project_the_step_claims_nothing_and_opens_nothing()
     {
-        var log = new LogRecorder();
-        log.Entries.Add(LogRecorder.Entry(DecisionKind.ProjectSetupApplied));
-        var shell = Shell(new ProjectProgressReader(new FakeProjectWorkspace(), log, new FakeRequirementStore()));
+        var workspace = new FakeProjectWorkspace();
+        var shell = Shell(new ProjectProgressReader(Applied()), Backends.Complete(new FakeOrchestrator()) with { Workspace = workspace });
         await shell.OpenProjectAsync(ProjectWithStorage("calc"));
 
         var step = await StepAsync(shell);
+
+        Assert.Equal(NextStepKind.NewRequest, step.Kind);
+        Assert.Empty(workspace.Opened);
+    }
+
+    /// <summary>Review fix 1: a project prepared by hand in the orchestrator (agents and a profile) is set up, whatever the log says.</summary>
+    [Fact]
+    public async Task A_project_prepared_by_hand_with_agents_and_a_profile_asks_for_its_first_request()
+    {
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()), Backends.Complete(new FakeOrchestrator()) with { Requirements = new FakeRequirementStore() });
+        await shell.OpenProjectAsync(ProjectWithStorage("calc"));
+
+        var step = await StepWithTheOrchestratorOpenAsync(shell);
 
         Assert.Equal(NextStepKind.FirstRequest, step.Kind);
         Assert.Equal("Escribir tu primera petición", step.Action);
@@ -138,51 +160,66 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal(OrchestratorFocus.Request, orchestrator.PendingFocus);
     }
 
+    /// <summary>Review fix 1: the configurator applied (its entry in the log) is set up even without a verification profile.</summary>
+    [Fact]
+    public async Task A_project_where_the_configurator_was_applied_asks_for_its_first_request_without_a_profile()
+    {
+        var backend = Backends.Complete(new FakeOrchestrator()) with { Requirements = new FakeRequirementStore(), Verification = null };
+        var shell = Shell(new ProjectProgressReader(Applied()), backend);
+        await shell.OpenProjectAsync(ProjectWithStorage("calc"));
+
+        Assert.Equal(NextStepKind.FirstRequest, (await StepWithTheOrchestratorOpenAsync(shell)).Kind);
+    }
+
     [Fact]
     public async Task A_project_set_up_with_frozen_requirements_asks_for_a_new_request()
     {
-        var log = new LogRecorder();
-        log.Entries.Add(LogRecorder.Entry(DecisionKind.ProjectSetupApplied));
-        var shell = Shell(new ProjectProgressReader(new FakeProjectWorkspace(), log, new FakeRequirementStore(PlanFixtures.Requirements())));
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()));
         await shell.OpenProjectAsync(ProjectWithStorage("calc"));
 
-        var step = await StepAsync(shell);
+        var step = await StepWithTheOrchestratorOpenAsync(shell);
 
         Assert.Equal(NextStepKind.NewRequest, step.Kind);
         Assert.Equal("Escribir una petición nueva", step.Action);
         Assert.Same(shell.WriteRequestCommand, step.Command);
     }
 
-    /// <summary>A run going on comes first: it is the most certain thing, and it can go on in a project never set up.</summary>
+    /// <summary>
+    /// A run going on comes first (it can go on in a project never set up), and «Inicio» says what it is doing in plain words:
+    /// working, or paused (review fix 5).
+    /// </summary>
     [Fact]
-    public async Task A_run_going_on_comes_first_and_the_step_follows_it_when_it_starts_and_ends()
+    public async Task A_run_going_on_comes_first_and_says_whether_it_works_or_is_paused()
     {
-        var root = _temp.CreateDirectory("calc");
-        var shell = Shell(new ProjectProgressReader(new FakeProjectWorkspace(), new LogRecorder(), new FakeRequirementStore()));
-        await shell.OpenProjectAsync(root);
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()));
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
         await shell.OpenOrchestratorCommand.ExecuteAsync(null);
         var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
         Assert.Equal(NextStepKind.NewRequest, (await StepAsync(shell)).Kind);
 
-        var run = new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0));
-        orchestrator.Monitor.Attach(run, orchestrator.Context!.Project!);
+        orchestrator.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), orchestrator.Context!.Project!);
         await shell.NextStepRead;
-
         var welcome = shell.Documents.OfType<WelcomeDocumentViewModel>().Single();
-        var step = Assert.IsType<NextStepViewModel>(welcome.NextStep);
-        Assert.Equal(NextStepKind.RunGoingOn, step.Kind);
-        Assert.Equal("Ver la ejecución en marcha", step.Action);
-        Assert.Same(shell.OpenOrchestratorCommand, step.Command);
+        var working = Assert.IsType<NextStepViewModel>(welcome.NextStep);
+        Assert.Equal(NextStepKind.RunGoingOn, working.Kind);
+        Assert.Equal("Ver la ejecución en marcha", working.Action);
+        Assert.Equal("Los agentes están trabajando en este proyecto. Mira cómo va la ejecución.", working.Reason);
+        Assert.Same(shell.OpenOrchestratorCommand, working.Command);
+
+        var paused = Shell(new ProjectProgressReader(new LogRecorder()));
+        await paused.OpenProjectAsync(_temp.CreateDirectory("pausado"));
+        await paused.OpenOrchestratorCommand.ExecuteAsync(null);
+        var other = Assert.IsType<OrchestratorDocumentViewModel>(paused.ActiveContent);
+        other.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-d4e5f6"), RunPhase.Paused, [], FakeRun.Healthy, 0)), other.Context!.Project!);
+        Assert.Equal("La ejecución de este proyecto está en pausa. Mira dónde se quedó y reanúdala cuando quieras.", (await StepAsync(paused)).Reason);
     }
 
     [Fact]
-    public async Task Changing_project_drops_the_step_of_the_project_left_and_closing_it_leaves_none()
+    public async Task Changing_project_drops_the_step_of_the_project_left()
     {
-        var log = new LogRecorder();
-        log.Entries.Add(LogRecorder.Entry(DecisionKind.ProjectSetupApplied));
-        var shell = Shell(new ProjectProgressReader(new FakeProjectWorkspace(), log, new FakeRequirementStore()));
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()), Backends.Complete(new FakeOrchestrator()) with { Requirements = new FakeRequirementStore() });
         await shell.OpenProjectAsync(ProjectWithStorage("uno"));
-        Assert.Equal(NextStepKind.FirstRequest, (await StepAsync(shell)).Kind);
+        Assert.Equal(NextStepKind.FirstRequest, (await StepWithTheOrchestratorOpenAsync(shell)).Kind);
 
         await shell.OpenProjectAsync(_temp.CreateDirectory("dos"));
         await shell.NextStepRead;
@@ -192,7 +229,7 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
     }
 
-    // ---- «Ir a los requisitos» ----
+    // ---- «Ir a los requisitos» and «Auditar» ----
 
     [Fact]
     public async Task Ir_a_los_requisitos_opens_the_orchestrator_of_the_project_on_its_requirements()
@@ -221,6 +258,39 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal("Esos requisitos son de otro proyecto. Ábrelo para verlos.", shell.StatusMessage);
     }
 
+    /// <summary>
+    /// Review fix 2: after «Ir a los requisitos» the person freezes them and clicks back on the tab of «Auditar»: it reads them again,
+    /// so it no longer says they are missing nor sends the person back.
+    /// </summary>
+    [Fact]
+    public async Task Coming_back_to_auditar_after_freezing_the_requirements_reads_them_again()
+    {
+        var store = new FakeRequirementStore();
+        var backend = new DebateScreenBackend(
+            Challenges: new FakeVerdictChallenges(),
+            Audits: new FakeProjectAuditService(),
+            Workspace: new FakeWorkspace(),
+            Roster: new FakeRoster(() => DebateSamples.Roster),
+            Requirements: store,
+            Verdicts: new FakeVerdictStore());
+        MainViewModel? shell = null;
+        var screens = new DebateScreens(backend, new FakeClock(DateTimeOffset.UnixEpoch), () => shell);
+        shell = Shell(null, debates: screens);
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenAuditCommand.ExecuteAsync(null);
+        var audit = Assert.IsType<ProjectAuditDocumentViewModel>(shell.ActiveContent);
+        Assert.True(audit.ShowsGoToRequirements);
+
+        await audit.GoToRequirementsCommand.ExecuteAsync(null);
+        Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        await store.SaveAsync("p-1", DebateSamples.Requirements, TestContext.Current.CancellationToken);
+        shell.ActiveContent = audit;
+        await shell.AuditRequirementsRead;
+
+        Assert.False(audit.ShowsGoToRequirements);
+        Assert.DoesNotContain("No se puede auditar sin requisitos congelados.", audit.Problems);
+    }
+
     /// <summary>The status band of the orchestrator offers the way to «Requisitos» while the project has none frozen.</summary>
     [Fact]
     public async Task The_orchestrator_offers_the_way_to_its_requirements_only_while_none_are_frozen()
@@ -241,5 +311,24 @@ public sealed class HomeNextStepTests : IDisposable
         await complete.OpenProjectAsync(_temp.CreateDirectory("listo"));
         await complete.OpenOrchestratorCommand.ExecuteAsync(null);
         Assert.False(Assert.IsType<OrchestratorDocumentViewModel>(complete.ActiveContent).ShowsGoToRequirements);
+    }
+
+    /// <summary>Layout fix (a): while a run goes on the band of the plan folds to one line, and unfolds by itself when it ends.</summary>
+    [Fact]
+    public async Task The_band_of_the_plan_folds_while_a_run_goes_on_and_can_be_unfolded()
+    {
+        var shell = Shell(null);
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        Assert.False(orchestrator.IsReviewFolded);
+        Assert.False(orchestrator.CanFoldReview);
+
+        orchestrator.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), orchestrator.Context!.Project!);
+
+        Assert.True(orchestrator.IsReviewFolded);
+        Assert.True(orchestrator.CanFoldReview);
+        orchestrator.ToggleReviewCommand.Execute(null);
+        Assert.True(orchestrator.ShowsReview);
     }
 }

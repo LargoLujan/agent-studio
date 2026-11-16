@@ -3628,4 +3628,16 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Drag it, or use the up and down arrows, to give more height to the canvas or to the monitor.</value>
     <comment>Tooltip of the divider.</comment>
   </data>
+  <data name="Orchestrator_Review_Folded" xml:space="preserve">
+    <value>The plan is running. While it runs there is nothing to approve.</value>
+    <comment>The line of the folded plan band while a run goes on.</comment>
+  </data>
+  <data name="Orchestrator_Review_Unfold" xml:space="preserve">
+    <value>Show the plan</value>
+    <comment>Button that unfolds the plan band.</comment>
+  </data>
+  <data name="Orchestrator_Review_Fold" xml:space="preserve">
+    <value>Hide the plan</value>
+    <comment>Button that folds the plan band while a run goes on.</comment>
+  </data>
 </root>

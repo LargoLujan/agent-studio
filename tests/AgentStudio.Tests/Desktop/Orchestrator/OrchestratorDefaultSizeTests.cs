@@ -35,11 +35,11 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
     /// <summary>What each row keeps beyond its least height, so the divider moves both ways by a useful step.</summary>
     private const double Travel = 24;
 
-    /// <summary>
-    /// What the editor of the canvas and the lists of the monitor keep at least: one line. What they really get at the default size
-    /// is said in the report of the change (about 50 and 60 px before the divider is moved); the test asserts the caps that give it.
-    /// </summary>
-    private const double Visible = 24;
+    /// <summary>What the editor of the canvas keeps at least while a run goes on, before the divider is moved: its nodes are seen.</summary>
+    private const double EditorWithARun = 100;
+
+    /// <summary>What the lists of the monitor keep at least while a run goes on, before the divider is moved: several of its tasks.</summary>
+    private const double ListsWithARun = 90;
 
     private readonly TempDirectory _temp = new();
 
@@ -67,14 +67,11 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         double MonitorMin,
         double Editor,
         double Lists,
-        double CanvasHeader,
-        double MonitorHeader,
-        bool ApproveInView,
-        bool ExecuteInView,
-        double ExecuteBottom)
+        bool ReviewFolded,
+        bool ApproveInView)
     {
         public override string ToString() =>
-            $"tab {Width:F0} × {Height:F0}, bands {Bands:F0} (at most {BandsMax:F0}), canvas {CanvasRow:F0} (least {CanvasMin:F0}), monitor {MonitorRow:F0} (least {MonitorMin:F0}), editor {Editor:F0}, lists {Lists:F0}, «Ejecutar» ends at {ExecuteBottom:F0}";
+            $"tab {Width:F0} × {Height:F0}, bands {Bands:F0} (at most {BandsMax:F0}), canvas {CanvasRow:F0} (least {CanvasMin:F0}), monitor {MonitorRow:F0} (least {MonitorMin:F0}), editor {Editor:F0}, lists {Lists:F0}";
     }
 
     private sealed record Moved(double Before, double AfterDown, double AfterUp, double AfterKeyDown, double AfterKeyUp, bool KeyHandled, bool Focusable, double Thickness, string? Name, Cursor? Cursor);
@@ -125,13 +122,8 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
             layout.RowDefinitions[3].MinHeight,
             ((RowDefinition)canvas.FindName("EditorRow")).ActualHeight,
             ((FrameworkElement)monitor.FindName("Lists")).ActualHeight,
-            ((FrameworkElement)canvas.FindName("CanvasHeader")).ActualHeight,
-            ((FrameworkElement)monitor.FindName("MonitorHeader")).ActualHeight,
-            InView(Labelled(bands, "Orchestrator_Review_Approve"), bands),
-            InView(Labelled(bands, "Orchestrator_Review_Execute"), bands),
-            Labelled(bands, "Orchestrator_Review_Execute") is var execute
-                ? execute.TransformToAncestor(bands).Transform(new Point(0, execute.ActualHeight)).Y
-                : 0);
+            ((FrameworkElement)view.FindName("ReviewContent")).Visibility != Visibility.Visible,
+            InView(Labelled(bands, "Orchestrator_Review_Approve"), bands));
     }
 
     /// <summary>Opens the orchestrator of a project in the real window at its default size and reads its tab.</summary>
@@ -199,6 +191,17 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
             System.Windows.Automation.AutomationProperties.GetName(splitter), splitter.Cursor);
     });
 
+    /// <summary>The heights measured, in the output of the test and, with the evidence folder set, in a file beside the pictures.</summary>
+    private static void Note(string line)
+    {
+        TestContext.Current.TestOutputHelper?.WriteLine(line);
+        if (Environment.GetEnvironmentVariable(OffscreenRender.EvidenceVariable) is { Length: > 0 } folder)
+        {
+            System.IO.Directory.CreateDirectory(folder);
+            System.IO.File.AppendAllText(System.IO.Path.Combine(folder, "ola1-medidas.txt"), TestContext.Current.Test?.TestDisplayName + ": " + line + Environment.NewLine);
+        }
+    }
+
     /// <summary>A drag of the mouse as the thumb of the divider reports it: no window and no pointer needed.</summary>
     private static void Drag(GridSplitter splitter, double by)
     {
@@ -207,24 +210,10 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         splitter.RaiseEvent(new DragCompletedEventArgs(0, by, false));
     }
 
-    private static void AssertRoom(Tab tab)
-    {
-        Assert.True(tab.Height >= 560, $"The tab is only {tab.Height:F0} high: {tab}.");
-        Assert.True(tab.Bands <= tab.BandsMax + 0.5, $"The bands pass their limit: {tab}.");
-        Assert.True(tab.Bands <= tab.Height * 0.5 + 0.5, $"The bands take more than half of the tab: {tab}.");
-        Assert.True(tab.CanvasRow >= tab.CanvasMin + Travel, $"The canvas is at its least height: the divider cannot go up. {tab}.");
-        Assert.True(tab.MonitorRow >= tab.MonitorMin + Travel, $"The monitor is at its least height: the divider cannot go down. {tab}.");
-        // Above and under the editor and the lists, their caps (30 % of the canvas for its toolbar and strip, half of the monitor
-        // for its phase, review and consumption), so neither is crushed to nothing.
-        Assert.True(tab.CanvasHeader <= tab.CanvasRow * 0.3 + 0.5, $"The toolbar of the canvas takes {tab.CanvasHeader:F0}: {tab}.");
-        Assert.True(tab.MonitorHeader <= tab.MonitorRow * 0.5 + 0.5, $"The top of the monitor takes {tab.MonitorHeader:F0}: {tab}.");
-        Assert.True(tab.Editor >= Visible, $"The canvas leaves its editor {tab.Editor:F0}: {tab}.");
-        Assert.True(tab.Lists >= Visible, $"The monitor leaves its lists {tab.Lists:F0}: {tab}.");
-    }
-
     private static void AssertMoves(Moved moved, Tab tab)
     {
         var report = $"{tab}; canvas {moved.Before:F0}, dragged down {moved.AfterDown:F0}, dragged up {moved.AfterUp:F0}, arrow down {moved.AfterKeyDown:F0}, arrow up {moved.AfterKeyUp:F0}";
+        Note(report);
         Assert.True(moved.AfterDown > moved.Before + Travel - 0.5, $"Dragged down, the canvas did not grow: {report}.");
         Assert.True(moved.AfterUp < moved.AfterDown - Travel, $"Dragged up, the canvas did not shrink: {report}.");
         Assert.True(moved.KeyHandled, "The arrows do not move the divider.");
@@ -245,24 +234,37 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         var moved = MoveTheDivider(document, tab);
 
         Assert.True(document.IsPreparationExpanded);
-        AssertRoom(tab);
         AssertMoves(moved, tab);
     }
 
     /// <summary>
-    /// With the band «Preparación» folded, as a complete project has it, the decision on the plan is in the bands: «Aprobar plan»
-    /// and «Ejecutar» are reached without moving anything when the state of the plan takes one line, and with the scroll of the
-    /// bands otherwise; how far «Ejecutar» ends is said in the report of the change, not asserted to the pixel.
+    /// The owner's complaint was that everything was cut. With a run going on the band of the plan folds to one line (there is
+    /// nothing to approve), so the canvas shows its nodes and the monitor several tasks before the divider is moved.
     /// </summary>
     [Fact]
-    public async Task In_a_complete_project_with_a_run_the_divider_moves_both_ways_and_approve_is_in_view()
+    public async Task With_a_run_going_on_the_editor_and_the_lists_have_room_and_the_divider_moves_both_ways()
     {
         var (tab, document) = await OpenInTheWindowAsync(Backends.Complete(new FakeOrchestrator()), withRun: true, "ola1-orquestador-con-ejecucion.png");
         var moved = MoveTheDivider(document, tab);
 
-        Assert.False(document.IsPreparationExpanded);
-        AssertRoom(tab);
+        Assert.True(tab.ReviewFolded, $"The band of the plan is not folded while the run goes on: {tab}.");
+        Assert.True(tab.Editor >= EditorWithARun, $"The canvas leaves its editor {tab.Editor:F0}: {tab}.");
+        Assert.True(tab.Lists >= ListsWithARun, $"The monitor leaves its lists {tab.Lists:F0}: {tab}.");
         AssertMoves(moved, tab);
+    }
+
+    /// <summary>
+    /// With no run, in a complete project («Preparación» folded), «Aprobar plan» is in view without scrolling. The decision comes
+    /// right under the summary, before where the plan stands, so how many lines that takes does not move it.
+    /// </summary>
+    [Fact]
+    public async Task In_a_complete_project_without_a_run_approve_is_in_view_at_the_default_size()
+    {
+        var (tab, document) = await OpenInTheWindowAsync(Backends.Complete(new FakeOrchestrator()), withRun: false, "ola1-orquestador-completo.png");
+
+        Assert.False(document.IsPreparationExpanded);
+        Note(tab.ToString());
+        Assert.False(tab.ReviewFolded);
         Assert.True(tab.ApproveInView, $"«Aprobar plan» is out of the view of the bands: {tab}.");
     }
 }

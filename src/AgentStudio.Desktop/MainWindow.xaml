@@ -148,16 +148,20 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <DockPanel>
-                    <Button x:Name="ActivityBarToggle" DockPanel.Dock="Top" Style="{StaticResource ActivityButton}" Margin="0,4,0,0"
+                <!-- In rows in the order they are seen, so Tab goes from the button on top through the groups to «Ayuda» and «Ajustes». -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Button x:Name="ActivityBarToggle" Grid.Row="0" Style="{StaticResource ActivityButton}" Margin="0,4,0,0"
                             Command="{Binding ToggleActivityBarCommand}"
                             ToolTip="{Binding ActivityBarToggleName}" AutomationProperties.Name="{Binding ActivityBarToggleName}">
                         <TextBlock Width="20" FontSize="16" TextAlignment="Center" Text="&#xE700;"/>
                     </Button>
-                    <ItemsControl x:Name="ActivityFooter" DockPanel.Dock="Bottom" ItemsSource="{Binding FooterActivities}" Margin="0,4"
-                                  Focusable="False" ItemTemplate="{StaticResource Shell.ActivityEntry}"/>
                     <!-- Folded to its icons, the bar is too narrow for a scroll bar: the wheel and the keyboard still scroll it. -->
-                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                         <ScrollViewer.Style>
                             <Style TargetType="ScrollViewer">
                                 <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
@@ -181,7 +185,9 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                </DockPanel>
+                    <ItemsControl x:Name="ActivityFooter" Grid.Row="2" ItemsSource="{Binding FooterActivities}" Margin="0,4"
+                                  Focusable="False" ItemTemplate="{StaticResource Shell.ActivityEntry}"/>
+                </Grid>
             </Border>
 
             <xcad:DockingManager x:Name="DockManager" Grid.Column="1"

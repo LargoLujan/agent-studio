@@ -221,6 +221,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         Monitor.Finished += (_, _) => OnRunFinishedReleaseIfClosed();
         Closed += (_, _) => OnTabClosed();
         Monitor.PropertyChanged += OnMonitorPropertyChanged;
+        Monitor.PropertyChanged += FollowRunForReview;
         if (builder is not null)
         {
             InitializeBuilder(builder, reduceMotion);

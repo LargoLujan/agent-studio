@@ -758,4 +758,16 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
     <value>Esos requisitos son de otro proyecto. Ábrelo para verlos.</value>
     <comment>Message when the way to the requirements is asked for a project that is not open.</comment>
   </data>
+  <data name="Welcome_Next_RunPaused" xml:space="preserve">
+    <value>La ejecución de este proyecto está en pausa. Mira dónde se quedó y reanúdala cuando quieras.</value>
+    <comment>Why the next step is to see the run: it is paused.</comment>
+  </data>
+  <data name="Welcome_Next_RunWaiting" xml:space="preserve">
+    <value>Un agente de este proyecto espera tu respuesta. Ábrela y contesta para que siga.</value>
+    <comment>Why the next step is to see the run: it waits for an answer.</comment>
+  </data>
+  <data name="Welcome_Next_RunStopped" xml:space="preserve">
+    <value>La ejecución de este proyecto está parada. Mira qué la detiene.</value>
+    <comment>Why the next step is to see the run: it waits for something else (the usage limit, a blocked task).</comment>
+  </data>
 </root>

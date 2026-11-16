@@ -1,4 +1,8 @@
+using AgentStudio.Application.Orchestration;
+using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Desktop.Orchestrator;
+using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -100,16 +104,46 @@ public sealed partial class MainViewModel
         }
     }
 
-    /// <summary>«Inicio» became the tab in view: its next step is read again (a run may have started, the project may have been set up).</summary>
+    /// <summary>
+    /// A tab came into view: «Inicio» reads its next step again (a run may have started, the project may have been set up), and
+    /// «Auditar» reads the requirements again while it has none (they may have been frozen through «Ir a los requisitos»).
+    /// </summary>
     partial void OnActiveContentChanged(object? value)
     {
         if (value is not null && ReferenceEquals(value, _welcome))
         {
             RefreshNextStep();
         }
+        else if (value is ProjectAuditDocumentViewModel audit)
+        {
+            AuditRequirementsRead = audit.RefreshRequirementsAsync();
+        }
     }
 
-    /// <summary>Reads the next step of the open project again for «Inicio», when its tab exists.</summary>
+    /// <summary>Completes once the last read of the requirements of an «Auditar» tab that came back into view ended.</summary>
+    public Task AuditRequirementsRead { get; private set; } = Task.CompletedTask;
+
+    /// <summary>
+    /// The context of an orchestrator changed (its requirements may have been frozen): an «Auditar» tab of that project that is open
+    /// reads them again, so coming back to it does not say they are missing.
+    /// </summary>
+    private void OnContextChangedForAudits(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(OrchestratorDocumentViewModel.Context) || sender is not OrchestratorDocumentViewModel document)
+        {
+            return;
+        }
+
+        foreach (var audit in Documents.OfType<ProjectAuditDocumentViewModel>().Where(a => SameProject(a.ProjectRoot, document.ProjectRoot)).ToList())
+        {
+            AuditRequirementsRead = audit.RefreshRequirementsAsync();
+        }
+    }
+
+    /// <summary>How long «Inicio» waits before it reads the log, so a burst of changes reads it once.</summary>
+    private static readonly TimeSpan NextStepDebounce = TimeSpan.FromMilliseconds(150);
+
+    /// <summary>Reads the next step of the open project again for «Inicio», when its tab exists; a read still waiting is cancelled.</summary>
     private void RefreshNextStep()
     {
         if (_welcome is null)
@@ -117,15 +151,22 @@ public sealed partial class MainViewModel
             return;
         }
 
-        NextStepRead = ReadNextStepAsync(_welcome);
+        _nextStepCancellation?.Cancel();
+        _nextStepCancellation?.Dispose();
+        _nextStepCancellation = new CancellationTokenSource();
+        NextStepRead = ReadNextStepAsync(_welcome, _nextStepCancellation.Token);
     }
 
+    private CancellationTokenSource? _nextStepCancellation;
+
     /// <summary>
-    /// The next step (docs/24 §3.2) from what can be read: a run going on comes first, since it is the most certain thing and can
-    /// go on in a project that was never set up; then a project never set up; then one set up without frozen requirements; and
-    /// otherwise a new request, which claims nothing (nor what could not be read).
+    /// The next step (docs/24 §3.2) from what is known without opening anything the app did not open already. A run going on comes
+    /// first, since it is the most certain thing and can go on in a project never set up. A folder where Agent Studio never wrote was
+    /// never set up. For a project its orchestrator has open: set up when the configurator was applied or when it has agents and a
+    /// verification profile (the orchestrator's own notion, so the two never disagree), and then without frozen requirements its
+    /// first request is the step. Otherwise, and for what is not known, a new request, which claims nothing.
     /// </summary>
-    private async Task ReadNextStepAsync(WelcomeDocumentViewModel welcome)
+    private async Task ReadNextStepAsync(WelcomeDocumentViewModel welcome, CancellationToken ct)
     {
         var read = ++_nextStepReads;
         if (ProjectPath is not { } root)
@@ -134,53 +175,83 @@ public sealed partial class MainViewModel
             return;
         }
 
-        if (RunGoingOnStep(root) is { } running)
+        if (RunStep(root) is { } running)
         {
             welcome.NextStep = running;
             return;
         }
 
-        ProjectProgress progress;
-        try
+        if (_progress is null)
         {
-            progress = _progress is null ? ProjectProgress.Unknown : await _progress.ReadAsync(root, CancellationToken.None);
-        }
-#pragma warning disable CA1031 // The reader is behind ports: a failure is a step that claims nothing, never thrown into the dispatcher.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            progress = ProjectProgress.Unknown;
+            welcome.NextStep = NewRequestStep();
+            return;
         }
 
-        // The project, or the run, may have changed while it was read: only the last read of the open project is painted.
-        if (read != _nextStepReads || !SameProject(root, ProjectPath))
+        if (!ProjectProgressReader.HasStorage(root))
+        {
+            welcome.NextStep = _setupFactory is null ? NewRequestStep() : SetUpStep();
+            return;
+        }
+
+        if (!_orchestrators.TryGetValue(root, out var document) || document.Context is not { Project: { } project } context)
+        {
+            welcome.NextStep = NewRequestStep();
+            return;
+        }
+
+        bool? applied;
+        try
+        {
+            await Task.Delay(NextStepDebounce, ct);
+            applied = await _progress.SetupAppliedAsync(project, ct);
+        }
+        catch (OperationCanceledException)
         {
             return;
         }
 
-        welcome.NextStep = RunGoingOnStep(root) ?? progress switch
+        // The project, or the run, may have changed while it was read: only the last read of the open project is painted.
+        if (ct.IsCancellationRequested || read != _nextStepReads || !SameProject(root, ProjectPath))
         {
-            { SetupApplied: false } when _setupFactory is not null =>
-                new NextStepViewModel(NextStepKind.SetUp, Texts.Get("Welcome_Next_SetUp"), Texts.Get("Welcome_Next_SetUpAction"), OpenSetupCommand),
-            { SetupApplied: true, HasFrozenRequirements: false } =>
-                new NextStepViewModel(NextStepKind.FirstRequest, Texts.Get("Welcome_Next_FirstRequest"), Texts.Get("Welcome_Next_FirstRequestAction"), WriteRequestCommand),
-            _ => new NextStepViewModel(NextStepKind.NewRequest, Texts.Get("Welcome_Next_NewRequest"), Texts.Get("Welcome_Next_NewRequestAction"), WriteRequestCommand),
-        };
+            return;
+        }
+
+        var configured = applied == true || (context.Roster.Count > 0 && context.Verification is not null);
+        welcome.NextStep = RunStep(root)
+            ?? (configured && context.Requirements is null ? FirstRequestStep()
+            : !configured && applied == false && _setupFactory is not null ? SetUpStep()
+            : NewRequestStep());
     }
 
+    private NextStepViewModel SetUpStep() =>
+        new(NextStepKind.SetUp, Texts.Get("Welcome_Next_SetUp"), Texts.Get("Welcome_Next_SetUpAction"), OpenSetupCommand);
+
+    private NextStepViewModel FirstRequestStep() =>
+        new(NextStepKind.FirstRequest, Texts.Get("Welcome_Next_FirstRequest"), Texts.Get("Welcome_Next_FirstRequestAction"), WriteRequestCommand);
+
+    private NextStepViewModel NewRequestStep() =>
+        new(NextStepKind.NewRequest, Texts.Get("Welcome_Next_NewRequest"), Texts.Get("Welcome_Next_NewRequestAction"), WriteRequestCommand);
+
     /// <summary>
-    /// «Ver la ejecución en marcha» when a run of the project goes on: in the monitor of its orchestrator, which it opens; or in a
-    /// monitor of its own (a run resumed while that one followed another), which «Ejecuciones reanudadas» shows. Null otherwise.
+    /// «Ver la ejecución en marcha» when a run of the project goes on, with what it is doing in plain words: working, paused, waiting
+    /// for your answer, or stopped for something else. In the monitor of its orchestrator, which it opens; or in a monitor of its own
+    /// (a run resumed while that one followed another), which «Ejecuciones reanudadas» shows. Null otherwise.
     /// </summary>
-    private NextStepViewModel? RunGoingOnStep(string root)
+    private NextStepViewModel? RunStep(string root)
     {
         if (_orchestrators.TryGetValue(root, out var document) && document.Monitor.IsActive)
         {
-            return new NextStepViewModel(NextStepKind.RunGoingOn, Texts.Get("Welcome_Next_Run"), Texts.Get("Welcome_Next_RunAction"), OpenOrchestratorCommand);
+            return new NextStepViewModel(NextStepKind.RunGoingOn, RunReason(document.Monitor), Texts.Get("Welcome_Next_RunAction"), OpenOrchestratorCommand);
         }
 
-        return _backgroundMonitors.Any(m => m.IsActive && _backgroundRoots.TryGetValue(m, out var where) && SameProject(where, root))
-            ? new NextStepViewModel(NextStepKind.RunGoingOn, Texts.Get("Welcome_Next_Run"), Texts.Get("Welcome_Next_RunAction"), OpenBackgroundRunsCommand)
+        return _backgroundMonitors.FirstOrDefault(m => m.IsActive && _backgroundRoots.TryGetValue(m, out var where) && SameProject(where, root)) is { } background
+            ? new NextStepViewModel(NextStepKind.RunGoingOn, RunReason(background), Texts.Get("Welcome_Next_RunAction"), OpenBackgroundRunsCommand)
             : null;
     }
+
+    private static string RunReason(RunMonitorViewModel monitor) =>
+        monitor.HasPendingQuestions || monitor.Phase == RunPhase.AwaitingHuman ? Texts.Get("Welcome_Next_RunWaiting")
+        : monitor.Phase == RunPhase.Paused ? Texts.Get("Welcome_Next_RunPaused")
+        : monitor.Phase is null or RunPhase.Running ? Texts.Get("Welcome_Next_Run")
+        : Texts.Get("Welcome_Next_RunStopped");
 }

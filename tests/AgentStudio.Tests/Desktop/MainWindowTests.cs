@@ -392,7 +392,7 @@ public sealed class MainWindowTests
     {
         using var temp = new TempDirectory();
 
-        var (bar, buttons, groups, names, titlesShown, width, collapsedTitles, collapsedWidth, collapsedNames, toggleName) = WpfHost.Run(() =>
+        var (bar, buttons, groups, names, titlesShown, width, collapsedTitles, collapsedWidth, collapsedNames, toggleName, order) = WpfHost.Run(() =>
         {
             var vm = ShellFactory.CreateMain();
             var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Path)));
@@ -400,6 +400,13 @@ public sealed class MainWindowTests
             var activityBar = (ItemsControl)window.FindName("ActivityBar");
             var host = (FrameworkElement)window.FindName("ActivityBarHost");
             var groups = (UIElementAutomationPeer.CreatePeerForElement(activityBar).GetChildren() ?? []).Select(i => i.GetName()).ToList();
+
+            // Review fix 7: Tab follows what is seen, top to bottom: the button that folds the bar, the groups, then «Ayuda» and «Ajustes».
+            var toggle = (Button)window.FindName("ActivityBarToggle");
+            var column = (Panel)VisualTreeHelper.GetParent(toggle);
+            var footer = (ItemsControl)window.FindName("ActivityFooter");
+            var groupsHost = column.Children.OfType<ScrollViewer>().Single();
+            var order = (column.Children.IndexOf(toggle), column.Children.IndexOf(groupsHost), column.Children.IndexOf(footer));
             var entries = Descendants<Button>(activityBar).ToList();
             List<string> Titles() => [.. entries.SelectMany(b => Descendants<TextBlock>(b)).Where(t => t.Visibility == Visibility.Visible && t.FontFamily.Source != "Segoe MDL2 Assets").Select(t => t.Text)];
             var shown = Titles();
@@ -416,7 +423,8 @@ public sealed class MainWindowTests
                 Titles(),
                 host.ActualWidth,
                 entries.Select(b => AutomationProperties.GetName(b)).ToList(),
-                AutomationProperties.GetName((Button)window.FindName("ActivityBarToggle")));
+                AutomationProperties.GetName((Button)window.FindName("ActivityBarToggle")),
+                order);
         });
 
         Assert.False(bar);
@@ -439,6 +447,7 @@ public sealed class MainWindowTests
         Assert.InRange(collapsedWidth, 40, 56);
         Assert.Equal(expected, collapsedNames);
         Assert.Equal("Mostrar los nombres", toggleName);
+        Assert.True(order.Item1 < order.Item2 && order.Item2 < order.Item3, $"The bar is declared {order}: Tab does not follow what is seen.");
     }
 
     /// <summary>

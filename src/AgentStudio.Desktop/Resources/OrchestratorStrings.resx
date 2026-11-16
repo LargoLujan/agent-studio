@@ -3629,4 +3629,16 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Arrástralo, o usa las flechas arriba y abajo, para dar más alto al lienzo o al monitor.</value>
     <comment>Tooltip of the divider.</comment>
   </data>
+  <data name="Orchestrator_Review_Folded" xml:space="preserve">
+    <value>El plan está en marcha. Mientras se ejecuta no hay nada que aprobar.</value>
+    <comment>The line of the folded plan band while a run goes on.</comment>
+  </data>
+  <data name="Orchestrator_Review_Unfold" xml:space="preserve">
+    <value>Mostrar el plan</value>
+    <comment>Button that unfolds the plan band.</comment>
+  </data>
+  <data name="Orchestrator_Review_Fold" xml:space="preserve">
+    <value>Ocultar el plan</value>
+    <comment>Button that folds the plan band while a run goes on.</comment>
+  </data>
 </root>

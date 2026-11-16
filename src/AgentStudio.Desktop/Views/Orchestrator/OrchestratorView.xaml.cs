@@ -63,20 +63,33 @@ public partial class OrchestratorView : UserControl
 
     private void OnFocusRequested(object? sender, EventArgs e) => TakeFocusLater();
 
-    /// <summary>Once the band «Preparación» it opened is laid out, the part asked for is brought into view and given the keyboard.</summary>
+    /// <summary>
+    /// Once the band «Preparación» it opened is laid out, and the dock is done moving the keyboard (it does so after it activates
+    /// a tab, so the shell waits for <see cref="DispatcherPriority.ContextIdle"/> too), the part asked for is brought into view and
+    /// given the keyboard. The request stays on the document until the keyboard lands there; it is tried once more if it did not.
+    /// </summary>
     private void TakeFocusLater()
     {
         if (_onScreen && _document?.PendingFocus is not null)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, TakeFocus);
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(retry: true));
         }
     }
 
-    private void TakeFocus()
+    private void TakeFocus(bool retry)
     {
-        if (_onScreen && _document?.TakePendingFocus() is { } target)
+        if (!_onScreen || _document?.PendingFocus is not { } target)
         {
-            PreparationBand.BringToKeyboard(target);
+            return;
+        }
+
+        if (PreparationBand.BringToKeyboard(target))
+        {
+            _document.TakePendingFocus();
+        }
+        else if (retry)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(retry: false));
         }
     }
 }
