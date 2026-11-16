@@ -723,7 +723,9 @@ public sealed partial class SetupViewModel : ObservableObject
 
         var parsed = ParseBudget(out var problem);
         BudgetProblem = problem is null ? string.Empty : Text.Render(UserText.Of(problem));
-        StepOf(SetupStep.Budget).IsIncluded = parsed is not null && parsed != _currentBudget;
+
+        // A number that cannot be used keeps the step on, so «Aplicar» waits for it instead of leaving the limits as they were.
+        StepOf(SetupStep.Budget).IsIncluded = problem is not null || (parsed is not null && parsed != _currentBudget);
         NotifySummaryState();
     }
 

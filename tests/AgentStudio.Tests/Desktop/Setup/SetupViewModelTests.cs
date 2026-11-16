@@ -419,9 +419,29 @@ public sealed class SetupViewModelTests
         vm.TimeMinutesText = minutes;
 
         Assert.Equal(Spanish.Get(key), vm.BudgetProblem);
-        Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(vm.HasInvalidEdits);
         Assert.False(vm.ApplyCommand.CanExecute(null));
         Assert.False(vm.GoToWorkCommand.CanExecute(null));
+        Assert.Null(vm.BuildSelection().Options);
+    }
+
+    [Fact]
+    public async Task A_number_of_the_limits_that_cannot_be_used_blocks_apply_even_with_other_changes()
+    {
+        var vm = await new Rig().OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+        Assert.True(vm.ApplyCommand.CanExecute(null));
+
+        vm.MaxParallelTasksText = "9";
+
+        Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.False(vm.ApplyCommand.CanExecute(null));
+
+        vm.MaxParallelTasksText = "3";
+
+        Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(vm.ApplyCommand.CanExecute(null));
     }
 
     [Fact]
