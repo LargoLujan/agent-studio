@@ -230,6 +230,36 @@ public sealed class OrchestratorLayoutTests
         Assert.Equal(OrchestratorFocus.Requirements, requirementsPending);
     }
 
+    /// <summary>
+    /// Review fix 2: folded for a run, the band of the plan keeps in view what failed (a run resumed by the planner can fail to show
+    /// its header), and its line says the truth: that the plan runs, or that the run waits for an answer or an approval of yours.
+    /// </summary>
+    [Fact]
+    public async Task Folded_for_a_run_the_band_keeps_its_error_in_view_and_says_when_the_run_waits_for_you()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+        var waitingDocument = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (folded, errorShown, contentHidden, running, waiting) = WpfHost.Run(() =>
+        {
+            document.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), document.Context!.Project!);
+            document.ErrorMessage = "No se pudo leer la cabecera de la ejecución.";
+            var view = new OrchestratorView { DataContext = document };
+            OffscreenRender.Render(view, 1040, 900);
+            var error = (TextBlock)view.FindName("ReviewError");
+            var content = (FrameworkElement)view.FindName("ReviewContent");
+            waitingDocument.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-d4e5f6"), RunPhase.AwaitingHuman, [], FakeRun.Healthy, 0)), waitingDocument.Context!.Project!);
+            return (document.IsReviewFolded, error.Visibility == Visibility.Visible && error.ActualHeight > 0, content.Visibility == Visibility.Collapsed, document.ReviewFoldedText, waitingDocument.ReviewFoldedText);
+        });
+
+        Assert.True(folded);
+        Assert.True(contentHidden);
+        Assert.True(errorShown, "Folded, the band hides the error.");
+        Assert.Equal("El plan está en marcha y no cambia mientras se ejecuta. Síguelo en el monitor, abajo.", running);
+        Assert.Equal("La ejecución espera tu respuesta o tu aprobación. La tienes en el monitor, abajo.", waiting);
+        Assert.True(waitingDocument.ReviewWaitsForYou);
+    }
+
     private static IEnumerable<T> Descendants<T>(DependencyObject root)
         where T : DependencyObject
     {

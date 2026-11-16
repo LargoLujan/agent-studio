@@ -132,7 +132,7 @@
             <Border x:Name="ReviewBand" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,0,1" Padding="12,8">
                 <StackPanel>
-                    <!-- While a run goes on there is nothing to approve: the band folds to this line, and the button unfolds it (docs/24 §1, row 15). -->
+                    <!-- While a run goes on the plan does not change: the band folds to this line, which says when the run waits for you, and the button unfolds it (docs/24 §1, row 15). -->
                     <DockPanel Visibility="{Binding CanFoldReview, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                         <Button x:Name="ReviewFoldButton" DockPanel.Dock="Right" Command="{Binding ToggleReviewCommand}">
                             <Button.Style>
@@ -146,8 +146,19 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <TextBlock x:Name="ReviewFoldedText" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Text="{l:T Orchestrator_Review_Folded}"
-                                   Visibility="{Binding IsReviewFolded, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+                        <TextBlock x:Name="ReviewFoldedText" VerticalAlignment="Center" Text="{Binding ReviewFoldedText}" AutomationProperties.LiveSetting="Polite"
+                                   Visibility="{Binding IsReviewFolded, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ReviewWaitsForYou}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </DockPanel>
                     <StackPanel x:Name="ReviewContent" Visibility="{Binding ShowsReview, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                         <!-- «Resumen del plan» (docs/24 §1, row 16): the whole width of the band, its words wrapped, three lines at least
@@ -227,13 +238,15 @@
                             <TextBlock Style="{StaticResource OptionalSecondaryText}" VerticalAlignment="Center"
                                        Text="{Binding ExecuteBlockers, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Review_ToRun}"/>
                         </WrapPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
-                                    Visibility="{Binding IsBusy, Converter={StaticResource Orchestrator.BoolToVisibility}}">
-                            <ProgressBar Style="{StaticResource AccentProgress}" Width="120" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding BusyText}"/>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage}"/>
                     </StackPanel>
+                    <!-- What is busy and what failed stay in view when the band is folded: a run resumed by the planner can fail to
+                         show its header while it is folded. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                Visibility="{Binding IsBusy, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                        <ProgressBar Style="{StaticResource AccentProgress}" Width="120" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding BusyText}"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ReviewError" Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage}"/>
                 </StackPanel>
             </Border>
             </StackPanel>

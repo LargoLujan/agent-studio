@@ -3629,7 +3629,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Tooltip of the divider.</comment>
   </data>
   <data name="Orchestrator_Review_Folded" xml:space="preserve">
-    <value>The plan is running. While it runs there is nothing to approve.</value>
+    <value>The plan is running and does not change while it runs. Follow it in the monitor, below.</value>
     <comment>The line of the folded plan band while a run goes on.</comment>
   </data>
   <data name="Orchestrator_Review_Unfold" xml:space="preserve">
@@ -3639,5 +3639,9 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Orchestrator_Review_Fold" xml:space="preserve">
     <value>Hide the plan</value>
     <comment>Button that folds the plan band while a run goes on.</comment>
+  </data>
+  <data name="Orchestrator_Review_FoldedWaiting" xml:space="preserve">
+    <value>The run is waiting for your answer or your approval. It is in the monitor, below.</value>
+    <comment>The line of the folded plan band while the run waits for the person.</comment>
   </data>
 </root>
