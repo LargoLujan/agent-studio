@@ -87,7 +87,7 @@ internal static class UiScreensShell
         var runner = new SetupTrialRunner();
         runner.Failing.Add("build");
         var trial = new SetupCheckTrial(runner, new AuditRepository("0123456789abcdef0123456789abcdef01234567"), new AgentStudio.Tests.Debate.Audit.Fixtures.FakeProjectActivity());
-        var vm = new SetupViewModel(service, trial: trial, providerLimits: _ => [new SetupProviderLimit(ProviderId.ClaudeCode, 2), new SetupProviderLimit(ProviderId.CodexCli, 2)]);
+        var vm = new SetupViewModel(service, trial: trial, providerLimits: _ => [new SetupProviderLimit(ProviderId.ClaudeCode, 2), new SetupProviderLimit(ProviderId.CodexCli, 2)], confirmTrial: new SetupTrialAnswer(true));
         await vm.LoadAsync(SetupFakes.Project);
         if (step == SetupStep.Verification)
         {
@@ -138,6 +138,7 @@ internal static class UiScreensShell
         UiScreens.ScreenAsync("Configurator check", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Verification)), 1000, 800),
         UiScreens.ScreenAsync("Configurator limits", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Budget)), 1000, 800),
         UiScreens.ScreenAsync("Configurator summary", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Summary)), 1000, 800),
+        UiScreens.Screen("Check trial window", () => UiScreens.OfWindow(new SetupTrialWindow(), new SetupTrialConfirmationViewModel(["dotnet build App.slnx", "dotnet test --no-build"])), 560, 420),
         UiScreens.ScreenAsync("Client documents", async () => UiScreens.Of(new ClientDocumentsView(), await ClientDocumentsAsync()), 1100, 900),
         UiScreens.ScreenAsync("Quick open window", async () =>
         {

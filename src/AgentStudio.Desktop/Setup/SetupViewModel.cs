@@ -42,6 +42,7 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly ProjectSetupService _service;
     private readonly IUiTextProvider? _texts;
     private readonly SetupCheckTrial? _trial;
+    private readonly ISetupTrialConfirmation? _confirmTrial;
     private readonly Func<string, IReadOnlyList<SetupProviderLimit>>? _providerLimits;
     private ProjectContext? _project;
     private SetupProposal? _proposal;
@@ -53,12 +54,19 @@ public sealed partial class SetupViewModel : ObservableObject
 
     /// <param name="trial">«Probarla ahora»; without it the button is not offered.</param>
     /// <param name="providerLimits">How many agents each program runs at once, for the root of a project; without it the line is not shown.</param>
-    public SetupViewModel(ProjectSetupService service, IUiTextProvider? texts = null, SetupCheckTrial? trial = null, Func<string, IReadOnlyList<SetupProviderLimit>>? providerLimits = null)
+    /// <param name="confirmTrial">The question before running commands not accepted yet; without it such commands are never run from here.</param>
+    public SetupViewModel(
+        ProjectSetupService service,
+        IUiTextProvider? texts = null,
+        SetupCheckTrial? trial = null,
+        Func<string, IReadOnlyList<SetupProviderLimit>>? providerLimits = null,
+        ISetupTrialConfirmation? confirmTrial = null)
     {
         ArgumentNullException.ThrowIfNull(service);
         _service = service;
         _texts = texts;
         _trial = trial;
+        _confirmTrial = confirmTrial;
         _providerLimits = providerLimits;
         Steps =
         [
@@ -554,6 +562,18 @@ public sealed partial class SetupViewModel : ObservableObject
         }
 
         var text = Text;
+
+        // Commands the person has not accepted yet (none saved, or edited here) run only once they say so, with the commands in front of them.
+        if (NeedsTrialConfirmation(profile)
+            && (_confirmTrial is null || !_confirmTrial.Confirm([.. profile.Steps.Select(s => text.Format("Setup_Summary_Item", LabelOf(s), Command(s)))], CancellationToken.None)))
+        {
+            TrialPassed = null;
+            TrialLines.Clear();
+            TrialOutput = string.Empty;
+            TrialStatus = text.Get("Setup_Verification_Trial_Not_Confirmed");
+            return;
+        }
+
         using var stop = new CancellationTokenSource();
         _trialStop = stop;
         IsTrying = true;
@@ -584,6 +604,12 @@ public sealed partial class SetupViewModel : ObservableObject
             IsTrying = false;
         }
     }
+
+    /// <summary>Whether <paramref name="profile"/> is not exactly the profile the project has saved, which the person accepted with Windows Hello.</summary>
+    private bool NeedsTrialConfirmation(VerificationProfile profile) =>
+        _proposal is not { Verification: { CurrentUnreadable: false, Current: { } saved } } || saved.ContentHash != profile.ContentHash;
+
+    private string LabelOf(VerificationStep step) => CheckRows.FirstOrDefault(r => r.Step.Id == step.Id)?.Label ?? step.Title;
 
     private bool CanStopTrial() => IsTrying;
 

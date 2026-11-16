@@ -20,10 +20,15 @@ namespace AgentStudio.Desktop.Setup;
 /// <summary>Creates the view models of the configurator over one service.</summary>
 /// <param name="trial">«Probarla ahora» of the check; null when the shell cannot compose it, and the button is not offered.</param>
 /// <param name="providerLimits">How many agents each program runs at once, for the root of a project; null to leave the line out.</param>
-public sealed class SetupViewModelFactory(ProjectSetupService service, SetupCheckTrial? trial = null, Func<string, IReadOnlyList<SetupProviderLimit>>? providerLimits = null)
+/// <param name="confirmTrial">The question before «Probarla ahora» runs commands not accepted yet; null never runs them.</param>
+public sealed class SetupViewModelFactory(
+    ProjectSetupService service,
+    SetupCheckTrial? trial = null,
+    Func<string, IReadOnlyList<SetupProviderLimit>>? providerLimits = null,
+    ISetupTrialConfirmation? confirmTrial = null)
 {
     /// <summary>A configurator that has not read any project yet: <see cref="SetupViewModel.LoadAsync"/> does.</summary>
-    public SetupViewModel Create() => new(service, trial: trial, providerLimits: providerLimits);
+    public SetupViewModel Create() => new(service, trial: trial, providerLimits: providerLimits, confirmTrial: confirmTrial);
 }
 
 /// <summary>
@@ -58,7 +63,8 @@ public static class SetupServices
         services.TryAddSingleton(provider => new SetupViewModelFactory(
             provider.GetRequiredService<ProjectSetupService>(),
             SetupCheckTrial.Create(provider.GetService<IVerificationRunner>(), provider.GetService<IWorktreeManager>(), provider.GetService<IProjectActivity>(), provider.GetService<TimeProvider>()),
-            ProviderLimits(provider.GetService<IProjectAgentProviders>())));
+            ProviderLimits(provider.GetService<IProjectAgentProviders>()),
+            provider.GetService<ISetupTrialConfirmation>() ?? new WpfSetupTrialConfirmation(provider.GetService<AgentStudio.Desktop.Lock.IInterfaceLock>())));
 
         // Which projects were already offered the configurator on the welcome tab: next to the options, nothing in the project.
         services.TryAddSingleton(_ => new SetupSuggestions(optionsFolder ?? LocalProjectOptionsStore.DefaultFolder));

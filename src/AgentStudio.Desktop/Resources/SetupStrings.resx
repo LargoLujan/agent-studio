@@ -715,4 +715,32 @@ Elegir cuánto puede durar cada intento.</value>
     <value>No se pudo lanzar la prueba: la carpeta del proyecto no está.</value>
     <comment>(setup.check.not-run)</comment>
   </data>
+  <data name="Setup_Trial_Window_Title" xml:space="preserve">
+    <value>Probar estas órdenes</value>
+  </data>
+  <data name="Setup_Trial_Heading" xml:space="preserve">
+    <value>¿Ejecutar estas órdenes ahora?</value>
+  </data>
+  <data name="Setup_Trial_What" xml:space="preserve">
+    <value>Se ejecutan sobre una copia de tu última versión guardada y no pueden cambiar tu proyecto. Pueden leer tus ficheros y usar la red, como cuando lanzas las pruebas tú.</value>
+  </data>
+  <data name="Setup_Trial_Not_Accepted" xml:space="preserve">
+    <value>Todavía no las has guardado ni aceptado. Míralas antes de seguir.</value>
+  </data>
+  <data name="Setup_Trial_Commands_Name" xml:space="preserve">
+    <value>Órdenes que se ejecutarán</value>
+    <comment>Accessible name of the list of commands.</comment>
+  </data>
+  <data name="Setup_Trial_Run" xml:space="preserve">
+    <value>Ejecutar</value>
+  </data>
+  <data name="Setup_Trial_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Confirmed" xml:space="preserve">
+    <value>No se ejecutó nada.</value>
+  </data>
+  <data name="Setup_Verification_Hidden" xml:space="preserve">
+    <value>Esta orden lleva caracteres invisibles o que cambian la dirección del texto. Escríbela de nuevo a mano.</value>
+  </data>
 </root>

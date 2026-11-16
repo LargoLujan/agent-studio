@@ -666,4 +666,32 @@ Choose how long each attempt can last.</value>
     <value>The trial could not be started: the folder of the project is missing.</value>
     <comment>(setup.check.not-run)</comment>
   </data>
+  <data name="Setup_Trial_Window_Title" xml:space="preserve">
+    <value>Try these commands</value>
+  </data>
+  <data name="Setup_Trial_Heading" xml:space="preserve">
+    <value>Run these commands now?</value>
+  </data>
+  <data name="Setup_Trial_What" xml:space="preserve">
+    <value>They run on a copy of your latest saved version and cannot change your project. They can read your files and use the network, as when you run the tests yourself.</value>
+  </data>
+  <data name="Setup_Trial_Not_Accepted" xml:space="preserve">
+    <value>You have not saved or accepted them yet. Look at them before you go on.</value>
+  </data>
+  <data name="Setup_Trial_Commands_Name" xml:space="preserve">
+    <value>Commands that will run</value>
+    <comment>Accessible name of the list of commands.</comment>
+  </data>
+  <data name="Setup_Trial_Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="Setup_Trial_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Setup_Verification_Trial_Not_Confirmed" xml:space="preserve">
+    <value>Nothing was run.</value>
+  </data>
+  <data name="Setup_Verification_Hidden" xml:space="preserve">
+    <value>This command has invisible characters or characters that change the direction of the text. Type it again by hand.</value>
+  </data>
 </root>

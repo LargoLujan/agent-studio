@@ -49,6 +49,8 @@ public sealed class SetupChecksTests
 
         public Func<string, IReadOnlyList<SetupProviderLimit>>? Limits { get; init; }
 
+        public SetupTrialAnswer Answer { get; init; } = new(true);
+
         public ProjectSetupService Service() => new(
             new FakeRepositoryReader(SetupFakes.Facts(Files)),
             Roster,
@@ -61,7 +63,7 @@ public sealed class SetupChecksTests
 
         public async Task<SetupViewModel> OpenAsync()
         {
-            var vm = new SetupViewModel(Service(), Spanish, Trial, Limits);
+            var vm = new SetupViewModel(Service(), Spanish, Trial, Limits, Answer);
             await vm.LoadAsync(SetupFakes.Project);
             return vm;
         }
@@ -355,6 +357,105 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task Commands_not_accepted_yet_run_only_after_the_person_says_so_with_the_exact_commands_in_front_of_them()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(false);
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()), Answer = answer };
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        var asked = Assert.Single(answer.Asked);
+        Assert.Equal(Spanish.Format("Setup_Summary_Item", Spanish.Get("Setup_Verification_Step_build"), "dotnet build App.slnx"), asked[0]);
+        Assert.Equal(2, asked.Count);
+        Assert.Empty(runner.Calls);
+        Assert.Equal(Spanish.Get("Setup_Verification_Trial_Not_Confirmed"), vm.TrialStatus);
+
+        answer.Yes = true;
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, answer.Asked.Count);
+        Assert.Single(runner.Calls);
+    }
+
+    [Fact]
+    public async Task The_saved_profile_untouched_runs_without_the_question_and_edited_it_asks_again()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var saved = DotNetVerificationProfile.Propose();
+        var rig = new Rig
+        {
+            Profiles = new StackProfiles(DotNetVerificationProfile.Propose()) { Stored = saved },
+            Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
+            Answer = answer,
+        };
+        var vm = await rig.OpenAsync();
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Empty(answer.Asked);
+        Assert.Single(runner.Calls);
+
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Single(answer.Asked);
+        Assert.Equal(2, runner.Calls.Count);
+    }
+
+    [Fact]
+    public async Task Without_the_question_composed_commands_not_accepted_never_run()
+    {
+        var runner = new SetupTrialRunner();
+        var service = new Rig().Service();
+        var vm = new SetupViewModel(service, Spanish, new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()));
+        await vm.LoadAsync(SetupFakes.Project);
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Empty(runner.Calls);
+        Assert.Equal(Spanish.Get("Setup_Verification_Trial_Not_Confirmed"), vm.TrialStatus);
+    }
+
+    [Theory]
+    [InlineData(0x202E)]
+    [InlineData(0x2066)]
+    [InlineData(0x200B)]
+    [InlineData(0xFEFF)]
+    public async Task A_command_with_an_invisible_or_direction_character_says_so_and_is_neither_tried_nor_saved(int codePoint)
+    {
+        var rig = new Rig { Trial = new SetupCheckTrial(new SetupTrialRunner(), new AuditRepository(Head), new FakeProjectActivity()) };
+        var vm = await rig.OpenAsync();
+
+        Row(vm, "build").CommandText = "dotnet build App" + char.ConvertFromUtf32(codePoint) + "nls.slnx";
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Hidden"), Row(vm, "build").Problem);
+        Assert.False(vm.TryChecksCommand.CanExecute(null));
+        Assert.False(vm.ApplyCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void The_question_answers_yes_only_to_run_and_no_to_cancel()
+    {
+        var run = new SetupTrialConfirmationViewModel(["a"]);
+        var cancel = new SetupTrialConfirmationViewModel(["a"]);
+        var closed = 0;
+        run.CloseRequested += (_, _) => closed++;
+        cancel.CloseRequested += (_, _) => closed++;
+
+        run.RunCommand.Execute(null);
+        cancel.CancelCommand.Execute(null);
+
+        Assert.True(run.Answer);
+        Assert.False(cancel.Answer);
+        Assert.Null(new SetupTrialConfirmationViewModel(["a"]).Answer);
+        Assert.Equal(2, closed);
+    }
+
+    [Fact]
     public async Task Without_the_trial_composed_the_button_is_not_offered()
     {
         var vm = await new Rig().OpenAsync();
@@ -546,5 +647,19 @@ internal sealed class SetupTrialRunner : IVerificationRunner
         }
 
         return Task.FromResult<IReadOnlyList<VerificationResult>>(results);
+    }
+}
+
+/// <summary>The person's answer to the question before «Probarla ahora»: it records the commands it was shown.</summary>
+internal sealed class SetupTrialAnswer(bool yes) : ISetupTrialConfirmation
+{
+    public bool Yes { get; set; } = yes;
+
+    public List<IReadOnlyList<string>> Asked { get; } = [];
+
+    public bool Confirm(IReadOnlyList<string> commands, CancellationToken cancellationToken)
+    {
+        Asked.Add(commands);
+        return Yes;
     }
 }

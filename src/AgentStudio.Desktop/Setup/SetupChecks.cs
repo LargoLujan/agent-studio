@@ -130,6 +130,12 @@ public sealed partial class SetupCheckRowViewModel : ObservableObject
                 return _text.Get("Setup_Verification_No_Program");
             }
 
+            // A mark of direction or a zero-width character would make the line show one command and run another.
+            if (parts.Any(AgentStudio.Domain.Common.UntrustedText.HasHidden))
+            {
+                return _text.Get("Setup_Verification_Hidden");
+            }
+
             // A report is only read from the fresh folder of the step: a command that does not write it there can never pass.
             if (Step.ReportPath is { } report && report.Contains(VerificationRunner.ResultsFolderToken, StringComparison.Ordinal)
                 && !parts.Skip(1).Any(p => p.Contains(VerificationRunner.ResultsFolderToken, StringComparison.Ordinal)))
