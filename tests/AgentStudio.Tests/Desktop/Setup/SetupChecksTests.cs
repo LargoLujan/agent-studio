@@ -272,44 +272,12 @@ public sealed class SetupChecksTests
 
     // ---- «Probarla ahora» -----------------------------------------------------------------------------------------
 
-    /// <summary>The verifier of the runs as the trial sees it: it records what it is given and answers each step as told.</summary>
-    private sealed class RecordingRunner : IVerificationRunner
-    {
-        public List<(string WorkingDirectory, IReadOnlyList<VerificationStep> Steps, EvidenceScope Scope)> Calls { get; } = [];
-
-        public HashSet<string> Failing { get; } = new(StringComparer.Ordinal);
-
-        public Task<IReadOnlyList<VerificationResult>> RunAsync(string workingDirectory, IReadOnlyList<VerificationStep> steps, EvidenceScope scope, IProgress<ProcessOutputLine>? output, CancellationToken cancellationToken)
-        {
-            Calls.Add((workingDirectory, steps, scope));
-            var results = new List<VerificationResult>();
-            foreach (var step in steps)
-            {
-                var passed = !Failing.Contains(step.Id);
-                for (var i = 0; i < 30; i++)
-                {
-                    output?.Report(new ProcessOutputLine(ProcessStream.StandardOutput, $"{step.Id} line {i}\u202E", DateTimeOffset.UnixEpoch));
-                }
-
-                var tests = step.Kind == EvidenceKind.TestRun ? new TestRunSummary(passed ? 4 : 3, passed ? 0 : 1, 0, passed ? 0 : 1) : null;
-                var evidence = new EvidenceRecord(new EvidenceId("ev-" + step.Id), step.Kind, EvidenceOrigin.CapturedBySystem, step.Title, "agent-studio", DateTimeOffset.UnixEpoch, new string('a', 64), tests, subjectCommit: scope.SubjectCommit);
-                results.Add(new VerificationResult(step.Id, evidence, passed, false, passed ? 0 : 1, passed ? [] : [new FailedTest("Calc.Adds", "expected 4")]));
-                if (!passed)
-                {
-                    break;
-                }
-            }
-
-            return Task.FromResult<IReadOnlyList<VerificationResult>>(results);
-        }
-    }
-
     private const string Head = "0123456789abcdef0123456789abcdef01234567";
 
     [Fact]
     public async Task The_trial_runs_only_the_isolated_commands_on_the_last_commit_holding_the_project_as_an_audit_and_saves_nothing()
     {
-        var runner = new RecordingRunner();
+        var runner = new SetupTrialRunner();
         var activity = new FakeProjectActivity();
         var profile = DotNetVerificationProfile.Propose() with
         {
@@ -338,14 +306,14 @@ public sealed class SetupChecksTests
     {
         var activity = new FakeProjectActivity();
         activity.Hold(ProjectActivityKind.Run);
-        var busy = await Assert.ThrowsAsync<UserTextException>(() => new SetupCheckTrial(new RecordingRunner(), new AuditRepository(Head), activity).RunAsync(SetupFakes.Project, DotNetVerificationProfile.Propose(), Ct));
+        var busy = await Assert.ThrowsAsync<UserTextException>(() => new SetupCheckTrial(new SetupTrialRunner(), new AuditRepository(Head), activity).RunAsync(SetupFakes.Project, DotNetVerificationProfile.Propose(), Ct));
         Assert.Equal("setup.check.busy", busy.Text.Code);
 
         var noCommit = new AuditRepository(Head) { InspectFailure = new InvalidOperationException("No commit yet.") };
-        var none = await Assert.ThrowsAsync<UserTextException>(() => new SetupCheckTrial(new RecordingRunner(), noCommit, new FakeProjectActivity()).RunAsync(SetupFakes.Project, DotNetVerificationProfile.Propose(), Ct));
+        var none = await Assert.ThrowsAsync<UserTextException>(() => new SetupCheckTrial(new SetupTrialRunner(), noCommit, new FakeProjectActivity()).RunAsync(SetupFakes.Project, DotNetVerificationProfile.Propose(), Ct));
         Assert.Equal("setup.check.no-version", none.Text.Code);
 
-        var runner = new RecordingRunner();
+        var runner = new SetupTrialRunner();
         var open = new VerificationProfile("x", [DotNetVerificationProfile.Propose().Steps[0] with { Isolation = ProcessIsolation.None }]);
         var notIsolated = await Assert.ThrowsAsync<UserTextException>(() => new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()).RunAsync(SetupFakes.Project, open, Ct));
         Assert.Equal("setup.check.no-isolated-step", notIsolated.Text.Code);
@@ -355,7 +323,7 @@ public sealed class SetupChecksTests
     [Fact]
     public async Task Try_it_now_shows_which_command_failed_the_tests_that_failed_and_the_last_lines_and_writes_nothing()
     {
-        var runner = new RecordingRunner();
+        var runner = new SetupTrialRunner();
         runner.Failing.Add("test");
         var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()) };
         var vm = await rig.OpenAsync();
@@ -537,5 +505,37 @@ public sealed class SetupChecksTests
             Assert.True(Spanish.Has(UserText.KeyOf(code)), code);
             Assert.True(english.Has(UserText.KeyOf(code)), code);
         }
+    }
+}
+
+/// <summary>The verifier of the runs as the trial sees it: it records what it is given and answers each step as told.</summary>
+internal sealed class SetupTrialRunner : IVerificationRunner
+{
+    public List<(string WorkingDirectory, IReadOnlyList<VerificationStep> Steps, EvidenceScope Scope)> Calls { get; } = [];
+
+    public HashSet<string> Failing { get; } = new(StringComparer.Ordinal);
+
+    public Task<IReadOnlyList<VerificationResult>> RunAsync(string workingDirectory, IReadOnlyList<VerificationStep> steps, EvidenceScope scope, IProgress<ProcessOutputLine>? output, CancellationToken cancellationToken)
+    {
+        Calls.Add((workingDirectory, steps, scope));
+        var results = new List<VerificationResult>();
+        foreach (var step in steps)
+        {
+            var passed = !Failing.Contains(step.Id);
+            for (var i = 0; i < 30; i++)
+            {
+                output?.Report(new ProcessOutputLine(ProcessStream.StandardOutput, $"{step.Id} line {i}\u202E", DateTimeOffset.UnixEpoch));
+            }
+
+            var tests = step.Kind == EvidenceKind.TestRun ? new TestRunSummary(passed ? 4 : 3, passed ? 0 : 1, 0, passed ? 0 : 1) : null;
+            var evidence = new EvidenceRecord(new EvidenceId("ev-" + step.Id), step.Kind, EvidenceOrigin.CapturedBySystem, step.Title, "agent-studio", DateTimeOffset.UnixEpoch, new string('a', 64), tests, subjectCommit: scope.SubjectCommit);
+            results.Add(new VerificationResult(step.Id, evidence, passed, false, passed ? 0 : 1, passed ? [] : [new FailedTest("Calc.Adds", "expected 4")]));
+            if (!passed)
+            {
+                break;
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<VerificationResult>>(results);
     }
 }

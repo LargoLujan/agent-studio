@@ -306,7 +306,7 @@ Apply: saving the check commands or sensitive permissions asks for Windows Hello
     <value>{0}: {1}. {2}</value>
   </data>
   <data name="Setup_Result_Roster_Changed" xml:space="preserve">
-    <value>You changed the template of agents: approve again the plan that was waiting.</value>
+    <value>You changed the team: approve again the plan that was waiting.</value>
   </data>
   <data name="Setup_Result_Recorded" xml:space="preserve">
     <value>It is noted in the history of the project.</value>
@@ -333,7 +333,7 @@ Apply: saving the check commands or sensitive permissions asks for Windows Hello
     <value>How to build and test (Python)</value>
   </data>
   <data name="Text_setup_models_light_executor" xml:space="preserve">
-    <value>It is the lighter executor of the medium template: for documentation or test tasks.</value>
+    <value>It is the lighter executor of the medium team: for test or writing tasks.</value>
   </data>
   <data name="Text_setup_verification_no_stack" xml:space="preserve">
     <value>We do not recognise the technology of the project. Write the commands yourself; each one has an example below it.</value>
@@ -651,7 +651,7 @@ Choose how long each attempt can last.</value>
     <comment>(setup.check.no-isolated-step)</comment>
   </data>
   <data name="Text_setup_check_busy" xml:space="preserve">
-    <value>The project is busy with another task. Try again when it ends.</value>
+    <value>The project is doing something else now. Try again when it ends.</value>
     <comment>(setup.check.busy)</comment>
   </data>
   <data name="Text_setup_check_no_version" xml:space="preserve">

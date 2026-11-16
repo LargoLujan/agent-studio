@@ -9,10 +9,12 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=setup:SetupViewModel}"
              Background="{StaticResource BackgroundBrush}">
-    <!-- The configurator of a project (docs/17 section 4.6, D-26 and D-27; ADR-0055): the list of steps on the left, the step on
-         screen on the right and «Atrás», «Siguiente» and «Aplicar» at the bottom. Bindings only; every text comes from the
-         resources (SetupStrings). It uses the tokens of Dark.xaml alone, so it renders with the base theme. A step that was
-         skipped says so; nothing is written until «Aplicar», and the summary shows what changes with what is there now. -->
+    <!-- The configurator of a project (docs/17 section 4.6, D-26 and D-27; ADR-0055; docs/24 section 3.4, wave 1): the list of
+         steps on the left, the step on screen on the right and «Atrás», «Siguiente» and «Aplicar» (or «Ir a trabajar» when
+         nothing would be saved) at the bottom. Bindings only; every text comes from the resources (SetupStrings). It uses the
+         tokens of Dark.xaml alone, so it renders with the base theme. The model and the effort of each agent and the commands of
+         the check are edited in their step; nothing is written until «Aplicar», and the summary shows every step as it will be,
+         what is saved and what stays as it is, with «Cambiar». -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Setup.BoolToVisibility"/>
 
@@ -238,7 +240,8 @@
                                             <WrapPanel>
                                                 <StackPanel Margin="0,0,16,4">
                                                     <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Models_Model_Label}"/>
-                                                    <ComboBox IsEditable="True" MinWidth="220" Margin="0,2,0,0" ItemsSource="{Binding Models}" TextSearch.TextPath="Model"
+                                                    <!-- No completion while typing: names are prefixes of each other (claude-opus-5, claude-opus-5-5). -->
+                                                    <ComboBox IsEditable="True" IsTextSearchEnabled="False" MinWidth="220" Margin="0,2,0,0" ItemsSource="{Binding Models}" TextSearch.TextPath="Model"
                                                               Text="{Binding ModelText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding ModelName}">
                                                         <ComboBox.ItemTemplate>
                                                             <DataTemplate>

@@ -155,4 +155,31 @@ public sealed class SetupViewTests
         Assert.Contains(Texts.Current.Get("Setup_Button_Next"), buttons);
         Assert.Contains(Texts.Current.Get("Setup_Button_Back"), buttons);
     }
+
+    [Fact]
+    public async Task The_models_are_chosen_in_boxes_the_summary_has_a_change_button_per_step_and_with_nothing_to_save_it_offers_to_go_to_work()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+
+        var (boxes, changes, goToWork, apply) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            vm.Step = SetupStep.Models;
+            view.UpdateLayout();
+            var boxes = Descendants<ComboBox>(view).Where(c => Shows(c, view)).Select(c => (c.IsEditable, Name: AutomationProperties.GetName(c))).ToList();
+            vm.Step = SetupStep.Summary;
+            view.UpdateLayout();
+            var changes = Descendants<Button>(view).Count(b => Shows(b, view) && b.Content as string == Texts.Current.Get("Setup_Summary_Change"));
+            vm.StepOf(SetupStep.Verification).IsIncluded = false;
+            view.UpdateLayout();
+            bool Shown(string key) => Descendants<Button>(view).Any(b => Shows(b, view) && b.Content as string == Texts.Current.Get(key));
+            return (boxes, changes, Shown("Setup_Button_Go_To_Work"), Shown("Setup_Button_Apply"));
+        });
+
+        Assert.Equal(vm.ModelRows.Select(r => r.ModelName), boxes.Where(b => b.IsEditable).Select(b => b.Name));
+        Assert.Equal(vm.ModelRows.Select(r => r.EffortName), boxes.Where(b => !b.IsEditable).Select(b => b.Name));
+        Assert.Equal(6, changes);
+        Assert.True(goToWork);
+        Assert.False(apply);
+    }
 }

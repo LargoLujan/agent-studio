@@ -428,6 +428,26 @@ public sealed class MainViewModelBuilderTests
 
         var stored = await rig.Roster.ListAsync("p-1", TestContext.Current.CancellationToken);
         Assert.Equal(stored.Select(a => a.Model), orchestrator.Context!.Roster.Select(a => a.Model));
+
+        // Everything went well: the person is taken to work, with the confirmation in the status bar (docs/24, wave 1).
+        await WaitForAsync(() => ReferenceEquals(rig.Main.ActiveContent, orchestrator));
+        Assert.Equal(Texts.Get("Setup_Applied_Confirmation"), rig.Main.StatusMessage);
+    }
+
+    [Fact]
+    public async Task Go_to_work_of_the_configurator_opens_the_orchestrator_of_the_project()
+    {
+        using var rig = new Rig();
+        await rig.OpenProjectAsync();
+        await rig.Main.OpenSetupCommand.ExecuteAsync(null);
+        var setup = Assert.IsType<SetupDocumentViewModel>(rig.Main.ActiveContent).Setup;
+        setup.Steps[(int)SetupStep.Verification].IsIncluded = false;
+        Assert.True(setup.GoToWorkCommand.CanExecute(null));
+
+        setup.GoToWorkCommand.Execute(null);
+
+        await WaitForAsync(() => rig.Main.ActiveContent is OrchestratorDocumentViewModel);
+        Assert.Single(rig.Main.Documents.OfType<OrchestratorDocumentViewModel>());
     }
 
     // ---- the counter of the agents and the panels follow the monitor of the project ----

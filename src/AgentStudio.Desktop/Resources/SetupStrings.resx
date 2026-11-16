@@ -327,7 +327,7 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <comment>{2}: why, one sentence.</comment>
   </data>
   <data name="Setup_Result_Roster_Changed" xml:space="preserve">
-    <value>Cambiaste la plantilla de agentes: vuelve a aprobar el plan que estuviera esperando.</value>
+    <value>Cambiaste el equipo: vuelve a aprobar el plan que estuviera esperando.</value>
   </data>
   <data name="Setup_Result_Recorded" xml:space="preserve">
     <value>Queda anotado en el historial del proyecto.</value>
@@ -361,7 +361,7 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <comment>Heading of the skeleton of the brief (setup.brief.section.stack-python).</comment>
   </data>
   <data name="Text_setup_models_light_executor" xml:space="preserve">
-    <value>Es el ejecutor ligero de la plantilla mediana: para tareas de documentación o de pruebas.</value>
+    <value>Es el ejecutor ligero del equipo mediano: para tareas de pruebas o de textos.</value>
     <comment>Reason of the recommendation of the lighter executor (setup.models.light-executor).</comment>
   </data>
   <data name="Text_setup_verification_no_stack" xml:space="preserve">
@@ -700,7 +700,7 @@ Elegir cuánto puede durar cada intento.</value>
     <comment>(setup.check.no-isolated-step)</comment>
   </data>
   <data name="Text_setup_check_busy" xml:space="preserve">
-    <value>El proyecto está ocupado con otra tarea. Inténtalo cuando termine.</value>
+    <value>Ahora el proyecto hace otra cosa. Prueba de nuevo cuando acabe.</value>
     <comment>(setup.check.busy)</comment>
   </data>
   <data name="Text_setup_check_no_version" xml:space="preserve">
