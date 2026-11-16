@@ -732,6 +732,30 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task Opening_the_same_project_again_during_a_trial_keeps_the_commands_and_the_trial_on_screen()
+    {
+        var runner = new GatedTrialRunner();
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()) };
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        var rows = vm.CheckRows.ToList();
+        var trying = vm.TryChecksCommand.ExecuteAsync(null);
+        await WaitForAsync(() => runner.Started);
+
+        await vm.LoadAsync(SetupFakes.Project);
+
+        Assert.True(vm.IsTrying);
+        Assert.Equal(Spanish.Get("Setup_Verification_Trying"), vm.TrialStatus);
+        Assert.Equal(rows, vm.CheckRows);
+        Assert.Equal("dotnet build App.slnx", Row(vm, "build").CommandText);
+
+        runner.Release();
+        await trying;
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Trial_Passed"), vm.TrialStatus);
+    }
+
+    [Fact]
     public async Task Whatever_the_verifier_throws_is_said_on_the_screen_and_never_escapes_the_command()
     {
         var runner = new GatedTrialRunner { Failure = new FormatException("The database of evidence is damaged.") };

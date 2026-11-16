@@ -334,6 +334,12 @@ public sealed partial class SetupViewModel : ObservableObject
         {
             CancelTrial();
         }
+        else if (IsTrying && project is not null)
+        {
+            // The same project while «Probarla ahora» runs (the tab opened again): what is on screen is what runs, and reading the
+            // project again would erase it, and its «Probando…», under the trial. It is read again once the person asks after it.
+            return;
+        }
 
         _project = project;
         OnPropertyChanged(nameof(HasProject));
