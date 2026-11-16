@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
@@ -155,6 +155,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <param name="setupSuggestions">Which projects the configurator was already suggested for; without it nothing is suggested.</param>
     /// <param name="headTests">What composes «Ejecutar las pruebas de HEAD» of the panel «Pruebas»; without it, or with a part missing, the button is not offered.</param>
     /// <param name="clientDocuments">The «Documentación para clientes» document of the session; without it the activity is not offered.</param>
+    /// <param name="progress">
+    /// Reads whether the open project was set up and has frozen requirements, for the next step of «Inicio» (docs/24 §3.2); without
+    /// it «Inicio» proposes a step that claims neither.
+    /// </param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
         IFolderPicker folderPicker,
@@ -186,7 +190,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         OpenProjectRoots? projectRoots = null,
         DoctorViewModel? doctor = null,
         GraphDocumentViewModel? graphDocument = null,
-        RemoteSyncAttachment? remoteSync = null)
+        RemoteSyncAttachment? remoteSync = null,
+        ProjectProgressReader? progress = null)
     {
         _remoteSync = remoteSync;
         ArgumentNullException.ThrowIfNull(settingsStore);
@@ -244,29 +249,38 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         InitializeRepository(repository);
         ConnectRepositoryToWork();
         ConnectGraph();
+        InitializeBuilderShell(monitors, setup, setupSuggestions);
+        _progress = progress;
+
+        // The bar in groups (docs/24 §3.1), each entry with its icon and its title; only what was composed is offered.
         Activities =
         [
-            new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
-            new("orchestrator", Texts.Get("Main_Activity_Orchestrator"), "\uE9F5", null, null, OpenOrchestratorCommand),
+            new("home", Texts.Get("Main_Home"), "\uE80F", null, null, ShowWelcomeCommand) { Group = ActivityGroup.Project },
+            .. SetupActivities(),
+            new("orchestrator", Texts.Get("Main_Activity_Orchestrator"), "\uE9F5", null, null, OpenOrchestratorCommand) { Group = ActivityGroup.Project },
             .. BackgroundRunActivities(),
-            .. AgentActivities(),
-            new("skills", Texts.Get("Main_Activity_Skills"), "", null, null, OpenSkillsCommand),
-            .. BuilderToolActivities(),
-            .. ObservabilityActivities(),
+            new("explorer", Texts.Get("Main_Panel_Explorer"), "\uE8B7", null, PanelIds.Explorer, TogglePanelCommand) { Group = ActivityGroup.Inside },
             .. RepositoryActivities(),
-            .. ClientDocumentActivities(),
             .. WorkActivities(),
-            .. GraphActivities(),
+            .. MemoryActivities(),
+            new("skills", Texts.Get("Main_Activity_Skills"), "\uE8F1", null, null, OpenSkillsCommand) { Group = ActivityGroup.Inside },
+            .. AgentActivities(),
+            .. UsageActivities(),
             .. DebateActivities(),
-            new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
-            new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "", null, PanelIds.AutoDoctor, TogglePanelCommand),
-            new("history", Texts.Get("Main_Activity_History"), "", null, PanelIds.Journal, TogglePanelCommand),
+            .. GraphActivities(),
+            .. ToolActivities(),
+            .. ClientDocumentActivities(),
+            new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "\uEB51", null, PanelIds.AutoDoctor, TogglePanelCommand),
+            new("history", Texts.Get("Main_Activity_History"), "\uE81C", null, PanelIds.Journal, TogglePanelCommand),
+            new("terminal", Texts.Get("Main_Panel_Terminal"), "\uE756", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
+            .. TestResultActivities(),
             .. HelpActivities(),
             .. SettingsActivities(),
         ];
+        ActivitySections = SectionsOf(Activities);
+        FooterActivities = [.. Activities.Where(a => a.Group == ActivityGroup.Footer)];
         Tests.HeadTests = headTests?.For(() => ProjectPath);
         Tests.CurrentProject = () => ProjectPath;
-        InitializeBuilderShell(monitors, setup, setupSuggestions);
         InitializeDoctor(doctor);
     }
 
@@ -292,7 +306,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         if (_debates is not null)
         {
-            yield return new ActivityItemViewModel("debates", Texts.Get("Main_Activity_Debates"), "", null, null, OpenDebatesCommand) { Shortcut = DebatesShortcut };
+            yield return new ActivityItemViewModel("debates", Texts.Get("Main_Activity_Debates"), "\uE8F2", null, null, OpenDebatesCommand) { Shortcut = DebatesShortcut };
         }
     }
 
@@ -301,7 +315,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         if (_settingsDocument is not null)
         {
-            yield return new ActivityItemViewModel("settings", Texts.Get("SettingsDoc_Title"), "", null, null, OpenSettingsCommand);
+            yield return new ActivityItemViewModel("settings", Texts.Get("SettingsDoc_Title"), "\uE713", null, null, OpenSettingsCommand) { Group = ActivityGroup.Footer };
         }
     }
 
@@ -315,17 +329,21 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         }
     }
 
-    /// <summary>«Consumo» and «Memoria», each only when its screen was composed.</summary>
-    private IEnumerable<ActivityItemViewModel> ObservabilityActivities()
+    /// <summary>«Consumo», only when its screen was composed.</summary>
+    private IEnumerable<ActivityItemViewModel> UsageActivities()
     {
         if (_usage is not null)
         {
-            yield return new ActivityItemViewModel("usage", Texts.Get("Main_Activity_Usage"), "", null, null, OpenUsageCommand);
+            yield return new ActivityItemViewModel("usage", Texts.Get("Main_Activity_Usage"), "\uE9D2", null, null, OpenUsageCommand) { Group = ActivityGroup.Accounts };
         }
+    }
 
+    /// <summary>«Memoria», only when its screen was composed.</summary>
+    private IEnumerable<ActivityItemViewModel> MemoryActivities()
+    {
         if (_memory is not null)
         {
-            yield return new ActivityItemViewModel("memory", Texts.Get("Main_Activity_Memory"), "", null, null, OpenMemoryCommand);
+            yield return new ActivityItemViewModel("memory", Texts.Get("Main_Activity_Memory"), "\uE82D", null, null, OpenMemoryCommand) { Group = ActivityGroup.Inside };
         }
     }
 
@@ -383,12 +401,19 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         return commit.Length >= 7 ? $"v{parts[0]} · {commit[..7]}" : $"v{parts[0]}";
     }
 
-    /// <summary>The welcome tab follows the open project: with one, it offers the ways into it.</summary>
+    /// <summary>The welcome tab follows the open project: with one, it proposes its next step.</summary>
     partial void OnProjectPathChanged(string? value)
     {
         InvalidateTools();
         _welcome?.ShowProject(value is null ? null : ProjectName, value is null ? null : ProjectPathDisplay);
         ShowSetupSuggestion(value);
+        if (_welcome is not null)
+        {
+            // The step of the project left must not stay on screen while the one of the new project is read.
+            _welcome.NextStep = null;
+        }
+
+        RefreshNextStep();
 
         // The tests of HEAD that run are of the project that was open: they are stopped (the copy is cleaned when the verifier ends).
         Tests.CancelHeadTestsCommand.Execute(null);
@@ -459,54 +484,21 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         }
     }
 
+    /// <summary>
+    /// «Inicio»: the welcome tab, created the first time, with the next step of the open project read again (docs/24 §3.2).
+    /// </summary>
     [RelayCommand]
     private void ShowWelcome()
     {
         if (_welcome is null)
         {
-            _welcome = new WelcomeDocumentViewModel(RecentProjects, OpenFolderCommand, OpenRecentCommand, WelcomeActions());
+            _welcome = new WelcomeDocumentViewModel(RecentProjects, OpenFolderCommand, OpenRecentCommand);
             _welcome.ShowProject(HasProject ? ProjectName : null, HasProject ? ProjectPathDisplay : null);
             ShowSetupSuggestion(ProjectPath);
         }
 
         AddDocument(_welcome);
-    }
-
-    /// <summary>
-    /// The ways into the open project the welcome tab offers, with their shortcuts: only the screens that were composed, as in
-    /// the activity bar.
-    /// </summary>
-    private List<WelcomeActionViewModel> WelcomeActions()
-    {
-        var actions = new List<WelcomeActionViewModel>
-        {
-            new(Texts.Get("Main_Activity_Orchestrator"), Texts.Get("Welcome_Action_Orchestrator"), null, OpenOrchestratorCommand),
-            new(Texts.Get("Main_GoToFile"), Texts.Get("Welcome_Action_GoToFile"), GoToFileShortcut, GoToFileCommand),
-        };
-
-        if (_debates is not null)
-        {
-            actions.Add(new(Texts.Get("Main_Activity_Debates"), Texts.Get("Welcome_Action_Debates"), DebatesShortcut, OpenDebatesCommand));
-            actions.Add(new(Texts.Get("Main_Audit"), Texts.Get("Welcome_Action_Audit"), AuditShortcut, OpenAuditCommand));
-        }
-
-        if (_usage is not null)
-        {
-            actions.Add(new(Texts.Get("Main_Activity_Usage"), Texts.Get("Welcome_Action_Usage"), null, OpenUsageCommand));
-        }
-
-        if (_memory is not null)
-        {
-            actions.Add(new(Texts.Get("Main_Activity_Memory"), Texts.Get("Welcome_Action_Memory"), null, OpenMemoryCommand));
-        }
-
-        if (_setupFactory is not null)
-        {
-            actions.Add(new(Texts.Get("Shell_Setup_Action"), Texts.Get("Shell_Setup_ActionHelp"), null, OpenSetupCommand));
-        }
-
-        actions.Add(new(Texts.Get("Main_Panel_Terminal"), Texts.Get("Welcome_Action_Terminal"), TerminalShortcut, ToggleTerminalCommand));
-        return actions;
+        RefreshNextStep();
     }
 
     /// <summary>Ctrl+P: search the files of the open project and open the one chosen in a tab.</summary>
@@ -787,6 +779,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (wasActive != monitor.IsActive)
         {
             _memory?.RefreshRunActivity();
+            RefreshNextStep();
         }
 
         // A run that starts in the monitor of a closed tab (resumed by its consent) is in view in the status bar again, and is
@@ -1136,6 +1129,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _backgroundRuns.Add(root, monitor);
         _work?.TrackRun(root, monitor, () => project);
         StatusStrip.Track(monitor);
+        RefreshNextStep();
     }
 
     /// <summary>

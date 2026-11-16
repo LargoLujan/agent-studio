@@ -29,7 +29,7 @@ public sealed partial class MainViewModel
     {
         if (_repository is not null)
         {
-            yield return new ActivityItemViewModel("repository", Texts.Get("Main_Activity_Repository"), "", null, null, OpenRepositoryCommand);
+            yield return new ActivityItemViewModel("repository", Texts.Get("Main_Activity_Repository"), "\uE943", null, null, OpenRepositoryCommand) { Group = ActivityGroup.Inside };
         }
     }
 

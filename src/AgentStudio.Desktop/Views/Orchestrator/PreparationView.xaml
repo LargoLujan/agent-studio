@@ -15,8 +15,9 @@
          width in columns while each has room, the requirements alone on top and the other two under them when it is
          narrower, and one under another when narrower still (AdaptiveColumnsPanel): never a horizontal scroll bar. -->
     <UserControl.Resources>
-        <!-- The band takes at most 45 % of the height of the tab (between 180 and 380): the canvas stays in sight. -->
-        <views:ShareOfLengthConverter x:Key="Preparation.MaxHeight" Factor="0.45" Minimum="180" Maximum="380"/>
+        <!-- The sections take at most 30 % of the height of the tab (between 120 and 380), read from the tab itself, never from a
+             scroller whose height depends on them: the canvas and the monitor stay in sight. -->
+        <views:ShareOfLengthConverter x:Key="Preparation.MaxHeight" Factor="0.3" Minimum="120" Maximum="380"/>
     </UserControl.Resources>
     <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
         <DockPanel>
@@ -34,7 +35,7 @@
             </DockPanel>
 
             <ScrollViewer x:Name="Sections" Margin="0,8,0,0" VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
-                          MaxHeight="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}, Converter={StaticResource Preparation.MaxHeight}, FallbackValue=380}"
+                          MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=views:OrchestratorView}, Converter={StaticResource Preparation.MaxHeight}, FallbackValue=380}"
                           Visibility="{Binding IsPreparationExpanded, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                 <views:AdaptiveColumnsPanel x:Name="Columns" ColumnSpacing="22" RowSpacing="16" Margin="0,0,4,0">
 
@@ -45,11 +46,11 @@
                             <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Orchestrator_Prep_Requirements}"/>
                         </DockPanel>
                         <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Prep_RequestLabel}"/>
-                        <TextBox Style="{StaticResource MultilineFieldTextBox}" MinHeight="44" MaxHeight="88"
+                        <TextBox x:Name="RequestBox" Style="{StaticResource MultilineFieldTextBox}" MinHeight="44" MaxHeight="88"
                                  Text="{Binding RequestText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Orchestrator_Prep_RequestName}"
                                  AutomationProperties.HelpText="{l:T Orchestrator_Prep_RequestHelp}"/>
                         <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Prep_RequirementsLabel}"/>
-                        <views:RequirementsEditorView DataContext="{Binding Requirements}"/>
+                        <views:RequirementsEditorView x:Name="RequirementsEditor" DataContext="{Binding Requirements}"/>
                     </StackPanel>
 
                     <!-- The agents of the project: each with its CLI, its tools, its model and whether it gets the memory. -->

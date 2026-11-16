@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Preparation;
 using AgentStudio.Desktop.Orchestrator.Questions;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Setup;
 using AgentStudio.Desktop.Tools;
 using AgentStudio.Desktop.ViewModels;
@@ -97,7 +98,8 @@ public sealed class MainViewModelBuilderTests
                 orchestrators: factory,
                 monitors: Monitors,
                 setup: setup,
-                setupSuggestions: new SetupSuggestions(Folder.Combine("suggestions")));
+                setupSuggestions: new SetupSuggestions(Folder.Combine("suggestions")),
+                progress: new ProjectProgressReader(null, null, null));
         }
 
         public TempDirectory Folder { get; } = new();
@@ -336,14 +338,25 @@ public sealed class MainViewModelBuilderTests
 
     // ---- «Configurar proyecto» ----
 
+    /// <summary>
+    /// docs/24 §3.2: a project where Agent Studio never wrote was never set up, so the next step of «Inicio» is to set it up; and
+    /// the bar offers «Configurar proyecto» in its group «Proyecto». Both open the configurator, which reads the project.
+    /// </summary>
     [Fact]
-    public async Task The_welcome_tab_of_a_project_offers_configurar_proyecto_and_opening_it_reads_the_project()
+    public async Task A_project_never_set_up_has_configurar_el_proyecto_as_its_next_step_and_opening_it_reads_the_project()
     {
         using var rig = new Rig();
         await rig.OpenProjectAsync();
         rig.Main.ShowWelcomeCommand.Execute(null);
+        await rig.Main.NextStepRead;
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
-        var action = Assert.Single(welcome.ProjectActions, a => a.Title == Texts.Get("Shell_Setup_Action"));
+        var step = Assert.IsType<NextStepViewModel>(welcome.NextStep);
+        Assert.Equal(NextStepKind.SetUp, step.Kind);
+        Assert.Equal("Configurar el proyecto", step.Action);
+        var entry = Assert.Single(Assert.Single(rig.Main.ActivitySections, s => s.Group == ActivityGroup.Project).Items, a => a.Id == "setup");
+        Assert.Equal(Texts.Get("Shell_Setup_Action"), entry.Title);
+        Assert.Same(rig.Main.OpenSetupCommand, entry.Command);
+        var action = step;
 
         await ((IAsyncRelayCommand)action.Command).ExecuteAsync(null);
 
@@ -381,9 +394,13 @@ public sealed class MainViewModelBuilderTests
         rig.Main.ShowWelcomeCommand.Execute(null);
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
 
+        await rig.Main.NextStepRead;
+
         await rig.Main.OpenSetupCommand.ExecuteAsync(null);
 
-        Assert.DoesNotContain(welcome.ProjectActions, a => a.Title == Texts.Get("Shell_Setup_Action"));
+        // Never set up, but without a configurator to offer: the step is a new request, and the bar has no «Configurar proyecto».
+        Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
+        Assert.DoesNotContain(rig.Main.Activities, a => a.Id == "setup");
         Assert.DoesNotContain(rig.Main.Documents, d => d is SetupDocumentViewModel);
     }
 

@@ -35,7 +35,7 @@
     <value>Home</value>
   </data>
   <data name="Main_Home_Hint" xml:space="preserve">
-    <value>Shows the welcome tab.</value>
+    <value>Shows the next step of the project and the recent projects.</value>
   </data>
   <data name="Main_GoToFile" xml:space="preserve">
     <value>Go to file</value>
@@ -143,16 +143,13 @@
     <value>{0}, with unsaved changes</value>
   </data>
   <data name="Welcome_Title" xml:space="preserve">
-    <value>Welcome</value>
+    <value>Home</value>
   </data>
   <data name="Welcome_Intro" xml:space="preserve">
     <value>Open a project folder. You will see its files, its journal and the state of the agent programs.</value>
   </data>
   <data name="Welcome_ProjectOpen" xml:space="preserve">
     <value>Open project</value>
-  </data>
-  <data name="Welcome_InProject" xml:space="preserve">
-    <value>In this project</value>
   </data>
   <data name="Welcome_OpenOther" xml:space="preserve">
     <value>Open another folder</value>
@@ -162,27 +159,6 @@
   </data>
   <data name="Welcome_NoRecent" xml:space="preserve">
     <value>You have not opened any project yet.</value>
-  </data>
-  <data name="Welcome_Action_Orchestrator" xml:space="preserve">
-    <value>Ask the agents for a job. You review the plan and an independent reviewer (judge) checks the result.</value>
-  </data>
-  <data name="Welcome_Action_GoToFile" xml:space="preserve">
-    <value>Find a project file and open it in the editor.</value>
-  </data>
-  <data name="Welcome_Action_Debates" xml:space="preserve">
-    <value>Have agents from different companies debate to test a decision.</value>
-  </data>
-  <data name="Welcome_Action_Audit" xml:space="preserve">
-    <value>Audits the latest saved version (commit). The system checks it and an independent reviewer (judge) reviews it.</value>
-  </data>
-  <data name="Welcome_Action_Usage" xml:space="preserve">
-    <value>Tokens and cost of the runs, and your plan's usage limit.</value>
-  </data>
-  <data name="Welcome_Action_Memory" xml:space="preserve">
-    <value>What the project learns from its runs and the agents receive.</value>
-  </data>
-  <data name="Welcome_Action_Terminal" xml:space="preserve">
-    <value>Shows or hides the terminal, open in the project folder.</value>
   </data>
   <data name="Main_NeedProject_Orchestrator" xml:space="preserve">
     <value>Open a project folder to use the orchestrator.</value>
@@ -646,5 +622,65 @@ If you choose No, your changes stay in the editor, unsaved.</value>
   </data>
   <data name="UnsavedView_ListName" xml:space="preserve">
     <value>Documents with unsaved changes</value>
+  </data>
+  <data name="Main_Group_Project" xml:space="preserve">
+    <value>Project</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Group_Inside" xml:space="preserve">
+    <value>Inside the project</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Group_Accounts" xml:space="preserve">
+    <value>Accounts</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Group_More" xml:space="preserve">
+    <value>More</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Bar_Collapse" xml:space="preserve">
+    <value>Show only the icons</value>
+    <comment>Button of the activity bar that hides the names of its entries.</comment>
+  </data>
+  <data name="Main_Bar_Expand" xml:space="preserve">
+    <value>Show the names</value>
+    <comment>Button of the activity bar that shows the names of its entries again.</comment>
+  </data>
+  <data name="Welcome_NextStep" xml:space="preserve">
+    <value>Next step</value>
+    <comment>Title of the card of the next step of the open project.</comment>
+  </data>
+  <data name="Welcome_Next_SetUp" xml:space="preserve">
+    <value>You have not set up this project yet. Choose the team and how its work is checked.</value>
+    <comment>Why the next step is to set up the project.</comment>
+  </data>
+  <data name="Welcome_Next_SetUpAction" xml:space="preserve">
+    <value>Set up the project</value>
+    <comment>Button of the next step.</comment>
+  </data>
+  <data name="Welcome_Next_FirstRequest" xml:space="preserve">
+    <value>The project is set up. Now say what you want the agents to do.</value>
+    <comment>Why the next step is the first request.</comment>
+  </data>
+  <data name="Welcome_Next_FirstRequestAction" xml:space="preserve">
+    <value>Write your first request</value>
+    <comment>Button of the next step.</comment>
+  </data>
+  <data name="Welcome_Next_Run" xml:space="preserve">
+    <value>The agents are working on this project. See how the run is going.</value>
+    <comment>Why the next step is to see the run in progress.</comment>
+  </data>
+  <data name="Welcome_Next_RunAction" xml:space="preserve">
+    <value>See the run in progress</value>
+    <comment>Button of the next step.</comment>
+  </data>
+  <data name="Welcome_Next_NewRequest" xml:space="preserve">
+    <value>Say what you want to do now. The team will propose a plan for you to review.</value>
+    <comment>Why the next step is a new request; it claims nothing about the project.</comment>
+  </data>
+  <data name="Welcome_Next_NewRequestAction" xml:space="preserve">
+    <value>Write a new request</value>
+    <comment>Button of the next step.</comment>
   </data>
 </root>

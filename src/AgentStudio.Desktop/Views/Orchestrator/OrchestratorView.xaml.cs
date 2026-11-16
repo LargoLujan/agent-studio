@@ -1,9 +1,82 @@
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
+using AgentStudio.Desktop.Orchestrator;
 
 namespace AgentStudio.Desktop.Views.Orchestrator;
 
-/// <summary>The «Orquestador» document tab; bindings only.</summary>
+/// <summary>
+/// The «Orquestador» document tab: bindings, and the hand-off of the keyboard when another screen brings the person here
+/// (<see cref="OrchestratorDocumentViewModel.PendingFocus"/>). The dock creates this view only when the tab is shown, and again
+/// when a layout is restored, so the request waits on the document until a view on screen takes it.
+/// </summary>
 public partial class OrchestratorView : UserControl
 {
-    public OrchestratorView() => InitializeComponent();
+    private OrchestratorDocumentViewModel? _document;
+    private bool _onScreen;
+
+    public OrchestratorView()
+    {
+        InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        Follow(null);
+        if (_onScreen)
+        {
+            Follow(DataContext as OrchestratorDocumentViewModel);
+            TakeFocusLater();
+        }
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _onScreen = true;
+        Follow(DataContext as OrchestratorDocumentViewModel);
+        TakeFocusLater();
+    }
+
+    /// <summary>A view off screen lets go of its document, so a tab the dock recreated does not keep the old view alive.</summary>
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _onScreen = false;
+        Follow(null);
+    }
+
+    private void Follow(OrchestratorDocumentViewModel? document)
+    {
+        if (_document is not null)
+        {
+            _document.FocusRequested -= OnFocusRequested;
+        }
+
+        _document = document;
+        if (_document is not null)
+        {
+            _document.FocusRequested += OnFocusRequested;
+        }
+    }
+
+    private void OnFocusRequested(object? sender, EventArgs e) => TakeFocusLater();
+
+    /// <summary>Once the band «Preparación» it opened is laid out, the part asked for is brought into view and given the keyboard.</summary>
+    private void TakeFocusLater()
+    {
+        if (_onScreen && _document?.PendingFocus is not null)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, TakeFocus);
+        }
+    }
+
+    private void TakeFocus()
+    {
+        if (_onScreen && _document?.TakePendingFocus() is { } target)
+        {
+            PreparationBand.BringToKeyboard(target);
+        }
+    }
 }

@@ -5,8 +5,8 @@ namespace AgentStudio.Desktop.Debate;
 
 /// <summary>
 /// What the review screens ask of the shell (the integration implements it over <c>MainViewModel</c>): show one of their
-/// documents, and open the orchestrator of a project with a request («Crear tareas correctivas»). Without it, the actions
-/// that leave a screen are not offered.
+/// documents, open the orchestrator of a project with a request («Crear tareas correctivas»), and open it on «Requisitos»
+/// («Ir a los requisitos» of «Auditar»). Without it, the actions that leave a screen are not offered.
 /// </summary>
 public interface IReviewNavigation
 {
@@ -15,6 +15,9 @@ public interface IReviewNavigation
 
     /// <summary>Opens the «Orquestador» of the project with <paramref name="request"/> as its request; nothing is planned or run.</summary>
     Task CreateCorrectiveTasksAsync(string projectRoot, string request);
+
+    /// <summary>Opens the «Orquestador» of the project on «Requisitos», with the keyboard there; nothing is frozen.</summary>
+    Task OpenRequirementsAsync(string projectRoot);
 }
 
 /// <summary>
@@ -85,4 +88,8 @@ public sealed class DebateScreens
     /// <summary>«Crear tareas correctivas»: the orchestrator of the project with the request; nothing is planned without you.</summary>
     public Task CreateCorrectiveTasksAsync(string projectRoot, string request) =>
         _navigation?.Invoke() is { } navigation ? navigation.CreateCorrectiveTasksAsync(projectRoot, request) : Task.CompletedTask;
+
+    /// <summary>«Ir a los requisitos»: the orchestrator of the project on «Requisitos»; nothing is frozen without you.</summary>
+    public Task OpenRequirementsAsync(string projectRoot) =>
+        _navigation?.Invoke() is { } navigation ? navigation.OpenRequirementsAsync(projectRoot) : Task.CompletedTask;
 }

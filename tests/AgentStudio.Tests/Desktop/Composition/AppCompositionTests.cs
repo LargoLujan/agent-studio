@@ -390,7 +390,8 @@ public sealed class AppCompositionTests
 
         var main = provider.GetRequiredService<MainViewModel>();
         var phase4 = main.Activities.Where(a => a.Id is "skills" or "usage" or "memory").ToList();
-        Assert.Equal(["skills", "usage", "memory"], phase4.Select(a => a.Id));
+        // docs/24 §3.1: «Memoria» and «Skills» inside the project, «Consumo» in «Cuentas».
+        Assert.Equal(["memory", "skills", "usage"], phase4.Select(a => a.Id));
         Assert.All(phase4, a => Assert.True(a.IsEnabled));
     }
 
@@ -623,11 +624,16 @@ public sealed class AppCompositionTests
         var main = provider.GetRequiredService<MainViewModel>();
         await main.OpenProjectAsync(project);
 
-        // The optional parameters of the shell come from the container: the welcome tab offers «Configurar proyecto» (the configurator
-        // is composed), suggests it once for the new project, and a tab of the orchestrator opened in it has its monitor equipped.
+        // The optional parameters of the shell come from the container: the bar offers «Configurar proyecto» (the configurator is
+        // composed); «Inicio» reads the project (the reader of its progress is composed: a folder where Agent Studio never wrote was
+        // never set up) and suggests the configurator once for the new project; and a tab of the orchestrator opened in it has its
+        // monitor equipped.
         main.ShowWelcomeCommand.Execute(null);
+        await main.NextStepRead;
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(main.ActiveContent);
-        Assert.Contains(welcome.ProjectActions, a => a.Title == AgentStudio.Desktop.Localization.Texts.Get("Shell_Setup_Action"));
+        Assert.Contains(main.Activities, a => a.Id == "setup" && a.Title == AgentStudio.Desktop.Localization.Texts.Get("Shell_Setup_Action"));
+        Assert.Equal(NextStepKind.SetUp, welcome.NextStep?.Kind);
+        Assert.Same(main.OpenSetupCommand, welcome.NextStep?.Command);
         Assert.True(welcome.HasSetupSuggestion);
         await OpenOrchestratorAsync(main);
         var tab = Assert.IsType<OrchestratorDocumentViewModel>(main.ActiveContent);

@@ -117,6 +117,7 @@ public sealed class SumConverter : IMultiValueConverter
 /// <summary>
 /// A share of a length (<see cref="Factor"/>) kept between <see cref="Minimum"/> and <see cref="Maximum"/>: the most a band may
 /// take of the height of its tab, so a short pane still shows what comes under it. <see cref="Maximum"/> without a length.
+/// With <see cref="Reserve"/>, never more than the length minus that reserve either: what comes under keeps it whole.
 /// </summary>
 public sealed class ShareOfLengthConverter : IValueConverter
 {
@@ -126,8 +127,13 @@ public sealed class ShareOfLengthConverter : IValueConverter
 
     public double Maximum { get; set; } = double.PositiveInfinity;
 
+    /// <summary>What the length keeps for what comes under the band, whatever the share says; 0 by default.</summary>
+    public double Reserve { get; set; }
+
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is double length && double.IsFinite(length) && length > 0 ? Math.Clamp(length * Factor, Minimum, Maximum) : Maximum;
+        value is double length && double.IsFinite(length) && length > 0
+            ? Math.Clamp(Math.Min(length * Factor, length - Reserve), Minimum, Maximum)
+            : Maximum;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

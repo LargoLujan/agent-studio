@@ -100,24 +100,116 @@ public sealed class OrchestratorLayoutTests
         Assert.True(tallest < 60, $"A line of where the plan stands is {tallest} high: its words were split.");
     }
 
+    /// <summary>
+    /// docs/24 §1, rows 14 and 15: the tab never scrolls as a whole. In a short pane the bands take at most half of it and scroll
+    /// inside, and the canvas and the monitor keep at least their least height (120 each), so the divider always has room.
+    /// </summary>
     [Fact]
-    public async Task The_tab_scrolls_when_its_pane_is_shorter_than_its_bands_and_the_least_of_the_canvas_and_the_monitor()
+    public async Task In_a_short_pane_the_bands_scroll_inside_and_the_canvas_and_the_monitor_keep_their_least_height()
     {
         var document = await WpfHost.RunAsync(() => OpenAsync());
 
-        var (layoutHeight, canvasHeight, scrollable) = WpfHost.Run(() =>
+        var (layoutHeight, bands, bandsScrollable, canvasHeight, monitorHeight) = WpfHost.Run(() =>
         {
             document.IsPreparationExpanded = true;
             var view = new OrchestratorView { DataContext = document };
             OffscreenRender.SaveIfRequested(OffscreenRender.Render(view, 600, 450), "wpe-orquestador-600x450.png");
             var layout = (Grid)view.FindName("Layout");
-            var scroller = (ScrollViewer)view.FindName("Scroller");
-            return (layout.ActualHeight, layout.RowDefinitions[3].ActualHeight, scroller.ScrollableHeight);
+            var scroller = (ScrollViewer)view.FindName("Bands");
+            return (layout.ActualHeight, scroller.ActualHeight, scroller.ScrollableHeight, layout.RowDefinitions[1].ActualHeight, layout.RowDefinitions[3].ActualHeight);
         });
 
-        Assert.True(canvasHeight >= 259, $"The canvas got {canvasHeight}.");
-        Assert.True(layoutHeight > 450);
-        Assert.True(scrollable > 0);
+        Assert.Equal(450, layoutHeight, 0.5);
+        Assert.True(bands <= 225.5, $"The bands take {bands} of 450.");
+        Assert.True(bandsScrollable > 0, "The bands do not fit in half of 450: they scroll inside.");
+        Assert.True(canvasHeight >= 119.5, $"The canvas got {canvasHeight}.");
+        Assert.True(monitorHeight >= 119.5, $"The monitor got {monitorHeight}.");
+    }
+
+    /// <summary>
+    /// docs/24 §1, row 16: «Resumen del plan» takes the width of its band and wraps its words: three lines at least, and a long
+    /// summary grows up to its limit and then scrolls, with «Pedir plan» above it, beside its label, instead of squeezing it.
+    /// </summary>
+    [Fact]
+    public async Task The_summary_of_the_plan_takes_the_width_of_its_band_and_wraps_its_words()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (box, band, wrapping, shortHeight, lines, longHeight, maxHeight, extent, viewport, requestAbove) = WpfHost.Run(() =>
+        {
+            document.IsPreparationExpanded = false;
+            document.PlanSummary = "Añadir Calc.Multiply.";
+            var view = new OrchestratorView { DataContext = document };
+
+            // In a host of a fixed size, as in its pane: a root without one is laid out again with no limit after a change inside.
+            var host = new Border { Width = 1040, Height = 900, Child = view };
+            OffscreenRender.Render(host, 1040, 900);
+            var summary = (TextBox)view.FindName("PlanSummaryBox");
+            var review = (FrameworkElement)view.FindName("ReviewBand");
+            var request = Descendants<Button>(review).First(b => Equals(b.Content, AgentStudio.Desktop.Localization.Texts.Get("Orchestrator_Review_RequestPlan")));
+            var shortOne = summary.ActualHeight;
+
+            document.PlanSummary = string.Join(" ", Enumerable.Repeat("El plan reparte el trabajo en tareas pequeñas, cada una con su revisión y sus pruebas antes de integrarla en la rama.", 30));
+            OffscreenRender.Render(host, 1040, 900);
+            var above = request.TransformToAncestor(view).Transform(new Point(0, request.ActualHeight)).Y <= summary.TransformToAncestor(view).Transform(new Point(0, 0)).Y + 0.5;
+            var scroller = Descendants<ScrollViewer>(summary).First();
+            return (summary.ActualWidth, review.ActualWidth, summary.TextWrapping, shortOne, summary.LineCount, summary.ActualHeight, summary.MaxHeight, scroller.ExtentHeight, scroller.ViewportHeight, above);
+        });
+
+        Assert.True(box >= band - 40, $"The summary is {box} wide in a band of {band}.");
+        Assert.Equal(TextWrapping.Wrap, wrapping);
+        Assert.True(shortHeight >= 3 * 13, $"A short summary keeps {shortHeight}, less than three lines.");
+        Assert.True(lines > 3, $"A long summary takes {lines} lines: it does not wrap.");
+        Assert.True(longHeight > shortHeight, "A long summary does not grow.");
+        Assert.True(longHeight <= maxHeight + 0.5, $"A long summary takes {longHeight}, past its limit {maxHeight}.");
+        Assert.True(extent > viewport, "A summary past its limit does not scroll.");
+        Assert.True(requestAbove, "«Pedir plan» is not above the summary, beside its label.");
+    }
+
+    /// <summary>
+    /// docs/24 §2, principle 4: the screens that bring the person here leave the keyboard where to write. The request waits on
+    /// the document until a view on screen takes it, once; the band «Preparación» is opened first.
+    /// </summary>
+    [Fact]
+    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_once()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (expanded, pendingBefore, pendingAfter) = WpfHost.Run(() =>
+        {
+            document.IsPreparationExpanded = false;
+            var view = new OrchestratorView { DataContext = document };
+            OffscreenRender.Render(view, 1040, 900);
+            document.ShowRequirements();
+            var before = document.PendingFocus;
+
+            // The dock raises Loaded when the tab is shown; offscreen it is raised by hand.
+            view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, view));
+            WpfHost.FlushBindings();
+            return (document.IsPreparationExpanded, before, document.PendingFocus);
+        });
+
+        Assert.True(expanded);
+        Assert.Equal(OrchestratorFocus.Requirements, pendingBefore);
+        Assert.Null(pendingAfter);
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root)
+        where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in Descendants<T>(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     [Fact]

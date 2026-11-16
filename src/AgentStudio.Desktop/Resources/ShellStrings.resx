@@ -42,7 +42,7 @@
     <comment>Button of the top bar that shows the welcome tab.</comment>
   </data>
   <data name="Main_Home_Hint" xml:space="preserve">
-    <value>Muestra la pestaña de bienvenida.</value>
+    <value>Muestra el siguiente paso del proyecto y los proyectos recientes.</value>
   </data>
   <data name="Main_GoToFile" xml:space="preserve">
     <value>Ir al fichero</value>
@@ -163,7 +163,7 @@
     <comment>What a screen reader says for a tab with unsaved changes. {0}: title.</comment>
   </data>
   <data name="Welcome_Title" xml:space="preserve">
-    <value>Bienvenida</value>
+    <value>Inicio</value>
     <comment>Title of the tab.</comment>
   </data>
   <data name="Welcome_Intro" xml:space="preserve">
@@ -171,9 +171,6 @@
   </data>
   <data name="Welcome_ProjectOpen" xml:space="preserve">
     <value>Proyecto abierto</value>
-  </data>
-  <data name="Welcome_InProject" xml:space="preserve">
-    <value>En este proyecto</value>
   </data>
   <data name="Welcome_OpenOther" xml:space="preserve">
     <value>Abrir otra carpeta</value>
@@ -183,27 +180,6 @@
   </data>
   <data name="Welcome_NoRecent" xml:space="preserve">
     <value>Todavía no has abierto ningún proyecto.</value>
-  </data>
-  <data name="Welcome_Action_Orchestrator" xml:space="preserve">
-    <value>Pide un trabajo a los agentes. Tú revisas el plan y un revisor independiente (juez) comprueba el resultado.</value>
-  </data>
-  <data name="Welcome_Action_GoToFile" xml:space="preserve">
-    <value>Busca un fichero del proyecto y ábrelo en el editor.</value>
-  </data>
-  <data name="Welcome_Action_Debates" xml:space="preserve">
-    <value>Pon a debatir a agentes de empresas distintas para contrastar una decisión.</value>
-  </data>
-  <data name="Welcome_Action_Audit" xml:space="preserve">
-    <value>Audita la última versión guardada (commit). La comprueba el sistema y la revisa un revisor independiente (juez).</value>
-  </data>
-  <data name="Welcome_Action_Usage" xml:space="preserve">
-    <value>Tokens y coste de las ejecuciones, y el límite de uso de tu plan.</value>
-  </data>
-  <data name="Welcome_Action_Memory" xml:space="preserve">
-    <value>Lo que el proyecto aprende de sus ejecuciones y reciben los agentes.</value>
-  </data>
-  <data name="Welcome_Action_Terminal" xml:space="preserve">
-    <value>Muestra u oculta el terminal, abierto en la carpeta del proyecto.</value>
   </data>
   <data name="Main_NeedProject_Orchestrator" xml:space="preserve">
     <value>Abre una carpeta de proyecto para usar el orquestador.</value>
@@ -717,5 +693,65 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
   </data>
   <data name="UnsavedView_ListName" xml:space="preserve">
     <value>Documentos con cambios sin guardar</value>
+  </data>
+  <data name="Main_Group_Project" xml:space="preserve">
+    <value>Proyecto</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Group_Inside" xml:space="preserve">
+    <value>El proyecto por dentro</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Group_Accounts" xml:space="preserve">
+    <value>Cuentas</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Group_More" xml:space="preserve">
+    <value>Más</value>
+    <comment>Caption of a group of the activity bar.</comment>
+  </data>
+  <data name="Main_Bar_Collapse" xml:space="preserve">
+    <value>Mostrar solo los iconos</value>
+    <comment>Button of the activity bar that hides the names of its entries.</comment>
+  </data>
+  <data name="Main_Bar_Expand" xml:space="preserve">
+    <value>Mostrar los nombres</value>
+    <comment>Button of the activity bar that shows the names of its entries again.</comment>
+  </data>
+  <data name="Welcome_NextStep" xml:space="preserve">
+    <value>Siguiente paso</value>
+    <comment>Title of the card of the next step of the open project.</comment>
+  </data>
+  <data name="Welcome_Next_SetUp" xml:space="preserve">
+    <value>Aún no has configurado este proyecto. Elige el equipo y cómo se comprueba su trabajo.</value>
+    <comment>Why the next step is to set up the project.</comment>
+  </data>
+  <data name="Welcome_Next_SetUpAction" xml:space="preserve">
+    <value>Configurar el proyecto</value>
+    <comment>Button of the next step.</comment>
+  </data>
+  <data name="Welcome_Next_FirstRequest" xml:space="preserve">
+    <value>El proyecto ya está configurado. Ahora cuenta qué quieres que hagan los agentes.</value>
+    <comment>Why the next step is the first request.</comment>
+  </data>
+  <data name="Welcome_Next_FirstRequestAction" xml:space="preserve">
+    <value>Escribir tu primera petición</value>
+    <comment>Button of the next step.</comment>
+  </data>
+  <data name="Welcome_Next_Run" xml:space="preserve">
+    <value>Los agentes están trabajando en este proyecto. Mira cómo va la ejecución.</value>
+    <comment>Why the next step is to see the run in progress.</comment>
+  </data>
+  <data name="Welcome_Next_RunAction" xml:space="preserve">
+    <value>Ver la ejecución en marcha</value>
+    <comment>Button of the next step.</comment>
+  </data>
+  <data name="Welcome_Next_NewRequest" xml:space="preserve">
+    <value>Cuenta qué quieres hacer ahora. El equipo te propondrá un plan para que lo revises.</value>
+    <comment>Why the next step is a new request; it claims nothing about the project.</comment>
+  </data>
+  <data name="Welcome_Next_NewRequestAction" xml:space="preserve">
+    <value>Escribir una petición nueva</value>
+    <comment>Button of the next step.</comment>
   </data>
 </root>
