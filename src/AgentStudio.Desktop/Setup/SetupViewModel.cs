@@ -249,8 +249,20 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>What each part did after «Aplicar».</summary>
     public ObservableCollection<string> ResultLines { get; } = [];
 
-    /// <summary>The summary has nothing to apply (every step skipped or already as proposed), once a project is read.</summary>
-    public bool IsSummaryEmpty => _project is not null && SummaryLines.Count == 0;
+    /// <summary>
+    /// The summary has nothing to apply (every step skipped or already as proposed), once a project is read, and nothing the person
+    /// typed is waiting to be fixed: «Ir a trabajar» never drops an edit that cannot be used.
+    /// </summary>
+    public bool IsSummaryEmpty => _project is not null && SummaryLines.Count == 0 && !HasInvalidEdits;
+
+    /// <summary>
+    /// Something the person changed cannot be used yet: a model the program would refuse, a command of the check, a number of the
+    /// limits. «Aplicar» waits for it and «Ir a trabajar» is not offered.
+    /// </summary>
+    public bool HasInvalidEdits =>
+        (StepOf(SetupStep.Models).IsIncluded && ModelRows.Any(r => r.IsEdited && !r.IsValid))
+        || (StepOf(SetupStep.Verification).IsIncluded && ChecksProblem() is not null)
+        || BudgetProblem.Length > 0;
 
     /// <summary>There is something to apply: «Aplicar los cambios» is offered instead of «Ir a trabajar».</summary>
     public bool HasChanges => !IsSummaryEmpty;
@@ -471,6 +483,15 @@ public sealed partial class SetupViewModel : ObservableObject
             return;
         }
 
+        // What «Probarla ahora» said was about the commands as they were: once they change it no longer applies.
+        if (!initial && !IsTrying)
+        {
+            TrialLines.Clear();
+            TrialOutput = string.Empty;
+            TrialStatus = string.Empty;
+            TrialPassed = null;
+        }
+
         var text = Text;
         var edited = EditedChecks(out var problem);
         CheckProblem = problem is not null && CheckRows.All(r => r.Problem.Length == 0) ? problem : string.Empty;
@@ -637,6 +658,7 @@ public sealed partial class SetupViewModel : ObservableObject
         var parsed = ParseBudget(out var problem);
         BudgetProblem = problem is null ? string.Empty : Text.Render(UserText.Of(problem));
         StepOf(SetupStep.Budget).IsIncluded = parsed is not null && parsed != _currentBudget;
+        NotifySummaryState();
     }
 
     partial void OnSelectedSizeChanged(SetupSizeChoice value)
@@ -819,8 +841,7 @@ public sealed partial class SetupViewModel : ObservableObject
         Block(SetupStep.Skills, skills.Count == 0 ? [text.Get("Setup_Summary_Skills_None")] : [.. skills.Select(r => text.Format("Setup_Summary_Skill", r.SkillName, r.AgentName))]);
         Block(SetupStep.Budget, [Budget(text, selection.Options ?? _currentBudget)]);
 
-        ApplyCommand.NotifyCanExecuteChanged();
-        GoToWorkCommand.NotifyCanExecuteChanged();
+        NotifySummaryState();
 
         void Block(SetupStep step, IReadOnlyList<string> lines)
         {
@@ -835,6 +856,16 @@ public sealed partial class SetupViewModel : ObservableObject
                 changes[step],
                 text.Format("Setup_Summary_Change_Name", title)));
         }
+    }
+
+    /// <summary>What the buttons at the bottom read: whether there is something to apply, and whether anything waits to be fixed.</summary>
+    private void NotifySummaryState()
+    {
+        OnPropertyChanged(nameof(HasInvalidEdits));
+        OnPropertyChanged(nameof(IsSummaryEmpty));
+        OnPropertyChanged(nameof(HasChanges));
+        ApplyCommand.NotifyCanExecuteChanged();
+        GoToWorkCommand.NotifyCanExecuteChanged();
     }
 
     private static string Budget(IUiTextProvider text, ProjectRunOptions options) =>

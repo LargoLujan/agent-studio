@@ -182,4 +182,34 @@ public sealed class SetupViewTests
         Assert.True(goToWork);
         Assert.False(apply);
     }
+
+    [Fact]
+    public async Task Picking_a_model_from_the_list_puts_its_name_in_the_row_and_typing_another_keeps_what_is_typed()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+        var row = vm.ModelRows.Single(r => r.Name == "Ejecutor");
+        var option = row.Models.First(m => m.Model != row.ModelText);
+
+        var (picked, typed, again) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            vm.Step = SetupStep.Models;
+            view.UpdateLayout();
+            var box = Descendants<ComboBox>(view).First(c => c.IsEditable && AutomationProperties.GetName(c) == row.ModelName);
+            box.SelectedItem = option;
+            WpfHost.FlushBindings();
+            var picked = row.ModelText;
+            // Typed where the person types, as the keyboard does.
+            ((TextBox)box.Template.FindName("PART_EditableTextBox", box)).Text = "sonnet";
+            WpfHost.FlushBindings();
+            var typed = row.ModelText;
+            box.SelectedItem = option;
+            WpfHost.FlushBindings();
+            return (picked, typed, row.ModelText);
+        });
+
+        Assert.Equal(option.Model, picked);
+        Assert.Equal("sonnet", typed);
+        Assert.Equal(option.Model, again);
+    }
 }

@@ -242,7 +242,8 @@
                                                     <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Setup_Models_Model_Label}"/>
                                                     <!-- No completion while typing: names are prefixes of each other (claude-opus-5, claude-opus-5-5). -->
                                                     <ComboBox IsEditable="True" IsTextSearchEnabled="False" MinWidth="220" Margin="0,2,0,0" ItemsSource="{Binding Models}" TextSearch.TextPath="Model"
-                                                              Text="{Binding ModelText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding ModelName}">
+                                                              SelectedItem="{Binding SelectedModel}" Text="{Binding ModelText, UpdateSourceTrigger=PropertyChanged}"
+                                                              AutomationProperties.Name="{Binding ModelName}">
                                                         <ComboBox.ItemTemplate>
                                                             <DataTemplate>
                                                                 <TextBlock Text="{Binding Label}"/>

@@ -143,6 +143,7 @@ public sealed partial class SetupModelRowViewModel : ObservableObject
         _originalModel = Normalize(agent.Model.Model);
         _originalEffort = agent.Effort;
         _modelText = _originalModel;
+        _selectedModel = OptionOf(_originalModel);
         _efforts = BuildEfforts(_originalModel, agent.Effort);
         _selectedEffort = _efforts.First(e => e.Effort == agent.Effort);
     }
@@ -186,6 +187,13 @@ public sealed partial class SetupModelRowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(Problem), nameof(IsValid), nameof(IsEdited), nameof(Follows), nameof(FollowsText), nameof(CanUseRecommendation))]
     [NotifyCanExecuteChangedFor(nameof(UseRecommendedCommand))]
     private string _modelText;
+
+    /// <summary>
+    /// The entry of the list the model is, or null for a name typed that the list does not have; picking an entry puts its name in
+    /// <see cref="ModelText"/>, and typing another name lets go of the entry, so picking it again puts it back.
+    /// </summary>
+    [ObservableProperty]
+    private SetupModelOption? _selectedModel;
 
     /// <summary>The efforts the model takes, with the program's own first.</summary>
     [ObservableProperty]
@@ -233,8 +241,22 @@ public sealed partial class SetupModelRowViewModel : ObservableObject
         SelectedEffort = Efforts.FirstOrDefault(e => e.Effort == recommendation.Effort) ?? SelectedEffort;
     }
 
+    partial void OnSelectedModelChanged(SetupModelOption? value)
+    {
+        if (value is not null && !string.Equals(value.Model, Normalize(ModelText), StringComparison.OrdinalIgnoreCase))
+        {
+            ModelText = value.Model;
+        }
+    }
+
     partial void OnModelTextChanged(string value)
     {
+        var option = OptionOf(Normalize(value));
+        if (!ReferenceEquals(option, SelectedModel))
+        {
+            SelectedModel = option;
+        }
+
         // The effort stays when the new model takes it; otherwise the nearest one it takes, as the inspector of the agent does.
         var wanted = SelectedEffort?.Effort;
         if (wanted is { } effort && _catalog?.Find(Proposal.Agent.Model.Provider, Normalize(value)) is { } entry && !entry.Accepts(effort))
@@ -267,6 +289,8 @@ public sealed partial class SetupModelRowViewModel : ObservableObject
 
         return [new EffortOption(SetupTexts.Effort(_text, null), null), .. offered.Select(e => new EffortOption(SetupTexts.Effort(_text, e), e))];
     }
+
+    private SetupModelOption? OptionOf(string model) => Models.FirstOrDefault(m => string.Equals(m.Model, model, StringComparison.OrdinalIgnoreCase));
 
     private string OptionLabel(string model) =>
         _catalog?.Find(Proposal.Agent.Model.Provider, model) is { } entry ? _text.Format("Setup_Models_Option", model, SetupTexts.Tier(_text, entry.Tier)) : model;

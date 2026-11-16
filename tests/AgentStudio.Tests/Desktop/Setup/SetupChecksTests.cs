@@ -206,6 +206,7 @@ public sealed class SetupChecksTests
         Assert.Equal(Spanish.Get("Setup_Verification_Report"), vm.CheckRows.Single(r => r.Label == Spanish.Get("Setup_Verification_Step_test")).Problem);
         Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
 
         vm.CheckRows.Single(r => r.Label == Spanish.Get("Setup_Verification_Step_test")).CommandText = "dotnet \"test";
 
@@ -343,6 +344,14 @@ public sealed class SetupChecksTests
         Assert.Null(rig.Profiles.Stored);
         Assert.Empty(rig.Gate.Asked);
         Assert.Empty(rig.Recorder.Entries);
+
+        // What it said was about those commands: changing one clears it.
+        Row(vm, "build").CommandText = "dotnet build";
+
+        Assert.Null(vm.TrialPassed);
+        Assert.Equal(string.Empty, vm.TrialStatus);
+        Assert.Empty(vm.TrialLines);
+        Assert.Equal(string.Empty, vm.TrialOutput);
     }
 
     [Fact]

@@ -245,6 +245,9 @@ public sealed class SetupViewModelTests
         Assert.Equal(Spanish.Get("Setup_Models_Bad"), executor.Problem);
         Assert.True(Step(vm, SetupStep.Models).IsIncluded);
         Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.True(vm.HasInvalidEdits);
+        Assert.False(vm.IsSummaryEmpty);
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
 
         executor.ModelText = "  ";
 
@@ -414,6 +417,7 @@ public sealed class SetupViewModelTests
         Assert.Equal(Spanish.Get(key), vm.BudgetProblem);
         Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
         Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
     }
 
     [Fact]
