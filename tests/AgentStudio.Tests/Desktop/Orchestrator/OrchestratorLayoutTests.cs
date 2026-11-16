@@ -233,6 +233,36 @@ public sealed class OrchestratorLayoutTests
     }
 
     /// <summary>
+    /// Review round 3, fix 5: the retry of a request is spent on that request only. A newer request that comes between the first
+    /// attempt of the old one and its retry gets its own two attempts: the old retry neither spends nor expires it.
+    /// </summary>
+    [Fact]
+    public async Task The_retry_of_a_request_for_the_keyboard_never_spends_a_newer_one()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (afterTheOldRetry, afterBoth) = WpfHost.Run(() =>
+        {
+            var view = new OrchestratorView { DataContext = document };
+            OffscreenRender.Render(view, 1040, 900);
+            view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, view));
+            static void Step() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(static () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+
+            // «Requisitos» cannot take the keyboard in a view never shown: each request fails its two attempts.
+            document.ShowRequirements();
+            Step();
+            document.ShowRequirements();
+            Step();
+            var pending = document.PendingFocus;
+            WpfHost.FlushBindings();
+            return (pending, document.PendingFocus);
+        });
+
+        Assert.Equal(OrchestratorFocus.Requirements, afterTheOldRetry);
+        Assert.Null(afterBoth);
+    }
+
+    /// <summary>
     /// Review fix 2: folded for a run, the band of the plan keeps in view what failed (a run resumed by the planner can fail to show
     /// its header), and its line says the truth: that the plan runs, or that the run waits for an answer or an approval of yours.
     /// </summary>

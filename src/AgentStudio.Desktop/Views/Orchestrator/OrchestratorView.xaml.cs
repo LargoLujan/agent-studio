@@ -93,31 +93,37 @@ public partial class OrchestratorView : UserControl
     /// </summary>
     private void TakeFocusLater()
     {
-        if (_onScreen && _document?.PendingFocus is not null)
+        if (_onScreen && _document is { PendingFocus: not null } document)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(retry: true));
+            var request = document.FocusRequestVersion;
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(document, request, retry: true));
         }
     }
 
-    private void TakeFocus(bool retry)
+    /// <summary>
+    /// One attempt for the request <paramref name="request"/> of <paramref name="document"/>: nothing when the tab shows another
+    /// document now, or a newer request came (it has attempts of its own), so a retry never spends or expires a request it was not
+    /// scheduled for.
+    /// </summary>
+    private void TakeFocus(OrchestratorDocumentViewModel document, int request, bool retry)
     {
-        if (!_onScreen || _document?.PendingFocus is not { } target)
+        if (!_onScreen || !ReferenceEquals(document, _document) || document.FocusRequestVersion != request || document.PendingFocus is not { } target)
         {
             return;
         }
 
         if (PreparationBand.BringToKeyboard(target))
         {
-            _document.TakePendingFocus();
+            document.TakePendingFocus();
         }
         else if (retry)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(retry: false));
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(document, request, retry: false));
         }
         else
         {
             // Tried twice: the request expires, so a later showing of the tab never takes the keyboard nor scrolls the bands by surprise.
-            _document.TakePendingFocus();
+            document.TakePendingFocus();
         }
     }
 }
