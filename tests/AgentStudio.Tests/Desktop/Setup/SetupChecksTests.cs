@@ -784,6 +784,26 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task A_model_chosen_for_an_agent_the_team_does_not_have_yet_turns_the_team_on_and_shows_in_the_summary()
+    {
+        var vm = await new Rig().OpenAsync();
+        vm.SelectedSize = vm.Sizes.Single(s => s.Size == SetupSize.Large);
+        await WaitForAsync(() => vm.TeamRows.Count == 5);
+        Step(vm, SetupStep.Team).IsIncluded = false;
+        var reviewer = vm.ModelRows.Single(r => r.Name == "Revisor");
+        var model = reviewer.Models[0].Model;
+
+        reviewer.ModelText = model;
+
+        Assert.True(Step(vm, SetupStep.Team).IsIncluded);
+        Assert.True(Step(vm, SetupStep.Models).IsIncluded);
+        Assert.Equal(model, vm.BuildSelection().Roster!.Single(a => a.Name == "Revisor").Model.Model);
+        Assert.Contains(vm.SummaryLines, l => l.StartsWith(Spanish.Get("Setup_Step_Models") + ":", StringComparison.Ordinal) && l.Contains("Revisor", StringComparison.Ordinal) && l.Contains(model, StringComparison.Ordinal));
+        Assert.False(vm.IsSummaryEmpty);
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void Only_a_result_with_nothing_denied_or_failed_and_the_registry_written_leads_to_work()
     {
         SetupApplyResult Result(SetupPartOutcome outcome, UserText? problem = null) =>

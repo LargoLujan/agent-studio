@@ -797,6 +797,13 @@ public sealed partial class SetupViewModel : ObservableObject
             return;
         }
 
+        // A model chosen for an agent the team does not have yet is saved with the team: that step turns on too, or it would be lost.
+        if (_proposal is { } proposal && !StepOf(SetupStep.Team).IsIncluded
+            && ModelRows.Any(r => r.IsEdited && proposal.Team.Changes.Any(c => c.IsAdded && c.After.Id == r.Proposal.Agent.Id)))
+        {
+            StepOf(SetupStep.Team).IsIncluded = true;
+        }
+
         var on = ModelRows.Any(r => r.IsEdited);
         if (StepOf(SetupStep.Models).IsIncluded != on)
         {
@@ -894,6 +901,12 @@ public sealed partial class SetupViewModel : ObservableObject
                 if (!current.TryGetValue(agent.Id, out var before))
                 {
                     Change(SetupStep.Team, text.Get("Setup_Summary_Absent"), text.Format("Setup_Summary_Agent_Added", agent.Name, SetupTexts.AgentLine(text, agent)));
+
+                    // The model chosen for it, against the one its template brings.
+                    if (proposal.Team.Changes.FirstOrDefault(c => c.After.Id == agent.Id)?.After is { } template && RosterHash.Of([template]) != RosterHash.Of([agent]))
+                    {
+                        Change(SetupStep.Models, $"{agent.Name}: {SetupTexts.Power(text, template.Model.Model, template.Effort)}", SetupTexts.Power(text, agent.Model.Model, agent.Effort));
+                    }
                 }
                 else if (RosterHash.Of([before]) != RosterHash.Of([agent]))
                 {
