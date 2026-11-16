@@ -67,20 +67,16 @@ public sealed class Phase5ShellTests : IDisposable
         Assert.DoesNotContain(ShellFactory.CreateMain().Activities, a => a.Id == "debates");
     }
 
+    /// <summary>docs/24 §3.1: the welcome tab no longer lists them; «Debates» is in the group «Más» of the bar, with its shortcut.</summary>
     [Fact]
-    public async Task With_a_project_the_welcome_tab_offers_the_debates_and_the_audit_with_their_shortcuts()
+    public void The_debates_are_in_the_group_more_of_the_bar_with_their_shortcut()
     {
         var (main, _) = Create();
-        await main.OpenProjectAsync(_temp.CreateDirectory("calc"));
 
-        main.ShowWelcomeCommand.Execute(null);
-
-        var welcome = Assert.IsType<WelcomeDocumentViewModel>(main.ActiveContent);
-        var debates = Assert.Single(welcome.ProjectActions, a => a.Title == "Debates");
-        var audit = Assert.Single(welcome.ProjectActions, a => a.Title == "Auditar proyecto completo");
-        Assert.Equal(("Ctrl+Mayús+D", "Ctrl+Mayús+A"), (debates.Shortcut, audit.Shortcut));
+        var more = Assert.Single(main.ActivitySections, s => s.Group == ActivityGroup.More);
+        var debates = Assert.Single(more.Items, a => a.Id == "debates");
+        Assert.Equal("Debates (Ctrl+Mayús+D)", debates.ToolTip);
         Assert.Same(main.OpenDebatesCommand, debates.Command);
-        Assert.Same(main.OpenAuditCommand, audit.Command);
     }
 
     [Fact]

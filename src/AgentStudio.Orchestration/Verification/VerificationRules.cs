@@ -151,6 +151,15 @@ public static partial class VerificationRules
         {
             problems.Add($"Step '{id}': the executable contains a control character.");
         }
+        else if (HasInvisibleCharacter(step.Executable))
+        {
+            problems.Add($"Step '{id}': the executable contains an invisible or direction character (a file could show one command and run another).");
+        }
+        else if (step.Executable.Contains('"', StringComparison.Ordinal))
+        {
+            // No command line can name it: the isolated launch refuses it, and a quote there would be read as the end of the name.
+            problems.Add($"Step '{id}': the executable contains a double quote.");
+        }
 
         if (step.Arguments is null)
         {
@@ -167,6 +176,10 @@ public static partial class VerificationRules
                 else if (HasControlCharacter(step.Arguments[i]))
                 {
                     problems.Add($"Step '{id}': argument {i} contains a control character (free text never goes on a command line).");
+                }
+                else if (HasInvisibleCharacter(step.Arguments[i]))
+                {
+                    problems.Add($"Step '{id}': argument {i} contains an invisible or direction character (a file could show one command and run another).");
                 }
             }
         }
@@ -251,9 +264,37 @@ public static partial class VerificationRules
         {
             yield return $"Step '{id}': the report path contains a control character.";
         }
+        else if (step.ReportPath is not null && HasInvisibleCharacter(step.ReportPath))
+        {
+            yield return $"Step '{id}': the report path contains an invisible or direction character.";
+        }
     }
 
     private static bool HasControlCharacter(string text) => text.AsSpan().IndexOfAnyInRange('\0', '\u001f') >= 0;
+
+    /// <summary>
+    /// A character of what is run that the person cannot see as it is: the other controls (DEL and C1), every character of the
+    /// category «format» (the marks and isolates of direction, the zero-width ones, the byte-order mark, the soft hyphen, the tag
+    /// characters), the line and paragraph separators (<see cref="AgentStudio.Domain.Common.UntrustedText.IsHidden"/>), and half of a
+    /// surrogate pair. With them a profile in the repository could show one command and run another, so none of them is accepted in
+    /// an executable, an argument or a report path (docs/24, wave 1).
+    /// </summary>
+    private static bool HasInvisibleCharacter(string text)
+    {
+        var rest = text.AsSpan();
+        while (!rest.IsEmpty)
+        {
+            if (System.Text.Rune.DecodeFromUtf16(rest, out var rune, out var used) != System.Buffers.OperationStatus.Done
+                || AgentStudio.Domain.Common.UntrustedText.IsHidden(rune))
+            {
+                return true;
+            }
+
+            rest = rest[used..];
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// A hidden character in a title (it is written on one line of the header of the evidence): the controls, the line and paragraph separators and the marks of direction are still

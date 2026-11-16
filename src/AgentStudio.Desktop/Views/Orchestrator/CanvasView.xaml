@@ -37,19 +37,25 @@
         <Style x:Key="Canvas.LayerButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="FontWeight" Value="Normal"/>
         </Style>
+        <!-- docs/24 §1, row 15: what goes above and under the editor takes a share of the height of the canvas, at most, and
+             scrolls when it needs more, so a short canvas still shows its editor. -->
+        <views:ShareOfLengthConverter x:Key="Canvas.HeaderMaxHeight" Factor="0.3" Minimum="44"/>
+        <views:ShareOfLengthConverter x:Key="Canvas.AnalysisMaxHeight" Factor="0.2" Minimum="36"/>
     </UserControl.Resources>
 
-    <Grid Background="{StaticResource BackgroundBrush}">
+    <Grid x:Name="CanvasRoot" Background="{StaticResource BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition x:Name="EditorRow" Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <ScrollViewer x:Name="CanvasHeader" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                      MaxHeight="{Binding ActualHeight, ElementName=CanvasRoot, Converter={StaticResource Canvas.HeaderMaxHeight}}">
+        <StackPanel>
         <!-- Toolbar: the layer, then what that layer offers. -->
-        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1" Padding="12,8,12,2">
             <WrapPanel Orientation="Horizontal">
                 <StackPanel Orientation="Horizontal" Margin="0,0,16,6" AutomationProperties.Name="{l:T Canvas_Layer_Switch}">
@@ -158,11 +164,13 @@
         </Border>
 
         <!-- The strip of the team: above both layers, outside the zoom. -->
-        <views:TeamStripView Grid.Row="1" DataContext="{Binding Team}"
+        <views:TeamStripView DataContext="{Binding Team}"
                              Visibility="{Binding HasAgents, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+        </StackPanel>
+        </ScrollViewer>
 
         <!-- The editors, one per layer. Wires are dragged from an output to an input; Supr deletes the selection; the right button pans. -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="1">
             <nodify:NodifyEditor x:Name="Editor"
                                  ItemsSource="{Binding Nodes}"
                                  Connections="{Binding Connections}"
@@ -279,11 +287,14 @@
         </Grid>
 
         <!-- The analysis band: what can already be known while the person assembles; it spends no quota. -->
-        <views:AnalysisBandView Grid.Row="3" DataContext="{Binding Team.Builder}"
-                                Visibility="{Binding DataContext.Team.Builder, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                      MaxHeight="{Binding ActualHeight, ElementName=CanvasRoot, Converter={StaticResource Canvas.AnalysisMaxHeight}}"
+                      Visibility="{Binding DataContext.Team.Builder, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
+            <views:AnalysisBandView DataContext="{Binding Team.Builder}"/>
+        </ScrollViewer>
 
         <!-- Status bar: counts, zoom and the status legend (the colour of a node is also its footer text). -->
-        <Border Grid.Row="4" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="12,6">
             <WrapPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,18,0"><Run Text="{l:T Orchestrator_Canvas_NodesCount}"/><Run Text=" "/><Run Text="{Binding Nodes.Count, Mode=OneWay}"/></TextBlock>

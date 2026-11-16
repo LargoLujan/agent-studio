@@ -22,7 +22,7 @@ public sealed partial class MainViewModel
                 _clientDocumentsRoot = ProjectPath;
                 AddDocument(_clientDocuments);
             };
-            yield return new ActivityItemViewModel("documents", Texts.Get("Documents_Title"), "", null, null, OpenClientDocumentsCommand);
+            yield return new ActivityItemViewModel("documents", Texts.Get("Documents_Title"), "\uE8A5", null, null, OpenClientDocumentsCommand) { Label = Texts.Get("Main_Activity_DocumentsShort") };
         }
     }
 

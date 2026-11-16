@@ -57,6 +57,11 @@
                 <!-- Preparation. -->
                 <StackPanel Visibility="{Binding ShowsPreparation, Converter={StaticResource Audit.BoolToVisibility}}">
                     <TextBlock Style="{StaticResource BodyText}" Text="{Binding RequirementsText}"/>
+                    <!-- The message that the requirements are missing is also the way to them (docs/24 §2, principle 4). -->
+                    <Button x:Name="GoToRequirementsButton" Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                            Content="{l:T Audit_View_GoToRequirements}" Command="{Binding GoToRequirementsCommand}"
+                            ToolTip="{l:T Audit_View_GoToRequirementsHint}" AutomationProperties.HelpText="{l:T Audit_View_GoToRequirementsHint}"
+                            Visibility="{Binding ShowsGoToRequirements, Converter={StaticResource Audit.BoolToVisibility}}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Judge}"/>
                     <ComboBox HorizontalAlignment="Left" MinWidth="320" ItemsSource="{Binding Judges}" SelectedItem="{Binding SelectedJudge}" DisplayMemberPath="Label" AutomationProperties.Name="{l:T Audit_View_JudgeName}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Authors}"/>

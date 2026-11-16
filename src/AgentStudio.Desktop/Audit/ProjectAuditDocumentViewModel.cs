@@ -154,6 +154,15 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     private readonly DebateScreens? _screens;
     private readonly SynchronizationContext? _ui;
     private FrozenRequirementSet? _requirements;
+
+    /// <summary>The read of the requirements going on.</summary>
+    private Task? _refreshing;
+
+    /// <summary>The read asked for while <see cref="_refreshing"/> went on, which follows it once; null when none was asked.</summary>
+    private Task? _refreshAgain;
+
+    /// <summary>The error a failed read of the requirements left on screen, which the next read that succeeds takes away.</summary>
+    private string? _refreshError;
     private bool _opened;
     private bool _loading;
 
@@ -264,11 +273,16 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     [ObservableProperty]
     private string? _errorMessage;
 
-    /// <summary>Opens the project and reads its latest frozen requirements and its judges once; called when the tab is opened.</summary>
+    /// <summary>
+    /// Opens the project and reads its latest frozen requirements and its judges once; called when the tab is opened. While the
+    /// project has no frozen requirements, opening the tab again reads them again: the person may have frozen them in the
+    /// orchestrator through «Ir a los requisitos».
+    /// </summary>
     public async Task OpenAsync()
     {
         if (_opened)
         {
+            await RefreshRequirementsAsync().ConfigureAwait(true);
             return;
         }
 
@@ -430,8 +444,81 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         Problems = Validate();
         OnPropertyChanged(nameof(Problems));
         OnPropertyChanged(nameof(HasProblems));
+        OnPropertyChanged(nameof(ShowsGoToRequirements));
         PrepareCommand.NotifyCanExecuteChanged();
         AuditCommand.NotifyCanExecuteChanged();
+        GoToRequirementsCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// The project has no frozen requirements and the shell can take the person to them: «Ir a los requisitos» is offered under
+    /// the message that says they are missing (docs/24 §2, principle 4).
+    /// </summary>
+    public bool ShowsGoToRequirements => Project is not null && _requirements is null && _backend.Requirements is not null && _screens is { CanNavigate: true };
+
+    /// <summary>«Ir a los requisitos»: the orchestrator of the project on «Requisitos», where they are frozen. Nothing is frozen here.</summary>
+    [RelayCommand(CanExecute = nameof(ShowsGoToRequirements))]
+    private Task GoToRequirementsAsync() => _screens is { } screens ? screens.OpenRequirementsAsync(ProjectRoot) : Task.CompletedTask;
+
+    /// <summary>
+    /// The tab opened again, or came back into view, without frozen requirements: they are read again, and the preparation follows
+    /// them. Nothing while it has not opened, while it loads or audits, or once it has them.
+    /// </summary>
+    /// <remarks>
+    /// One read at a time. An ask that comes while a read goes on is answered by one more read once that one ends (it may have
+    /// started before the requirements were frozen); the asks that come meanwhile share it. A read that succeeds takes away the
+    /// error a failed one left.
+    /// </remarks>
+    public Task RefreshRequirementsAsync()
+    {
+        if (_refreshing is { IsCompleted: false } going)
+        {
+            return _refreshAgain ??= ReadAgainAfterAsync(going);
+        }
+
+        _refreshing = ReadRequirementsAsync();
+        return _refreshing;
+    }
+
+    private async Task ReadAgainAfterAsync(Task going)
+    {
+        await going.ConfigureAwait(true);
+        _refreshAgain = null;
+        _refreshing = ReadRequirementsAsync();
+        await _refreshing.ConfigureAwait(true);
+    }
+
+    private async Task ReadRequirementsAsync()
+    {
+        if (_requirements is not null || IsBusy || _loading || Project is not { } project || _backend.Requirements is not { } store)
+        {
+            return;
+        }
+
+        try
+        {
+            _requirements = await store.LatestAsync(project.ProjectId, CancellationToken.None).ConfigureAwait(true);
+        }
+#pragma warning disable CA1031 // The store is behind a port: a failure is shown in the document, never thrown into the UI.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            ErrorMessage = _refreshError = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
+            return;
+        }
+
+        if (_refreshError is not null && ErrorMessage == _refreshError)
+        {
+            ErrorMessage = null;
+        }
+
+        _refreshError = null;
+
+        if (_requirements is { } set)
+        {
+            RequirementsText = Texts.Format("Audit_Requirements_Latest", DebateTexts.Plural(set.Requirements.Count, "Debate_Count_Requirement"), DebateTexts.Short(set.ContentHash));
+            Changed();
+        }
     }
 
     private List<string> Validate()

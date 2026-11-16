@@ -138,7 +138,12 @@ internal static class TestKeys
     private const int WsExNoActivate = 0x08000000;
 
     /// <summary>Raises the tunnelling key-down event on <paramref name="target"/>; returns whether it ended up handled.</summary>
-    public static bool PreviewKeyDown(UIElement target, Key key)
+    public static bool PreviewKeyDown(UIElement target, Key key) => Raise(target, key, Keyboard.PreviewKeyDownEvent);
+
+    /// <summary>Raises the bubbling key-down event on <paramref name="target"/> (what a control's own OnKeyDown reads); returns whether it ended up handled.</summary>
+    public static bool KeyDown(UIElement target, Key key) => Raise(target, key, Keyboard.KeyDownEvent);
+
+    private static bool Raise(UIElement target, Key key, RoutedEvent routedEvent)
     {
         // The input source is a real window. The default HwndSourceParameters style includes WS_VISIBLE, which showed
         // it on screen and gave it the foreground: this one is a popup tool window that cannot be activated, far off
@@ -152,7 +157,7 @@ internal static class TestKeys
             Width = 1,
             Height = 1,
         });
-        var args = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+        var args = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, key) { RoutedEvent = routedEvent };
         target.RaiseEvent(args);
         return args.Handled;
     }

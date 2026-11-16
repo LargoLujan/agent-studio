@@ -133,6 +133,7 @@ public partial class MainWindow : Window
 
         NameDockTabs();
         PrepareRightColumn();
+        EnsureExplorerWidth();
         ExplorerPanel.DataContext = viewModel.Explorer;
         AutoDoctorPanel.DataContext = viewModel.Doctor;
         JournalPanel.DataContext = viewModel.Journal;
@@ -479,6 +480,9 @@ public partial class MainWindow : Window
         // A layout saved before Phase 13 has no panels «Problemas», «Salida» and «Pruebas»: they join the pane of the terminal.
         EnsureRunPanels();
 
+        // A layout saved while the activity bar was narrow can leave the explorer too narrow for its header and its button.
+        EnsureExplorerWidth();
+
         foreach (var document in documents)
         {
             _viewModel.Documents.Add(document);
@@ -631,6 +635,28 @@ public partial class MainWindow : Window
         ((ILayoutPaneSerializable)column).Id = RightColumnId;
         root.Children.Add(column);
         group.PreviousContainer = column;
+    }
+
+    /// <summary>The least width of the explorer: its header and its «Actualizar» button stay readable (docs/24, review of the first wave).</summary>
+    internal const double ExplorerMinWidth = 200;
+
+    /// <summary>
+    /// The explorer, docked, is never narrower than <see cref="ExplorerMinWidth"/>: a layout saved before the activity bar showed its
+    /// names can bring it back about 100 wide, with «E…» for a header. Only its width grows; the rest of the saved layout stays.
+    /// </summary>
+    private void EnsureExplorerWidth()
+    {
+        if (DockManager.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(a => a.ContentId == PanelIds.Explorer)?.Parent is not LayoutAnchorablePane pane)
+        {
+            return;
+        }
+
+        // Never lower: docked in the column on the right, its pane keeps the 240 that column asks for.
+        pane.DockMinWidth = Math.Max(pane.DockMinWidth, ExplorerMinWidth);
+        if (pane.DockWidth.IsAbsolute && pane.DockWidth.Value < ExplorerMinWidth)
+        {
+            pane.DockWidth = new GridLength(ExplorerMinWidth);
+        }
     }
 
     /// <summary>

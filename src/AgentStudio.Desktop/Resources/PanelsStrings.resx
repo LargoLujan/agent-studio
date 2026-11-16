@@ -122,7 +122,7 @@
     <comment>Notice of the panel Output.</comment>
   </data>
   <data name="Panels_Tests_Title" xml:space="preserve">
-    <value>Pruebas</value>
+    <value>Resultados de pruebas</value>
     <comment>Title of the panel.</comment>
   </data>
   <data name="Panels_Tests_None" xml:space="preserve">
@@ -514,4 +514,8 @@ Pulsa «Dar a un agente…» para ir a su ficha: el cambio se aprueba como siemp
   <data name="Tools_Publication_PerUse" xml:space="preserve"><value>Hace falta tu aprobación para este uso. No admite un permiso para futuros usos.</value></data>
   <data name="Tools_Publication_Approved" xml:space="preserve"><value>La regla pide un veredicto aprobado. Los demás controles también deben pasar.</value></data>
   <data name="Tools_Publication_OtherChecks" xml:space="preserve"><value>La regla no pide un veredicto aprobado para este uso. Los demás controles siguen.</value></data>
+  <data name="Panels_Tests_HeadProfileUnusable" xml:space="preserve">
+    <value>el fichero de las órdenes de comprobación del proyecto no se puede usar. Arréglalo o bórralo y vuelve a probar.</value>
+    <comment>Reason: the file of the verification profile breaks a rule.</comment>
+  </data>
 </root>

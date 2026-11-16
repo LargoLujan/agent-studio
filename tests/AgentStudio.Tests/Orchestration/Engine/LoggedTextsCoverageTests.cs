@@ -301,6 +301,7 @@ public sealed class LoggedTextsCoverageTests
         [OrchestrationUserTexts.BudgetNameMilestoneDay] = "The budget of a milestone is always a total (ProjectBudgetGate.LimitsAsync): the sentence with a period of a milestone is never written.",
         [OrchestrationUserTexts.BudgetNameMilestoneWeek] = "The budget of a milestone is always a total (ProjectBudgetGate.LimitsAsync): the sentence with a period of a milestone is never written.",
         [OrchestrationUserTexts.BudgetNameMilestoneMonth] = "The budget of a milestone is always a total (ProjectBudgetGate.LimitsAsync): the sentence with a period of a milestone is never written.",
+        [OrchestrationUserTexts.ResumeProfileBreaksRules] = "Carried by the UserTextException a resume asked by the person throws (RunResumer); a resume by consent anchors the generic «No se pudo reanudar: …» with the exception's message, so no anchored sentence reaches this code yet (docs/24 §6.1).",
     };
 
     private static bool BornWithAnAnchoredSentence(string code) =>

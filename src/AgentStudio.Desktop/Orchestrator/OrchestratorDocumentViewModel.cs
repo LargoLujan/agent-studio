@@ -221,6 +221,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         Monitor.Finished += (_, _) => OnRunFinishedReleaseIfClosed();
         Closed += (_, _) => OnTabClosed();
         Monitor.PropertyChanged += OnMonitorPropertyChanged;
+        Monitor.PropertyChanged += FollowRunForReview;
+        Monitor.PendingQuestions.CollectionChanged += FollowQuestionsForReview;
         if (builder is not null)
         {
             InitializeBuilder(builder, reduceMotion);
@@ -410,6 +412,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Missing))]
     [NotifyPropertyChangedFor(nameof(HasMissing))]
+    [NotifyPropertyChangedFor(nameof(ShowsGoToRequirements))]
     private SessionContext? _context;
 
     public bool HasEngine => _session.HasEngine;

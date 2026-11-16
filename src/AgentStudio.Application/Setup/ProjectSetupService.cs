@@ -96,6 +96,9 @@ public sealed class ProjectSetupService
     /// <summary>Whether step 2 can save a brief.</summary>
     public bool CanSaveBrief => _brief is not null;
 
+    /// <summary>The catalog of models step 4 offers to choose from; null when none is composed (the program's own names are offered then).</summary>
+    public ModelCatalog? ModelCatalog => _models?.Current.Catalog;
+
     /// <summary>
     /// The proposals of the seven steps for <paramref name="project"/> (the team of <paramref name="size"/>, or the one of the size
     /// of the project). Reading only: no write, no agent, no network. What cannot be read goes to
@@ -206,7 +209,36 @@ public sealed class ProjectSetupService
         }
 
         var proposed = _profiles.Propose(facts.Files);
-        return new SetupVerificationProposal(current, proposed, unreadable, proposed is null ? "setup.verification.no-stack" : null);
+        return new SetupVerificationProposal(current, proposed, unreadable, proposed is null ? "setup.verification.no-stack" : null)
+        {
+            Accepted = await AcceptedProfileHashesAsync(project, ct).ConfigureAwait(false),
+        };
+    }
+
+    /// <summary>
+    /// The content hashes of the verification profiles the person accepted here: the ones <c>ProjectSetupApplied</c> names, which the
+    /// configurator only writes after Windows Hello confirmed the profile. A log that does not verify, or cannot be read, gives none:
+    /// nothing is taken as accepted that the log cannot vouch for.
+    /// </summary>
+    private async Task<IReadOnlySet<string>> AcceptedProfileHashesAsync(ProjectContext project, CancellationToken ct)
+    {
+        try
+        {
+            var log = await _recorder.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            return !log.Verification.IsValid
+                ? new HashSet<string>(StringComparer.Ordinal)
+                : log.Entries
+                    .Where(e => e.Kind == DecisionKind.ProjectSetupApplied)
+                    .Select(e => DecisionPayloadSerializer.Deserialize<ProjectSetupAppliedPayload>(e.PayloadJson).VerificationProfileHash)
+                    .OfType<string>()
+                    .ToHashSet(StringComparer.Ordinal);
+        }
+#pragma warning disable CA1031 // Reading what was accepted only informs: whatever goes wrong means nothing is taken as accepted.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
     }
 
     private async Task<IReadOnlyList<SetupModelProposal>> ProposeModelsAsync(
@@ -373,7 +405,14 @@ public sealed class ProjectSetupService
             return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Unchanged), null);
         }
 
-        var gate = await ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", profile.Name switch { SetupStacks.DotNet => ".NET", SetupStacks.Node => "Node", SetupStacks.Python => "Python", var other => other }), ct).ConfigureAwait(false);
+        var subject = profile.Name switch
+        {
+            SetupStacks.DotNet => UserText.Of("setup.hello.subject-profile", ".NET"),
+            SetupStacks.Node => UserText.Of("setup.hello.subject-profile", "Node"),
+            SetupStacks.Python => UserText.Of("setup.hello.subject-profile", "Python"),
+            _ => UserText.Of("setup.hello.subject-profile-own"),
+        };
+        var gate = await ConfirmAsync(PresenceAction.ChangeVerificationProfile, subject, ct).ConfigureAwait(false);
         if (!gate.Confirmed)
         {
             return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Denied, gate.Problem), null);

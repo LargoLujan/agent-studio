@@ -66,7 +66,8 @@
                         Content="{l:T Main_OpenFolder}" Command="{Binding OpenFolderCommand}"/>
             </StackPanel>
 
-            <!-- With a project: the ways into it, with their shortcuts. -->
+            <!-- With a project: its next step (docs/24 §3.2), one button chosen from what the shell reads of it. The ways into
+                 each screen are in the activity bar, with their names: this page does not repeat them. -->
             <StackPanel x:Name="ProjectPanel" Style="{StaticResource WithProject}">
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{l:T Welcome_ProjectOpen}"/>
                 <TextBlock x:Name="ProjectNameText" Style="{StaticResource SectionTitleText}" Margin="0,2,0,0" Text="{Binding ProjectName}"
@@ -77,31 +78,20 @@
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,16,0,0" TextWrapping="Wrap" Text="{Binding SetupSuggestion}"
                            Visibility="{Binding HasSetupSuggestion, Converter={StaticResource Welcome.BoolToVisibility}}"
                            AutomationProperties.LiveSetting="Polite"/>
-                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,28,0,12" Text="{l:T Welcome_InProject}"/>
-                <ItemsControl x:Name="ProjectActionsList" ItemsSource="{Binding ProjectActions}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:WelcomeActionViewModel}">
-                            <Button Style="{StaticResource ListRowButton}" Command="{Binding Command}"
-                                    AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}"
-                                    AutomationProperties.AcceleratorKey="{Binding Shortcut}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Title}"/>
-                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Description}" TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="1" Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}"
-                                               Margin="16,0,0,0" VerticalAlignment="Center" Text="{Binding Shortcut}"/>
-                                </Grid>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
 
-                <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                <Border x:Name="NextStepCard" Style="{StaticResource Card}" Margin="0,24,0,0" DataContext="{Binding NextStep}"
+                        Visibility="{Binding DataContext.HasNextStep, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Welcome.BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Welcome_NextStep}"/>
+                        <TextBlock x:Name="NextStepReason" Style="{StaticResource BodyText}" Margin="0,6,0,12" Text="{Binding Reason}"
+                                   AutomationProperties.LiveSetting="Polite"/>
+                        <Button x:Name="NextStepButton" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                                Content="{Binding Action}" Command="{Binding Command}"
+                                AutomationProperties.Name="{Binding Action}" AutomationProperties.HelpText="{Binding Reason}"/>
+                    </StackPanel>
+                </Border>
+
+                <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,16,0,0"
                         Content="{l:T Welcome_OpenOther}" Command="{Binding OpenFolderCommand}"/>
             </StackPanel>
 

@@ -115,21 +115,79 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Activity bar: what works, each entry a panel or a screen. The list itself takes no focus: the keyboard ring goes
-                 on the button that has it, never around the whole bar. -->
-            <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="0,0,1,0">
-                <ItemsControl x:Name="ActivityBar" ItemsSource="{Binding Activities}" Margin="0,4" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:ActivityItemViewModel}">
-                            <Button Style="{StaticResource ActivityButton}" Content="{Binding Glyph}"
-                                    IsEnabled="{Binding IsEnabled, Mode=OneTime}"
-                                    Command="{Binding Command}" CommandParameter="{Binding}"
-                                    ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True"
-                                    AutomationProperties.Name="{Binding Title}"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+            <!-- Activity bar (docs/24 §3.1): what works, each entry a panel or a screen, with its icon and its name, in groups with
+                 a small caption; «Ayuda» and «Ajustes» at the bottom. The button on top leaves only the icons (each keeps its name in
+                 its tooltip and for a screen reader). The lists take no focus: the keyboard ring goes on the button that has it,
+                 never around the whole bar; the groups scroll when the window is short, the bottom stays. -->
+            <Border x:Name="ActivityBarHost" Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0" controls:ActivityBarState.ShowsTitles="{Binding ShowsActivityTitles}">
+                <Border.Resources>
+                    <DataTemplate x:Key="Shell.ActivityEntry" DataType="{x:Type vm:ActivityItemViewModel}">
+                        <Button Style="{StaticResource ActivityButton}"
+                                IsEnabled="{Binding IsEnabled, Mode=OneTime}"
+                                Command="{Binding Command}" CommandParameter="{Binding}"
+                                ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True"
+                                AutomationProperties.Name="{Binding Title}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Width="20" FontSize="16" TextAlignment="Center" VerticalAlignment="Center"
+                                           Text="{Binding Glyph}"/>
+                                <TextBlock Margin="10,0,0,0" FontFamily="{StaticResource UiFont}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="{Binding Label}"
+                                           Visibility="{Binding (controls:ActivityBarState.ShowsTitles), RelativeSource={RelativeSource Self}, Converter={StaticResource Shell.BoolToVisibility}}"/>
+                            </DockPanel>
+                        </Button>
+                    </DataTemplate>
+                </Border.Resources>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="188"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActivityBarCollapsed}" Value="True">
+                                <Setter Property="Width" Value="48"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <!-- In rows in the order they are seen, so Tab goes from the button on top through the groups to «Ayuda» and «Ajustes». -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Button x:Name="ActivityBarToggle" Grid.Row="0" Style="{StaticResource ActivityButton}" Margin="0,4,0,0"
+                            Command="{Binding ToggleActivityBarCommand}"
+                            ToolTip="{Binding ActivityBarToggleName}" AutomationProperties.Name="{Binding ActivityBarToggleName}">
+                        <TextBlock Width="20" FontSize="16" TextAlignment="Center" Text="&#xE700;"/>
+                    </Button>
+                    <!-- Folded to its icons, the bar is too narrow for a scroll bar: the wheel and the keyboard still scroll it. -->
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsActivityBarCollapsed}" Value="True">
+                                        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                        <ItemsControl x:Name="ActivityBar" ItemsSource="{Binding ActivitySections}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ActivitySection}">
+                                    <StackPanel Margin="0,6,0,0">
+                                        <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="14,2,8,2" Text="{Binding Caption}"
+                                                   Visibility="{Binding (controls:ActivityBarState.ShowsTitles), RelativeSource={RelativeSource Self}, Converter={StaticResource Shell.BoolToVisibility}}"/>
+                                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False" ItemTemplate="{StaticResource Shell.ActivityEntry}"
+                                                      AutomationProperties.Name="{Binding Caption}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <ItemsControl x:Name="ActivityFooter" Grid.Row="2" ItemsSource="{Binding FooterActivities}" Margin="0,4"
+                                  Focusable="False" ItemTemplate="{StaticResource Shell.ActivityEntry}"/>
+                </Grid>
             </Border>
 
             <xcad:DockingManager x:Name="DockManager" Grid.Column="1"
@@ -155,7 +213,7 @@
                      the pin docks them. -->
                 <xcad:LayoutRoot>
                     <xcad:LayoutPanel Orientation="Horizontal">
-                        <xcad:LayoutAnchorablePane DockWidth="240">
+                        <xcad:LayoutAnchorablePane DockWidth="240" DockMinWidth="200">
                             <xcad:LayoutAnchorable ContentId="panel:explorer" Title="{l:T Main_Panel_Explorer}" CanFloat="True">
                                 <views:ExplorerView x:Name="ExplorerPanel"/>
                             </xcad:LayoutAnchorable>

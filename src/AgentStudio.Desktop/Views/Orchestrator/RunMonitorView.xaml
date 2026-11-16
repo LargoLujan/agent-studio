@@ -18,18 +18,30 @@
          «Entregar a mi rama» asks the delivery service, which checks the run and asks your approval before git.
          Phase 5 (docs/15 D-43): once the run ended, the auditor of the orchestrator, its request to replan, the card of the
          review's verdict with «Impugnar» and where its challenge stands; the whole band is collapsed until there is one. -->
-    <Grid Background="{StaticResource SurfaceBrush}">
+    <Grid x:Name="MonitorRoot" Background="{StaticResource SurfaceBrush}">
+        <Grid.Resources>
+            <!-- docs/24 §1, row 15: the phase, the review and the consumption take half of the monitor at most and scroll when they
+                 need more, so a short monitor still shows its tasks, its activity and its evidence. -->
+            <orchestratorViews:ShareOfLengthConverter x:Key="Monitor.HeaderMaxHeight" Factor="0.5" Minimum="56"/>
+        </Grid.Resources>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <ScrollViewer x:Name="MonitorHeader" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                      MaxHeight="{Binding ActualHeight, ElementName=MonitorRoot, Converter={StaticResource Monitor.HeaderMaxHeight}}">
+        <StackPanel>
         <!-- Phase, commands and health. The phase and the commands share a row while there is room; the commands wrap. -->
-        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
+        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
             <StackPanel>
-                <orchestratorViews:AdaptiveColumnsPanel ColumnSpacing="12" RowSpacing="4">
+                <!-- The run looked at was delivered already: where, when, and what delivering it again does. Above «Entregar a mi rama»,
+                     so it is read before the button is reached (as the warnings of the plan before «Aprobar plan»). -->
+                <TextBlock x:Name="PreviousDeliveryText" Style="{StaticResource BodyText}" FontSize="12" Margin="0,0,0,4" Foreground="{StaticResource WarningBrush}"
+                           Text="{Binding PreviousDelivery}"
+                           Visibility="{Binding PreviousDelivery, Converter={StaticResource Orchestrator.HasTextToVisibility}}"
+                           AutomationProperties.LiveSetting="Polite"/>
+                <orchestratorViews:AdaptiveColumnsPanel x:Name="RunCommands" ColumnSpacing="12" RowSpacing="4">
                     <WrapPanel orchestratorViews:AdaptiveColumnsPanel.Weight="1" MinWidth="240" VerticalAlignment="Top" Margin="0,4,0,0">
                         <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center"
                                  Fill="{Binding PhaseTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
@@ -73,11 +85,6 @@
                 <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="18,2,0,0" Foreground="{StaticResource TextSecondaryBrush}"
                            Text="{Binding InspectionText}" FontStyle="Italic"
                            Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-                <!-- The run looked at was delivered already: where, when, and what delivering it again does. -->
-                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="18,2,0,0" Foreground="{StaticResource WarningBrush}"
-                           Text="{Binding PreviousDelivery}"
-                           Visibility="{Binding PreviousDelivery, Converter={StaticResource Orchestrator.HasTextToVisibility}}"
-                           AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" Text="{Binding PhaseDetail}"/>
                 <!-- Whether the run has the consent of its header to resume by itself (docs/16 D-39); hidden while not known. -->
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" TextWrapping="Wrap"
@@ -159,7 +166,7 @@
         </Border>
 
         <!-- The review of the finished run (docs/15 D-33 to D-35, D-40 and D-43). -->
-        <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
+        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
                 Visibility="{Binding HasReviewSection, Converter={StaticResource Orchestrator.BoolToVisibility}}">
             <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                 <StackPanel>
@@ -221,16 +228,18 @@
 
         <!-- The analysis of the consumption of the run (docs/17 D-34 and D-35, F13-15): collapsed until the shell composes the analyzer
              and a run with its project is on screen. -->
-        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
+        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
                 Visibility="{Binding Consumption.IsAvailable, Converter={StaticResource Orchestrator.BoolToVisibility}}">
             <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                 <consumption:ConsumptionAnalysisView DataContext="{Binding Consumption}"/>
             </ScrollViewer>
         </Border>
+        </StackPanel>
+        </ScrollViewer>
 
         <!-- Tasks | activity | evidence: in columns while they fit, the tasks over the other two when narrower, one under
              another when narrower still; they share the height of the monitor. -->
-        <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="3" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
+        <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="1" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
 
             <!-- Phase 13 (docs/17 D-12, D-14, D-17; F13-6 to F13-8): one card per agent with its state and its bars, each with its origin. A
                  change of state is announced (assertive for a question or a block, polite for the rest). -->

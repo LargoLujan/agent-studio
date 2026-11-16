@@ -63,7 +63,8 @@ public sealed class ShellRenderTests
         Assert.True(drawn > 150_000, $"Only {drawn} pixels differ from the background: the window was not drawn.");
         Assert.True(green > 40, $"Only {green} pixels are green: the provider summary is not (Gemini, parked, does not count).");
         Assert.True(orange < 10, $"{orange} pixels are orange: nothing should warn with Claude Code and Codex ready.");
-        Assert.True(documents >= 900, $"The documents get only {documents:F0} of 1280.");
+        // docs/24 §3.1: the activity bar shows its names (188 px instead of 44): the documents keep at least 800 of 1280.
+        Assert.True(documents >= 800, $"The documents get only {documents:F0} of 1280.");
     }
 
     /// <summary>V6: without a project the welcome offers to open one, and the name and path of a recent project start at the left of its row.</summary>
@@ -79,7 +80,7 @@ public sealed class ShellRenderTests
                 new(@"C:\proyectos\calc", "calc", @"C:\proyectos\calc"),
                 new(@"C:\proyectos\agenda-de-citas", "agenda-de-citas", @"C:\proyectos\agenda-de-citas"),
             };
-            var welcome = new WelcomeDocumentViewModel(recents, command, command, [new("Orquestador", "Planifica.", null, command)]);
+            var welcome = new WelcomeDocumentViewModel(recents, command, command);
             var view = new WelcomeView { DataContext = welcome };
 
             var bitmap = OffscreenRender.Render(view, 900, 600);
@@ -99,41 +100,42 @@ public sealed class ShellRenderTests
         Assert.Equal(Visibility.Collapsed, withProject);
     }
 
-    /// <summary>V6: with a project the welcome offers the ways into it, each with its shortcut, instead of «Abre la carpeta…».</summary>
+    /// <summary>
+    /// docs/24 §3.2: with a project the welcome shows its next step, one card with one button and the sentence that says why,
+    /// instead of «Abre la carpeta…» and instead of the list of every screen (the activity bar has them, with their names).
+    /// </summary>
     [Fact]
-    public void The_welcome_with_a_project_renders_offscreen_with_the_ways_into_it()
+    public void The_welcome_with_a_project_renders_offscreen_with_its_next_step()
     {
-        var (start, project, rows, shortcuts, name) = WpfHost.Run(() =>
+        var (start, project, card, buttons, action, reason, name) = WpfHost.Run(() =>
         {
             OrchestratorTheme.EnsureLoaded();
             var command = new RelayCommand(() => { });
-            var welcome = new WelcomeDocumentViewModel(
-                [],
-                command,
-                command,
-                [
-                    new("Orquestador", "Planifica una petición con agentes.", null, command),
-                    new("Ir al fichero", "Busca un fichero del proyecto.", "Ctrl+P", command),
-                    new("Debates", "Contrasta una decisión.", "Ctrl+Mayús+D", command),
-                ]);
+            var welcome = new WelcomeDocumentViewModel([], command, command);
             welcome.ShowProject("calc", @"C:\proyectos\calc");
+            welcome.NextStep = new NextStepViewModel(NextStepKind.SetUp, "Aún no has configurado este proyecto.", "Configurar el proyecto", command);
             var view = new WelcomeView { DataContext = welcome };
 
             var bitmap = OffscreenRender.Render(view, 900, 700);
             OffscreenRender.SaveIfRequested(bitmap, "ux-bienvenida-con-proyecto.png");
-            var list = (ItemsControl)view.FindName("ProjectActionsList");
+            var nextStep = (FrameworkElement)view.FindName("NextStepCard");
+            var button = (Button)view.FindName("NextStepButton");
             return (
                 ((FrameworkElement)view.FindName("StartPanel")).Visibility,
                 ((FrameworkElement)view.FindName("ProjectPanel")).Visibility,
-                Descendants<Button>(list).Count(),
-                Descendants<TextBlock>(list).Select(t => t.Text).Where(t => t.StartsWith("Ctrl", StringComparison.Ordinal)).ToList(),
+                nextStep.Visibility,
+                Descendants<Button>(nextStep).Count(),
+                System.Windows.Automation.AutomationProperties.GetName(button),
+                ((TextBlock)view.FindName("NextStepReason")).Text,
                 System.Windows.Automation.AutomationProperties.GetName((TextBlock)view.FindName("ProjectNameText")));
         });
 
         Assert.Equal(Visibility.Collapsed, start);
         Assert.Equal(Visibility.Visible, project);
-        Assert.Equal(3, rows);
-        Assert.Equal(["Ctrl+P", "Ctrl+Mayús+D"], shortcuts);
+        Assert.Equal(Visibility.Visible, card);
+        Assert.Equal(1, buttons);
+        Assert.Equal("Configurar el proyecto", action);
+        Assert.Equal("Aún no has configurado este proyecto.", reason);
 
         // A screen reader says which project is open, not only that one is.
         Assert.Equal("Proyecto abierto: calc", name);

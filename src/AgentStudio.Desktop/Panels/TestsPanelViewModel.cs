@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Live;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -227,6 +228,12 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         catch (OperationCanceledException)
         {
             HeadSummary = _texts.Get("Panels_Tests_HeadCancelled");
+        }
+        catch (InvalidDataException)
+        {
+            // The file of the profile breaks a rule (an invisible character, a double quote in a program…): said in plain words, not in
+            // the English of the loader, which the log keeps.
+            ErrorMessage = _texts.Format("Panels_Tests_HeadError", _texts.Get("Panels_Tests_HeadProfileUnusable"));
         }
         catch (HeadTestsRefusedException refused)
         {

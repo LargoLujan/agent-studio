@@ -20,7 +20,7 @@
     <value>Opens the orchestrator on the Team layer, where agents are added, configured and removed.</value>
   </data>
   <data name="Shell_Activity_Tests" xml:space="preserve">
-    <value>Tests</value>
+    <value>Test results</value>
   </data>
   <data name="Shell_Activity_Tools" xml:space="preserve">
     <value>Tools</value>

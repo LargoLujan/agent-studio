@@ -150,11 +150,25 @@ internal static partial class UiChecks
         }
     }
 
-    /// <summary>Each control that can be used is reached with Tab: it can take focus and is a tab stop.</summary>
+    /// <summary>
+    /// Each control that can be used is reached with Tab: it can take focus and is a tab stop. An editable combo box is reached
+    /// through the box where its text is typed: WPF gives that box the Tab and keeps the combo itself out of the order, so the box
+    /// is the one that must take it.
+    /// </summary>
     public static IEnumerable<string> Keyboard(FrameworkElement root)
     {
         foreach (var element in UiTree.Shown<FrameworkElement>(root).Where(e => IsInteractive(e) && e.IsEnabled && !IsTemplatePart(e) && !IsItemOfAList(e)))
         {
+            if (element is ComboBox { IsEditable: true } combo)
+            {
+                if (combo.Template?.FindName("PART_EditableTextBox", combo) is not TextBox { Focusable: true } box || !KeyboardNavigation.GetIsTabStop(box))
+                {
+                    yield return $"not reachable with Tab: {Path(element, root)} (its editable text box does not take the Tab)";
+                }
+
+                continue;
+            }
+
             if (!element.Focusable || !KeyboardNavigation.GetIsTabStop(element))
             {
                 yield return $"not reachable with Tab: {Path(element, root)} (Focusable={element.Focusable}, IsTabStop={KeyboardNavigation.GetIsTabStop(element)})";

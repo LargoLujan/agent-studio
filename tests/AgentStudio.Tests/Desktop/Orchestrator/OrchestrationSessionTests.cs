@@ -86,7 +86,7 @@ public sealed class OrchestrationSessionTests
 
         Assert.Equal(
             [
-                "Aún no hay requisitos congelados. Ve a «Requisitos». Escribe lo que quieres y congélalo. Después podrás planificar.",
+                "Aún no hay requisitos congelados. Escribe lo que quieres y congélalo. Después podrás planificar.",
                 "El proyecto no tiene perfil de verificación (.agentstudio/verification.json).",
             ],
             context.Missing);

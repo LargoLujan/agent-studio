@@ -84,7 +84,15 @@ internal static class UiScreensOrchestrator
             model.RequestText = "Añadir Calc.Multiply(a, b) con su prueba";
             model.Requirements.EditCommand.Execute(null);
             model.IsPreparationExpanded = true;
-            return UiScreens.Of(new PreparationView(), model);
+
+            // In the tab the band sits in the scroller of the bands (docs/24: it has no scroller of its own), so it is checked there.
+            var view = new PreparationView { DataContext = model };
+            return new UiBuilt(new System.Windows.Controls.ScrollViewer
+            {
+                Content = view,
+                VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Disabled,
+            });
         }, 1500, 900),
         UiScreens.ScreenAsync("Orchestrator with the visual team builder", async () =>
         {

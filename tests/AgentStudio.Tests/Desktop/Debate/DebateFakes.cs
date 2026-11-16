@@ -336,4 +336,12 @@ internal sealed class FakeReviewNavigation : IReviewNavigation
         CorrectiveTasks.Add((projectRoot, request));
         return Task.CompletedTask;
     }
+
+    public List<string> RequirementsOpened { get; } = [];
+
+    public Task OpenRequirementsAsync(string projectRoot)
+    {
+        RequirementsOpened.Add(projectRoot);
+        return Task.CompletedTask;
+    }
 }

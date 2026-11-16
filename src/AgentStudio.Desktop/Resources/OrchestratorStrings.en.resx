@@ -1303,7 +1303,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Start of the line of a failure.</comment>
   </data>
   <data name="Orchestrator_Session_NoRequirements" xml:space="preserve">
-    <value>There are no frozen requirements yet. Go to "Requirements". Write what you want and freeze it. Then you can plan.</value>
+    <value>There are no frozen requirements yet. Write what you want and freeze it. Then you can plan.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterMissing" xml:space="preserve">
@@ -3611,5 +3611,41 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   </data>
   <data name="Text_hosting_done_already_closed" xml:space="preserve">
     <value>It was already closed another way.</value>
+  </data>
+  <data name="Orchestrator_Review_GoToRequirements" xml:space="preserve">
+    <value>Go to the requirements</value>
+    <comment>Button beside the line that says there are no frozen requirements.</comment>
+  </data>
+  <data name="Orchestrator_Review_GoToRequirementsHelp" xml:space="preserve">
+    <value>Opens "Preparation" and takes you to "Requirements".</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_SplitterName" xml:space="preserve">
+    <value>Divider between the canvas and the monitor</value>
+    <comment>Accessible name of the divider.</comment>
+  </data>
+  <data name="Orchestrator_Review_SplitterHelp" xml:space="preserve">
+    <value>Drag it, or use the up and down arrows, to give more height to the canvas or to the monitor.</value>
+    <comment>Tooltip of the divider.</comment>
+  </data>
+  <data name="Orchestrator_Review_Folded" xml:space="preserve">
+    <value>The plan is running and does not change while it runs. Follow it in the monitor, below.</value>
+    <comment>The line of the folded plan band while a run goes on.</comment>
+  </data>
+  <data name="Orchestrator_Review_Unfold" xml:space="preserve">
+    <value>Show the plan</value>
+    <comment>Button that unfolds the plan band.</comment>
+  </data>
+  <data name="Orchestrator_Review_Fold" xml:space="preserve">
+    <value>Hide the plan</value>
+    <comment>Button that folds the plan band while a run goes on.</comment>
+  </data>
+  <data name="Text_resume_profile_breaks_rules" xml:space="preserve">
+    <value>It cannot be resumed. Its commands have signs you cannot see or quotes where they do not go. Fix them in "Set up project" and start again.</value>
+    <comment>(resume.profile-breaks-rules)</comment>
+  </data>
+  <data name="Orchestrator_Review_FoldedWaiting" xml:space="preserve">
+    <value>The run is waiting for your answer or your approval. It is in the monitor, below.</value>
+    <comment>The line of the folded plan band while the run waits for the person.</comment>
   </data>
 </root>

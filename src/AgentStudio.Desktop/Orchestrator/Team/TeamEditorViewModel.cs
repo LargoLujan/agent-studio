@@ -139,8 +139,7 @@ public sealed partial class NewAgentViewModel : ObservableObject
     private IReadOnlyList<ModelOption> OptionsOf(ProviderId provider)
     {
         var options = new List<ModelOption> { new(_text.Get("Canvas_Model_ProgramDefault"), null) };
-        var named = Catalog?.Entries.Where(e => e.Provider == provider).Select(e => e.Name).ToList() ?? [];
-        foreach (var name in named.Count > 0 ? named : AgentModels.Known(provider))
+        foreach (var name in AgentModels.Names(Catalog, provider))
         {
             options.Add(new ModelOption(name, name));
         }

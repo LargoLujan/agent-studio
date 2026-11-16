@@ -58,16 +58,20 @@ public sealed partial class MainViewModel
         AttachPanels();
     }
 
-    /// <summary>«Agentes», «Herramientas» and «Pruebas»: the entries of the bar that belong to the visual builder.</summary>
+    /// <summary>«Agentes», «Herramientas» and «Resultados de pruebas»: the entries of the bar that belong to the visual builder.</summary>
     private IEnumerable<ActivityItemViewModel> AgentActivities()
     {
-        yield return new ActivityItemViewModel("agents", Texts.Get("Shell_Activity_Agents"), "", null, null, OpenAgentsCommand);
+        yield return new ActivityItemViewModel("agents", Texts.Get("Shell_Activity_Agents"), "\uE716", null, null, OpenAgentsCommand) { Group = ActivityGroup.Inside };
     }
 
-    private IEnumerable<ActivityItemViewModel> BuilderToolActivities()
+    private IEnumerable<ActivityItemViewModel> ToolActivities()
     {
-        yield return new ActivityItemViewModel("tools", Texts.Get("Shell_Activity_Tools"), "", null, null, OpenToolsCommand);
-        yield return new ActivityItemViewModel("tests", Texts.Get("Shell_Activity_Tests"), "", null, PanelIds.Tests, TogglePanelCommand);
+        yield return new ActivityItemViewModel("tools", Texts.Get("Shell_Activity_Tools"), "\uE90F", null, null, OpenToolsCommand);
+    }
+
+    private IEnumerable<ActivityItemViewModel> TestResultActivities()
+    {
+        yield return new ActivityItemViewModel("tests", Texts.Get("Shell_Activity_Tests"), "\uE73E", null, PanelIds.Tests, TogglePanelCommand);
     }
 
     private OrchestratorDocumentViewModel? CurrentOrchestrator =>
@@ -217,7 +221,11 @@ public sealed partial class MainViewModel
         if (!_setups.TryGetValue(root, out var document))
         {
             var setup = factory.Create();
-            setup.Applied += (_, result) => _ = OnSetupAppliedAsync(orchestrator, result);
+
+            // The orchestrator reads what was applied first; the configurator asks to go to work after it (docs/24 §3.4, wave 1).
+            var reread = Task.CompletedTask;
+            setup.Applied += (_, result) => reread = OnSetupAppliedAsync(orchestrator, result);
+            setup.WorkRequested += (_, e) => _ = GoToWorkAsync(orchestrator, reread, e.Confirmation);
             document = new SetupDocumentViewModel(root, setup, RecentProjectItem.From(root).Name);
             _setups[root] = document;
         }
@@ -241,6 +249,49 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>
+    /// «Ir a trabajar» of the configurator, and the end of an «Aplicar» in which every part went well: the orchestrator of that project,
+    /// once it has read the template again, with the confirmation in the status bar. Only while that project is the open one, since
+    /// the orchestrator the shell opens is the one of the open project.
+    /// </summary>
+    private async Task GoToWorkAsync(OrchestratorDocumentViewModel orchestrator, Task reread, string? confirmation)
+    {
+        try
+        {
+            await reread;
+            if (!SameProject(orchestrator.ProjectRoot, ProjectPath))
+            {
+                return;
+            }
+
+            await OpenOrchestratorAsync();
+            if (confirmation is not null)
+            {
+                StatusMessage = confirmation;
+            }
+
+            orchestrator.FocusRequestBox();
+        }
+#pragma warning disable CA1031 // Opening the orchestrator reads its stores: a failure is said in the status bar, never thrown into the UI.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            StatusMessage = Texts.Format("Shell_Setup_ReadAgainFailed", ex.Message);
+        }
+    }
+
+    /// <summary>A configurator of a project that is no longer the open one stops its «Probarla ahora», which holds that project.</summary>
+    private void StopSetupTrials(string? openRoot)
+    {
+        foreach (var (root, document) in _setups)
+        {
+            if (!SameProject(root, openRoot))
+            {
+                document.Setup.CancelTrial();
+            }
+        }
+    }
+
+    /// <summary>
     /// The entry of the welcome tab: with the project open, «Configurar proyecto» is always there, and the first time a project is opened
     /// the tab also says it is a good moment for it. It is noted as suggested at once and never opens by itself.
     /// </summary>
@@ -251,7 +302,8 @@ public sealed partial class MainViewModel
             return;
         }
 
-        if (projectRoot is null || _setupSuggestions is not { } suggestions || suggestions.WasSuggested(projectRoot))
+        // A project that carries its verification profile (a fresh clone of one prepared elsewhere) is not suggested to be set up.
+        if (projectRoot is null || _setupSuggestions is not { } suggestions || suggestions.WasSuggested(projectRoot) || Services.ProjectProgressReader.HasVersionedProfileFile(projectRoot))
         {
             _welcome.SetupSuggestion = null;
             return;

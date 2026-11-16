@@ -90,7 +90,7 @@
     <comment>Which requirements are audited.</comment>
   </data>
   <data name="Audit_Requirements_Missing" xml:space="preserve">
-    <value>Este proyecto aún no tiene requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos. Después podrás auditar.</value>
+    <value>Aún no hay requisitos congelados. Se congelan en el orquestador, y después podrás auditar.</value>
     <comment>Which requirements are audited.</comment>
   </data>
   <data name="Audit_Notice_NoService" xml:space="preserve">
@@ -134,7 +134,7 @@
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Problem_NoRequirements" xml:space="preserve">
-    <value>No se puede auditar sin requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos.</value>
+    <value>No se puede auditar sin requisitos congelados.</value>
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Problem_PickJudge" xml:space="preserve">
@@ -368,5 +368,13 @@ Lee en el informe si es fiable y por qué.</value>
   </data>
   <data name="Text_audit_project_busy" xml:space="preserve">
     <value>El proyecto está ocupado con otra actividad con agentes. Espera a que termine.</value>
+  </data>
+  <data name="Audit_View_GoToRequirements" xml:space="preserve">
+    <value>Ir a los requisitos</value>
+    <comment>Button under the message that the project has no frozen requirements.</comment>
+  </data>
+  <data name="Audit_View_GoToRequirementsHint" xml:space="preserve">
+    <value>Abre «Requisitos» en el orquestador. Allí escribes lo que quieres y lo congelas.</value>
+    <comment>Tooltip of the button.</comment>
   </data>
 </root>

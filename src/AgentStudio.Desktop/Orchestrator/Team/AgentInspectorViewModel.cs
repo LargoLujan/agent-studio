@@ -361,8 +361,7 @@ public sealed partial class AgentInspectorViewModel : ObservableObject
 
     private IReadOnlyList<EffortOption> BuildEfforts()
     {
-        var entry = _context.Catalog?.Find(Agent.Model.Provider, Agent.Model.Model);
-        IReadOnlyList<ReasoningEffort> offered = entry is { Efforts.Count: > 0 } ? entry.Efforts : ReasoningEfforts.For(Agent.Model.Provider);
+        var offered = Preparation.AgentModels.Efforts(_context.Catalog, Agent.Model.Provider, Agent.Model.Model);
         return [new EffortOption(_text.Get("Models_Effort_CliDefault"), null), .. offered.Select(e => new EffortOption(_text.Effort(e), e))];
     }
 

@@ -22,7 +22,7 @@
     <comment>Tooltip of the entry Agents.</comment>
   </data>
   <data name="Shell_Activity_Tests" xml:space="preserve">
-    <value>Pruebas</value>
+    <value>Resultados de pruebas</value>
     <comment>Entry of the activity bar: shows or hides the bottom panel of tests.</comment>
   </data>
   <data name="Shell_Activity_Tools" xml:space="preserve">

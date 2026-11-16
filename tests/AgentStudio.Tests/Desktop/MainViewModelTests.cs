@@ -231,16 +231,29 @@ public sealed class MainViewModelTests
 
         var byId = vm.Activities.ToDictionary(a => a.Id);
 
-        // Phase 13: «Agentes» (the layer Team of the orchestrator), «Herramientas» (a screen) and «Pruebas» (the panel of tests).
+        // Phase 13: «Agentes» (the layer Team of the orchestrator), «Herramientas» (a screen) and «Resultados de pruebas» (the panel
+        // of tests). docs/24 §3.1: in groups, «Inicio» first; «Configurar proyecto» only when the configurator was composed.
         Assert.Equal(
             [
-                "Explorador", "Orquestador", Texts.Get("BackgroundRuns_Title"), Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Terminal", "Auto Doctor", "Historial (bitácora)",
+                "Inicio", "Orquestador", Texts.Get("BackgroundRuns_Title"), "Explorador", "Skills", Texts.Get("Shell_Activity_Agents"),
+                Texts.Get("Shell_Activity_Tools"), "Auto Doctor", "Historial (bitácora)", "Terminal", "Resultados de pruebas",
             ],
             vm.Activities.Select(a => a.Title));
+        Assert.Equal(
+            [(ActivityGroup.Project, "Proyecto", 3), (ActivityGroup.Inside, "El proyecto por dentro", 3), (ActivityGroup.More, "Más", 5)],
+            vm.ActivitySections.Select(s => (s.Group, s.Caption, s.Items.Count)));
+        Assert.Equal(vm.Activities, vm.ActivitySections.SelectMany(s => s.Items).Concat(vm.FooterActivities));
+        Assert.DoesNotContain(vm.Activities, a => a.Id == "setup");
+        Assert.Same(vm.ShowWelcomeCommand, byId["home"].Command);
         Assert.All(vm.Activities, a => Assert.True(a.IsEnabled));
         Assert.All(vm.Activities, a => Assert.Null(a.AvailableInPhase));
         Assert.Equal(PanelIds.Tests, byId["tests"].PanelId);
+
+        // Review fix 6: the entry and the panel it opens have the same name, in both languages.
+        Assert.Equal(Texts.Get("Shell_Activity_Tests"), Texts.Get("Panels_Tests_Title"));
+        var english = new AgentStudio.Desktop.Localization.ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("en"));
+        Assert.Equal("Test results", english.Get("Panels_Tests_Title"));
+        Assert.Equal(english.Get("Shell_Activity_Tests"), english.Get("Panels_Tests_Title"));
         Assert.Null(byId["agents"].PanelId);
         Assert.Null(byId["tools"].PanelId);
 
@@ -271,7 +284,7 @@ public sealed class MainViewModelTests
             activity.Command.Execute(activity);
         }
 
-        Assert.Equal([PanelIds.Explorer, PanelIds.Tests, PanelIds.Terminal, PanelIds.AutoDoctor, PanelIds.Journal], requested);
+        Assert.Equal([PanelIds.Explorer, PanelIds.AutoDoctor, PanelIds.Journal, PanelIds.Terminal, PanelIds.Tests], requested);
         Assert.All(vm.Activities.Where(a => a.Shortcut is null), a => Assert.Equal(a.Title, a.ToolTip));
     }
 
@@ -316,7 +329,7 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task TheWelcomeTab_WithoutAProject_OffersToOpenOne_AndWithOne_TheWaysIntoIt()
+    public async Task TheWelcomeTab_WithoutAProject_OffersToOpenOne_AndWithOne_ItsNextStep()
     {
         using var temp = new TempDirectory();
         var project = temp.CreateDirectory("calc");
@@ -324,20 +337,22 @@ public sealed class MainViewModelTests
         await vm.InitializeAsync();
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(Assert.Single(vm.Documents));
         Assert.False(welcome.HasProject);
+        Assert.False(welcome.HasNextStep);
+        Assert.Equal("Inicio", welcome.Title);
 
         await vm.OpenProjectAsync(project);
+        await vm.NextStepRead;
 
         Assert.True(welcome.HasProject);
         Assert.Equal("calc", welcome.ProjectName);
         Assert.Equal(vm.ProjectPathDisplay, welcome.ProjectPathDisplay);
 
-        // Without the screens of the debates, the usage and the memory (a shell built by hand) only what was composed is offered.
-        Assert.Equal(["Orquestador", "Ir al fichero", "Terminal"], welcome.ProjectActions.Select(a => a.Title));
-        Assert.Equal([null, "Ctrl+P", "Ctrl+Ñ"], welcome.ProjectActions.Select(a => a.Shortcut));
-        Assert.Same(vm.OpenOrchestratorCommand, welcome.ProjectActions[0].Command);
-        Assert.Same(vm.GoToFileCommand, welcome.ProjectActions[1].Command);
-        Assert.Same(vm.ToggleTerminalCommand, welcome.ProjectActions[2].Command);
-        Assert.All(welcome.ProjectActions, a => Assert.Equal(a.Title, a.ToString()));
+        // Without a reader of the project nothing is known of it: the step claims nothing, a new request in the orchestrator.
+        var step = Assert.IsType<NextStepViewModel>(welcome.NextStep);
+        Assert.Equal(NextStepKind.NewRequest, step.Kind);
+        Assert.Equal("Escribir una petición nueva", step.Action);
+        Assert.Same(vm.WriteRequestCommand, step.Command);
+        Assert.Equal(step.Action, step.ToString());
     }
 
     [Fact]

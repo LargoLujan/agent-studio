@@ -1,5 +1,8 @@
 using System.Windows;
 using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media;
 using AgentStudio.Application.Setup;
@@ -143,16 +146,139 @@ public sealed class SetupViewTests
                 AutomationProperties.GetName(list),
                 Descendants<TextBlock>(view).Any(t => t.Text == Texts.Current.Get("Setup_Heading")),
                 Descendants<InfoButton>(view).Select(b => b.InfoKey).ToList(),
-                Descendants<Button>(view).Where(b => b.CommandParameter is SetupStepViewModel).Select(b => AutomationProperties.GetName(b)).ToList(),
+                Descendants<ListBoxItem>(view).Where(i => i.DataContext is SetupStepViewModel).Select(i => AutomationProperties.GetName(i)).ToList(),
                 Descendants<Button>(view).Select(b => b.Content as string).Where(c => c is not null).ToList());
         });
 
         Assert.Equal(Texts.Current.Get("Setup_Steps_Label"), listName);
         Assert.True(heading);
-        Assert.Equal(["Setup_Info"], infoKeys);
+        Assert.Equal(["Setup_Info", "Setup_Verification_Info", "Setup_Budget_Info"], infoKeys);
         Assert.Equal(vm.Steps.Select(s => s.Title), stepNames);
         Assert.Contains(Texts.Current.Get("Setup_Button_Apply"), buttons);
         Assert.Contains(Texts.Current.Get("Setup_Button_Next"), buttons);
         Assert.Contains(Texts.Current.Get("Setup_Button_Back"), buttons);
+    }
+
+    [Fact]
+    public async Task Each_step_of_the_list_is_chosen_with_the_mouse_the_keyboard_or_a_screen_reader_and_the_current_one_is_selected()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+
+        var (afterChoice, afterReader, readerSelected, afterNext, nextSelected, tabStop) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            var list = Descendants<ListBox>(view).Single(l => ReferenceEquals(l.ItemsSource, vm.Steps));
+
+            // The mouse and the arrows choose an entry: the list selects it.
+            list.SelectedItem = vm.Steps[(int)SetupStep.Models];
+            var afterChoice = vm.Step;
+
+            // A screen reader chooses it through the pattern of a selectable item.
+            var peer = (ListBoxAutomationPeer)UIElementAutomationPeer.CreatePeerForElement(list);
+            var item = peer.GetChildren().Single(c => c.GetName() == vm.Steps[(int)SetupStep.Budget].Title);
+            ((ISelectionItemProvider)item.GetPattern(PatternInterface.SelectionItem)).Select();
+            var afterReader = vm.Step;
+            var readerSelected = ((ISelectionItemProvider)item.GetPattern(PatternInterface.SelectionItem)).IsSelected;
+
+            // «Siguiente» still goes on, and the list marks the step it reached.
+            vm.NextCommand.Execute(null);
+            view.UpdateLayout();
+            var summary = peer.GetChildren().Single(c => c.GetName() == vm.Steps[(int)SetupStep.Summary].Title);
+            // The Tab reaches the list on the entry of the step on screen, and the arrows move from there (a list box takes the Tab once).
+            var current = (ListBoxItem)list.ItemContainerGenerator.ContainerFromItem(vm.Steps[(int)SetupStep.Summary]);
+            return (afterChoice, afterReader, readerSelected, vm.Step, ((ISelectionItemProvider)summary.GetPattern(PatternInterface.SelectionItem)).IsSelected,
+                current.Focusable && KeyboardNavigation.GetIsTabStop(current) && KeyboardNavigation.GetTabNavigation(list) == KeyboardNavigationMode.Once);
+        });
+
+        Assert.Equal(SetupStep.Models, afterChoice);
+        Assert.Equal(SetupStep.Budget, afterReader);
+        Assert.True(readerSelected, "The entry chosen by the reader is not selected.");
+        Assert.Equal(SetupStep.Summary, afterNext);
+        Assert.True(nextSelected, "The entry of the step «Siguiente» reached is not selected.");
+        Assert.True(tabStop, "The list of steps does not take the Tab.");
+    }
+
+    [Fact]
+    public async Task The_models_are_chosen_in_boxes_the_summary_has_a_change_button_per_step_and_with_nothing_to_save_it_offers_to_go_to_work()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+
+        var (boxes, changes, goToWork, apply) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            vm.Step = SetupStep.Models;
+            view.UpdateLayout();
+            var boxes = Descendants<ComboBox>(view).Where(c => Shows(c, view)).Select(c => (c.IsEditable, Name: AutomationProperties.GetName(c))).ToList();
+            vm.Step = SetupStep.Summary;
+            view.UpdateLayout();
+            var changes = Descendants<Button>(view).Count(b => Shows(b, view) && b.Content as string == Texts.Current.Get("Setup_Summary_Change"));
+            vm.StepOf(SetupStep.Verification).IsIncluded = false;
+            view.UpdateLayout();
+            bool Shown(string key) => Descendants<Button>(view).Any(b => Shows(b, view) && b.Content as string == Texts.Current.Get(key));
+            return (boxes, changes, Shown("Setup_Button_Go_To_Work"), Shown("Setup_Button_Apply"));
+        });
+
+        Assert.Equal(vm.ModelRows.Select(r => r.ModelName), boxes.Where(b => b.IsEditable).Select(b => b.Name));
+        Assert.Equal(vm.ModelRows.Select(r => r.EffortName), boxes.Where(b => !b.IsEditable).Select(b => b.Name));
+        Assert.Equal(6, changes);
+        Assert.True(goToWork);
+        Assert.False(apply);
+    }
+
+    [Fact]
+    public async Task The_box_where_a_model_is_typed_carries_the_name_of_its_combo_and_shows_the_accent_frame_with_the_keyboard()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+
+        var (names, frame) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            vm.Step = SetupStep.Models;
+            view.UpdateLayout();
+            var boxes = Descendants<ComboBox>(view).Where(c => c.IsEditable).ToList();
+            var names = boxes.Select(c => (Combo: AutomationProperties.GetName(c), Box: AutomationProperties.GetName((TextBox)c.Template.FindName("PART_EditableTextBox", c)))).ToList();
+            var combo = boxes[0];
+            var border = (Border)combo.Template.FindName("FocusFrame", combo);
+            var trigger = combo.Template.Triggers.OfType<Trigger>().Single(t => t.SourceName == "PART_EditableTextBox");
+            return (names, (border.Visibility, border.BorderThickness, trigger.Property, trigger.Value, ((Setter)trigger.Setters[0]).TargetName));
+        });
+
+        Assert.Equal(vm.ModelRows.Select(r => r.ModelName), names.Select(n => n.Combo));
+        Assert.All(names, n => Assert.Equal(n.Combo, n.Box));
+        Assert.Equal(Visibility.Collapsed, frame.Visibility);
+        Assert.Equal(new Thickness(2), frame.BorderThickness);
+        Assert.Equal(UIElement.IsKeyboardFocusedProperty, frame.Property);
+        Assert.Equal(true, frame.Value);
+        Assert.Equal("FocusFrame", frame.TargetName);
+    }
+
+    [Fact]
+    public async Task Picking_a_model_from_the_list_puts_its_name_in_the_row_and_typing_another_keeps_what_is_typed()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+        var row = vm.ModelRows.Single(r => r.Name == "Ejecutor");
+        var option = row.Models.First(m => m.Model != row.ModelText);
+
+        var (picked, typed, again) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            vm.Step = SetupStep.Models;
+            view.UpdateLayout();
+            var box = Descendants<ComboBox>(view).First(c => c.IsEditable && AutomationProperties.GetName(c) == row.ModelName);
+            box.SelectedItem = option;
+            WpfHost.FlushBindings();
+            var picked = row.ModelText;
+            // Typed where the person types, as the keyboard does.
+            ((TextBox)box.Template.FindName("PART_EditableTextBox", box)).Text = "sonnet";
+            WpfHost.FlushBindings();
+            var typed = row.ModelText;
+            box.SelectedItem = option;
+            WpfHost.FlushBindings();
+            return (picked, typed, row.ModelText);
+        });
+
+        Assert.Equal(option.Model, picked);
+        Assert.Equal("sonnet", typed);
+        Assert.Equal(option.Model, again);
     }
 }

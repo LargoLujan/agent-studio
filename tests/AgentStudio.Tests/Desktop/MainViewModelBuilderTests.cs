@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Preparation;
 using AgentStudio.Desktop.Orchestrator.Questions;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Setup;
 using AgentStudio.Desktop.Tools;
 using AgentStudio.Desktop.ViewModels;
@@ -73,7 +74,7 @@ public sealed class MainViewModelBuilderTests
     /// <summary>A shell over a fake engine, with the services of the builder and a real configurator over fakes of its ports.</summary>
     private sealed class Rig : IDisposable
     {
-        public Rig(bool withSetup = true, RecordingHost? host = null)
+        public Rig(bool withSetup = true, RecordingHost? host = null, SetupCheckTrial? trial = null)
         {
             Engine = new FakeOrchestrator();
             Roster = new InMemoryRoster(SetupTeams.Default());
@@ -85,7 +86,7 @@ public sealed class MainViewModelBuilderTests
                 new FakeTimeProvider(T0),
                 builder: BuilderServices.None,
                 monitors: Monitors);
-            var setup = withSetup ? new SetupViewModelFactory(SetupService()) : null;
+            var setup = withSetup ? new SetupViewModelFactory(SetupService(), trial, confirmTrial: new AgentStudio.Tests.Desktop.Setup.SetupTrialAnswer(true)) : null;
             Main = new MainViewModel(
                 new InMemorySettingsStore(),
                 new FakeFolderPicker(),
@@ -97,7 +98,8 @@ public sealed class MainViewModelBuilderTests
                 orchestrators: factory,
                 monitors: Monitors,
                 setup: setup,
-                setupSuggestions: new SetupSuggestions(Folder.Combine("suggestions")));
+                setupSuggestions: new SetupSuggestions(Folder.Combine("suggestions")),
+                progress: new ProjectProgressReader(null));
         }
 
         public TempDirectory Folder { get; } = new();
@@ -336,14 +338,25 @@ public sealed class MainViewModelBuilderTests
 
     // ---- «Configurar proyecto» ----
 
+    /// <summary>
+    /// docs/24 §3.2: a project where Agent Studio never wrote was never set up, so the next step of «Inicio» is to set it up; and
+    /// the bar offers «Configurar proyecto» in its group «Proyecto». Both open the configurator, which reads the project.
+    /// </summary>
     [Fact]
-    public async Task The_welcome_tab_of_a_project_offers_configurar_proyecto_and_opening_it_reads_the_project()
+    public async Task A_project_never_set_up_has_configurar_el_proyecto_as_its_next_step_and_opening_it_reads_the_project()
     {
         using var rig = new Rig();
         await rig.OpenProjectAsync();
         rig.Main.ShowWelcomeCommand.Execute(null);
+        await rig.Main.NextStepRead;
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
-        var action = Assert.Single(welcome.ProjectActions, a => a.Title == Texts.Get("Shell_Setup_Action"));
+        var step = Assert.IsType<NextStepViewModel>(welcome.NextStep);
+        Assert.Equal(NextStepKind.SetUp, step.Kind);
+        Assert.Equal("Configurar el proyecto", step.Action);
+        var entry = Assert.Single(Assert.Single(rig.Main.ActivitySections, s => s.Group == ActivityGroup.Project).Items, a => a.Id == "setup");
+        Assert.Equal(Texts.Get("Shell_Setup_Action"), entry.Title);
+        Assert.Same(rig.Main.OpenSetupCommand, entry.Command);
+        var action = step;
 
         await ((IAsyncRelayCommand)action.Command).ExecuteAsync(null);
 
@@ -355,6 +368,33 @@ public sealed class MainViewModelBuilderTests
         // One tab for the project: asking again shows it, it does not make another.
         await ((IAsyncRelayCommand)action.Command).ExecuteAsync(null);
         Assert.Single(rig.Main.Documents.OfType<SetupDocumentViewModel>());
+    }
+
+    /// <summary>
+    /// Review fixes 3: a fresh clone of a project prepared elsewhere has no database yet, but its verification profile is versioned
+    /// and loads with the strict loader of the orchestrator, which takes it as ready: «Inicio» does not ask to set it up, nor
+    /// suggests it. A file that does not load is no profile: that project is offered to be set up.
+    /// </summary>
+    [Fact]
+    public async Task A_fresh_clone_with_a_valid_versioned_profile_is_neither_asked_nor_suggested_to_be_set_up()
+    {
+        using var rig = new Rig();
+        rig.Main.ShowWelcomeCommand.Execute(null);
+        var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
+        var clone = rig.Folder.CreateDirectory("clonado");
+        await AgentStudio.Orchestration.Verification.VerificationProfileFile.SaveAsync(clone, Backends.Profile, new AgentStudio.Infrastructure.Persistence.ProjectStorageFiles(), TestContext.Current.CancellationToken);
+        var broken = rig.Folder.CreateDirectory("roto");
+        rig.Folder.WriteFile(Path.Combine("roto", ".agentstudio", "verification.json"), "{}");
+
+        await rig.Main.OpenProjectAsync(clone);
+        await rig.Main.NextStepRead;
+        Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
+        Assert.False(welcome.HasSetupSuggestion);
+        Assert.False(new SetupSuggestions(rig.Folder.Combine("suggestions")).WasSuggested(clone));
+
+        await rig.Main.OpenProjectAsync(broken);
+        await rig.Main.NextStepRead;
+        Assert.Equal(NextStepKind.SetUp, welcome.NextStep?.Kind);
     }
 
     [Fact]
@@ -381,9 +421,13 @@ public sealed class MainViewModelBuilderTests
         rig.Main.ShowWelcomeCommand.Execute(null);
         var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
 
+        await rig.Main.NextStepRead;
+
         await rig.Main.OpenSetupCommand.ExecuteAsync(null);
 
-        Assert.DoesNotContain(welcome.ProjectActions, a => a.Title == Texts.Get("Shell_Setup_Action"));
+        // Never set up, but without a configurator to offer: the step is a new request, and the bar has no «Configurar proyecto».
+        Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
+        Assert.DoesNotContain(rig.Main.Activities, a => a.Id == "setup");
         Assert.DoesNotContain(rig.Main.Documents, d => d is SetupDocumentViewModel);
     }
 
@@ -428,6 +472,47 @@ public sealed class MainViewModelBuilderTests
 
         var stored = await rig.Roster.ListAsync("p-1", TestContext.Current.CancellationToken);
         Assert.Equal(stored.Select(a => a.Model), orchestrator.Context!.Roster.Select(a => a.Model));
+
+        // Everything went well: the person is taken to work, with the confirmation in the status bar (docs/24, wave 1).
+        await WaitForAsync(() => ReferenceEquals(rig.Main.ActiveContent, orchestrator));
+        Assert.Equal(Texts.Get("Setup_Applied_Confirmation"), rig.Main.StatusMessage);
+    }
+
+    [Fact]
+    public async Task Opening_another_project_stops_the_trial_of_the_configurator_and_lets_its_project_go()
+    {
+        var runner = new AgentStudio.Tests.Desktop.Setup.GatedTrialRunner();
+        var activity = new AgentStudio.Tests.Debate.Audit.Fixtures.FakeProjectActivity();
+        using var rig = new Rig(trial: new SetupCheckTrial(runner, new AgentStudio.Tests.Debate.Audit.Fixtures.AuditRepository("0123456789abcdef0123456789abcdef01234567"), activity));
+        var first = Directory.CreateDirectory(rig.Folder.Combine("trial-a")).FullName;
+        var second = Directory.CreateDirectory(rig.Folder.Combine("trial-b")).FullName;
+        await rig.Main.OpenProjectAsync(first);
+        await rig.Main.OpenSetupCommand.ExecuteAsync(null);
+        var setup = Assert.IsType<SetupDocumentViewModel>(rig.Main.ActiveContent).Setup;
+        var trying = setup.TryChecksCommand.ExecuteAsync(null);
+        await WaitForAsync(() => runner.Started);
+
+        await rig.Main.OpenProjectAsync(second);
+        await trying;
+
+        Assert.False(setup.IsTrying);
+        Assert.Equal(1, activity.Released);
+    }
+
+    [Fact]
+    public async Task Go_to_work_of_the_configurator_opens_the_orchestrator_of_the_project()
+    {
+        using var rig = new Rig();
+        await rig.OpenProjectAsync();
+        await rig.Main.OpenSetupCommand.ExecuteAsync(null);
+        var setup = Assert.IsType<SetupDocumentViewModel>(rig.Main.ActiveContent).Setup;
+        setup.Steps[(int)SetupStep.Verification].IsIncluded = false;
+        Assert.True(setup.GoToWorkCommand.CanExecute(null));
+
+        setup.GoToWorkCommand.Execute(null);
+
+        await WaitForAsync(() => rig.Main.ActiveContent is OrchestratorDocumentViewModel);
+        Assert.Single(rig.Main.Documents.OfType<OrchestratorDocumentViewModel>());
     }
 
     // ---- the counter of the agents and the panels follow the monitor of the project ----
