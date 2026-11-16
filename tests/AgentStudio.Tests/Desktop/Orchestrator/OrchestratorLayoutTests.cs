@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Desktop.Orchestrator;
@@ -195,30 +196,38 @@ public sealed class OrchestratorLayoutTests
 
     /// <summary>
     /// docs/24 §2, principle 4: the screens that bring the person here leave the keyboard where to write. The request waits on
-    /// the document until a view on screen takes it, once; the band «Preparación» is opened first.
+    /// the document until a view on screen takes it, after the dock is done moving the keyboard (ContextIdle), and it is cleared
+    /// only once the keyboard landed there: the box of the request takes it (in a view never shown, as the focused element of its
+    /// scope); «Requisitos», whose controls are not visible in a view never shown, cannot, so the request stays for the next time.
     /// </summary>
     [Fact]
-    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_once()
+    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_and_keeps_the_request_until_it_lands()
     {
         var document = await WpfHost.RunAsync(() => OpenAsync());
 
-        var (expanded, pendingBefore, pendingAfter) = WpfHost.Run(() =>
+        var (expanded, requestLanded, focused, requirementsPending) = WpfHost.Run(() =>
         {
             document.IsPreparationExpanded = false;
             var view = new OrchestratorView { DataContext = document };
             OffscreenRender.Render(view, 1040, 900);
-            document.ShowRequirements();
-            var before = document.PendingFocus;
 
             // The dock raises Loaded when the tab is shown; offscreen it is raised by hand.
             view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, view));
+            document.FocusRequestBox();
             WpfHost.FlushBindings();
-            return (document.IsPreparationExpanded, before, document.PendingFocus);
+            var landed = document.PendingFocus is null;
+            var box = ((PreparationView)view.FindName("PreparationBand")).FindName("RequestBox");
+            var inScope = FocusManager.GetFocusedElement(FocusManager.GetFocusScope((DependencyObject)box));
+
+            document.ShowRequirements();
+            WpfHost.FlushBindings();
+            return (document.IsPreparationExpanded, landed, ReferenceEquals(inScope, box), document.PendingFocus);
         });
 
         Assert.True(expanded);
-        Assert.Equal(OrchestratorFocus.Requirements, pendingBefore);
-        Assert.Null(pendingAfter);
+        Assert.True(requestLanded, "The box of the request took the keyboard, but the request was not cleared.");
+        Assert.True(focused, "The box of the request is not the focused element of its scope.");
+        Assert.Equal(OrchestratorFocus.Requirements, requirementsPending);
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root)

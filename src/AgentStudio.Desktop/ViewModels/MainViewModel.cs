@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
@@ -654,6 +654,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.RunHandedOff += OnRunHandedOff;
         document.ConfigureProjectRequested += OnConfigureProjectRequested;
         document.PropertyChanged += OnToolsContextChanged;
+        document.PropertyChanged += OnContextChangedForAudits;
 
         // Phase 10: «Publicar y abrir PR» beside «Entregar a mi rama», only where the section of pull requests exists.
         OfferPublish(document.Monitor, document.ProjectRoot);
@@ -769,7 +770,19 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <summary>A run started or stopped being followed in an orchestrator: «Memoria» withholds or offers its export again.</summary>
     private void OnMonitorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (sender is not RunMonitorViewModel monitor || e.PropertyName != nameof(RunMonitorViewModel.IsActive))
+        if (sender is not RunMonitorViewModel monitor)
+        {
+            return;
+        }
+
+        // What a run going on is doing (working, paused, waiting for an answer) is what «Inicio» says of it.
+        if (e.PropertyName == nameof(RunMonitorViewModel.Phase))
+        {
+            RefreshNextStep();
+            return;
+        }
+
+        if (e.PropertyName != nameof(RunMonitorViewModel.IsActive))
         {
             return;
         }

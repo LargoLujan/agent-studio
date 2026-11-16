@@ -14,12 +14,12 @@
     <!-- The «Orquestador» tab: engine status, the preparation (request, frozen requirements, agents, verification
          profile), the plan under review (validation, approval, run), the canvas with the properties of the selected node,
          and the monitor of the run with the previous runs. The tab fills its pane (docs/24 §1, rows 14 and 15): the bands take at
-         most half of its height and scroll inside when they need more, and always leave 300 px for the canvas, the divider and the
-         monitor (120 + 8 + 120 and some room), so the divider always has room to move. The canvas and the monitor start with the
+         most 40 % of its height and scroll inside when they need more, and always leave 360 px for the canvas, the divider and the
+         monitor (120 + 8 + 120 and room to move), so the divider always has room to move. The canvas and the monitor start with the
          same height. Only a pane shorter than 400 px scrolls as a whole, so the bands keep 100 px at least and nothing is lost. -->
     <UserControl.Resources>
-        <!-- The bands: at most half of the tab, and never the 300 px the canvas and the monitor keep; 100 px at least. -->
-        <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeight" Factor="0.5" Reserve="300" Minimum="100"/>
+        <!-- The bands: at most 40 % of the tab, and never the 360 px the canvas and the monitor keep; 100 px at least. -->
+        <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeight" Factor="0.4" Reserve="360" Minimum="100"/>
         <!-- «Resumen del plan»: three lines at least, about twelve at most, and never more than a quarter of the tab. -->
         <views:ShareOfLengthConverter x:Key="Orchestrator.SummaryMaxHeight" Factor="0.25" Minimum="64" Maximum="220"/>
 
@@ -132,71 +132,107 @@
             <Border x:Name="ReviewBand" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,0,1" Padding="12,8">
                 <StackPanel>
-                    <!-- «Resumen del plan» (docs/24 §1, row 16): the whole width of the band, its words wrapped, three lines at least
-                         and about twelve at most, then it scrolls. The person writes it for a plan drawn by hand; while a run is
-                         on screen the plan is fixed, and so is its summary. «Pedir plan» and «Cancelar» go above it, beside its label. -->
-                    <DockPanel Margin="0,0,0,4">
-                        <WrapPanel DockPanel.Dock="Right">
-                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_RequestPlan}" Command="{Binding RequestPlanCommand}"
-                                    ToolTip="{l:T Orchestrator_Review_RequestPlanHelp}"/>
-                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_CancelPlanning}" Command="{Binding CancelPlanningCommand}"/>
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Bottom" Text="{l:T Orchestrator_Review_PlanSummary}"/>
+                    <!-- While a run goes on there is nothing to approve: the band folds to this line, and the button unfolds it (docs/24 §1, row 15). -->
+                    <DockPanel Visibility="{Binding CanFoldReview, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                        <Button x:Name="ReviewFoldButton" DockPanel.Dock="Right" Command="{Binding ToggleReviewCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+                                    <Setter Property="Content" Value="{l:T Orchestrator_Review_Fold}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsReviewFolded}" Value="True">
+                                            <Setter Property="Content" Value="{l:T Orchestrator_Review_Unfold}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <TextBlock x:Name="ReviewFoldedText" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Text="{l:T Orchestrator_Review_Folded}"
+                                   Visibility="{Binding IsReviewFolded, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
                     </DockPanel>
-                    <TextBox x:Name="PlanSummaryBox" Style="{StaticResource MultilineFieldTextBox}" HorizontalAlignment="Stretch"
-                             TextWrapping="Wrap" AcceptsReturn="False" VerticalScrollBarVisibility="Auto" MinLines="3" MinHeight="64"
-                             MaxHeight="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.SummaryMaxHeight}}"
-                             IsReadOnly="{Binding Canvas.IsReadOnly}"
-                             Text="{Binding PlanSummary, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="{l:T Orchestrator_Review_PlanSummary}"/>
+                    <StackPanel x:Name="ReviewContent" Visibility="{Binding ShowsReview, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                        <!-- «Resumen del plan» (docs/24 §1, row 16): the whole width of the band, its words wrapped, three lines at least
+                             and about twelve at most, then it scrolls. The person writes it for a plan drawn by hand; while a run is
+                             on screen the plan is fixed, and so is its summary. «Pedir plan» and «Cancelar» go above it, beside its label. -->
+                        <DockPanel Margin="0,0,0,4">
+                            <WrapPanel DockPanel.Dock="Right">
+                                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_RequestPlan}" Command="{Binding RequestPlanCommand}"
+                                        ToolTip="{l:T Orchestrator_Review_RequestPlanHelp}"/>
+                                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_CancelPlanning}" Command="{Binding CancelPlanningCommand}"/>
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Bottom" Text="{l:T Orchestrator_Review_PlanSummary}"/>
+                        </DockPanel>
+                        <TextBox x:Name="PlanSummaryBox" HorizontalAlignment="Stretch"
+                                 TextWrapping="Wrap" AcceptsReturn="False" VerticalScrollBarVisibility="Auto"
+                                 MaxHeight="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.SummaryMaxHeight}}"
+                                 IsReadOnly="{Binding Canvas.IsReadOnly}"
+                                 Text="{Binding PlanSummary, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Orchestrator_Review_PlanSummary}">
+                            <!-- One line while it is empty or the plan is fixed by a run; three while there is a summary to read or write. -->
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource MultilineFieldTextBox}">
+                                    <Setter Property="MinLines" Value="3"/>
+                                    <Setter Property="MinHeight" Value="64"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PlanSummary}" Value="">
+                                            <Setter Property="MinLines" Value="1"/>
+                                            <Setter Property="MinHeight" Value="0"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Canvas.IsReadOnly}" Value="True">
+                                            <Setter Property="MinLines" Value="1"/>
+                                            <Setter Property="MinHeight" Value="0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
 
-                    <!-- Where the plan stands, in words that wrap within the whole band. -->
-                    <WrapPanel x:Name="PlanState" Margin="0,4,0,0">
-                        <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center"
-                                 Fill="{Binding ValidationTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,0,16,0" Text="{Binding ValidationText}"
-                                   AutomationProperties.LiveSetting="Polite"/>
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,0,16,0" Text="{Binding ApprovalText}"
-                                   AutomationProperties.Name="{l:T Orchestrator_Review_ApprovalName}" AutomationProperties.LiveSetting="Polite"/>
-                        <TextBlock Style="{StaticResource OptionalSecondaryText}" VerticalAlignment="Center"
-                                   Text="{Binding ExecuteBlockers, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Review_ToRun}"/>
-                    </WrapPanel>
-                    <!-- Part of what «Aprobar plan» approves: the steps that run the agents' code with the user's rights (ADR-0017). -->
-                    <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
-                               Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarningText}"
-                               Visibility="{Binding HasIsolationWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                               AutomationProperties.Name="{l:T Orchestrator_Review_IsolationName}" AutomationProperties.LiveSetting="Polite"/>
-                    <!-- B10: a valid plan whose writing no integration reviewed by the judge takes in cannot be delivered. -->
-                    <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap"
-                               Foreground="{StaticResource WarningBrush}" Text="{Binding DeliveryWarning}"
-                               Visibility="{Binding HasDeliveryWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                               AutomationProperties.Name="{l:T Orchestrator_Review_DeliveryWarningName}" AutomationProperties.LiveSetting="Polite"/>
-                    <!-- «Aprobar plan» without Windows Hello on this computer: the button decided alone (docs/16 D-13). -->
-                    <lockviews:HelloNoticeView/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
-                                Visibility="{Binding IsBusy, Converter={StaticResource Orchestrator.BoolToVisibility}}">
-                        <ProgressBar Style="{StaticResource AccentProgress}" Width="120" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding BusyText}"/>
+                        <!-- The decision on the plan and the run. -->
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Validate}" Command="{Binding ValidateCommand}"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Approve}" Command="{Binding ApproveCommand}"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Reject}" Command="{Binding RejectCommand}"/>
+                            <!-- The consent of the next run (docs/16 D-39, decision 4 (a)): off by default, it goes into its header. -->
+                            <CheckBox Style="{StaticResource FieldCheckBox}" Margin="6,0,12,6" VerticalAlignment="Center"
+                                      Content="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentLabel}"
+                                      IsChecked="{Binding AutoResumeConsent}" IsEnabled="{Binding CanChooseResumeConsent}"
+                                      ToolTip="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentToolTip}"
+                                      ToolTipService.ShowOnDisabled="True"
+                                      AutomationProperties.HelpText="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentToolTip}"/>
+                            <info:InfoButton InfoKey="Info_ResumeConsent" Margin="0,0,12,6" VerticalAlignment="Center"/>
+                            <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Orchestrator_Review_Execute}" Command="{Binding ExecuteCommand}"
+                                    ToolTip="{Binding ExecuteBlockers}" ToolTipService.ShowOnDisabled="True"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_EditPlan}" Command="{Binding EditPlanCommand}"/>
+                        </WrapPanel>
+                        <!-- Where the plan stands, in words that wrap within the whole band. -->
+                        <WrapPanel x:Name="PlanState" Margin="0,4,0,0">
+                            <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center"
+                                     Fill="{Binding ValidationTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+                            <TextBlock Style="{StaticResource BodyText}" Margin="0,0,16,0" Text="{Binding ValidationText}"
+                                       AutomationProperties.LiveSetting="Polite"/>
+                            <TextBlock Style="{StaticResource BodyText}" Margin="0,0,16,0" Text="{Binding ApprovalText}"
+                                       AutomationProperties.Name="{l:T Orchestrator_Review_ApprovalName}" AutomationProperties.LiveSetting="Polite"/>
+                            <TextBlock Style="{StaticResource OptionalSecondaryText}" VerticalAlignment="Center"
+                                       Text="{Binding ExecuteBlockers, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Review_ToRun}"/>
+                        </WrapPanel>
+                        <!-- Part of what «Aprobar plan» approves: the steps that run the agents' code with the user's rights (ADR-0017). -->
+                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
+                                   Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarningText}"
+                                   Visibility="{Binding HasIsolationWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                   AutomationProperties.Name="{l:T Orchestrator_Review_IsolationName}" AutomationProperties.LiveSetting="Polite"/>
+                        <!-- B10: a valid plan whose writing no integration reviewed by the judge takes in cannot be delivered. -->
+                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Foreground="{StaticResource WarningBrush}" Text="{Binding DeliveryWarning}"
+                                   Visibility="{Binding HasDeliveryWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                   AutomationProperties.Name="{l:T Orchestrator_Review_DeliveryWarningName}" AutomationProperties.LiveSetting="Polite"/>
+                        <!-- «Aprobar plan» without Windows Hello on this computer: the button decided alone (docs/16 D-13). -->
+                        <lockviews:HelloNoticeView/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                    Visibility="{Binding IsBusy, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                            <ProgressBar Style="{StaticResource AccentProgress}" Width="120" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding BusyText}"/>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage}"/>
                     </StackPanel>
-                    <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage}"/>
-
-                    <!-- The decision on the plan and the run. -->
-                    <WrapPanel Margin="0,6,0,0">
-                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Validate}" Command="{Binding ValidateCommand}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Approve}" Command="{Binding ApproveCommand}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Reject}" Command="{Binding RejectCommand}"/>
-                        <!-- The consent of the next run (docs/16 D-39, decision 4 (a)): off by default, it goes into its header. -->
-                        <CheckBox Style="{StaticResource FieldCheckBox}" Margin="6,0,12,6" VerticalAlignment="Center"
-                                  Content="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentLabel}"
-                                  IsChecked="{Binding AutoResumeConsent}" IsEnabled="{Binding CanChooseResumeConsent}"
-                                  ToolTip="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentToolTip}"
-                                  ToolTipService.ShowOnDisabled="True"
-                                  AutomationProperties.HelpText="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentToolTip}"/>
-                        <info:InfoButton InfoKey="Info_ResumeConsent" Margin="0,0,12,6" VerticalAlignment="Center"/>
-                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Orchestrator_Review_Execute}" Command="{Binding ExecuteCommand}"
-                                ToolTip="{Binding ExecuteBlockers}" ToolTipService.ShowOnDisabled="True"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_EditPlan}" Command="{Binding EditPlanCommand}"/>
-                    </WrapPanel>
                 </StackPanel>
             </Border>
             </StackPanel>

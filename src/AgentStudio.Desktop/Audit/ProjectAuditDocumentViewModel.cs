@@ -273,7 +273,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     {
         if (_opened)
         {
-            await ReadRequirementsAgainAsync().ConfigureAwait(true);
+            await RefreshRequirementsAsync().ConfigureAwait(true);
             return;
         }
 
@@ -451,8 +451,11 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     [RelayCommand(CanExecute = nameof(ShowsGoToRequirements))]
     private Task GoToRequirementsAsync() => _screens is { } screens ? screens.OpenRequirementsAsync(ProjectRoot) : Task.CompletedTask;
 
-    /// <summary>The tab opened again without frozen requirements: they are read again, and the preparation follows them.</summary>
-    private async Task ReadRequirementsAgainAsync()
+    /// <summary>
+    /// The tab opened again, or came back into view, without frozen requirements: they are read again, and the preparation follows
+    /// them. Nothing while it has not opened, while it loads or audits, or once it has them.
+    /// </summary>
+    public async Task RefreshRequirementsAsync()
     {
         if (_requirements is not null || IsBusy || _loading || Project is not { } project || _backend.Requirements is not { } store)
         {

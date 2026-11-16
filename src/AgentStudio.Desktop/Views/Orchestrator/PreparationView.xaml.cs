@@ -13,20 +13,26 @@ public partial class PreparationView : UserControl
 
     /// <summary>
     /// Brings <paramref name="target"/> into view and gives it the keyboard: the box of the request, or the first control of
-    /// «Requisitos». The band must be open (the document opens it before it asks).
+    /// «Requisitos». The band must be open (the document opens it before it asks). True when the keyboard landed there: in a window
+    /// that is not active, when it is the focused element of its scope, which Windows gives the keyboard back to.
     /// </summary>
-    public void BringToKeyboard(OrchestratorFocus target)
+    public bool BringToKeyboard(OrchestratorFocus target)
     {
         UpdateLayout();
-        if (target == OrchestratorFocus.Request)
+        var element = target == OrchestratorFocus.Request ? RequestBox : FirstTabStop(RequirementsEditor);
+        if (target == OrchestratorFocus.Requirements)
         {
-            RequestBox.BringIntoView();
-            RequestBox.Focus();
-            return;
+            RequirementsSection.BringIntoView();
         }
 
-        RequirementsSection.BringIntoView();
-        FirstTabStop(RequirementsEditor)?.Focus();
+        if (element is null)
+        {
+            return false;
+        }
+
+        (element as FrameworkElement)?.BringIntoView();
+        element.Focus();
+        return element.IsKeyboardFocusWithin || ReferenceEquals(FocusManager.GetFocusedElement(FocusManager.GetFocusScope(element)), element);
     }
 
     /// <summary>The first control of <paramref name="root"/> that the keyboard can reach, in the order of the tree.</summary>

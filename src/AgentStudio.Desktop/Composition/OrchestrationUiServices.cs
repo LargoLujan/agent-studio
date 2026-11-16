@@ -80,11 +80,8 @@ internal static class OrchestrationUiServices
                 provider.GetService<IEvidenceStore>()))
             .AddSingleton<OrchestrationSession>()
 
-            // «Inicio» (docs/24 §3.2): whether the open project was set up and has frozen requirements, for its next step.
-            .AddSingleton(provider => new ProjectProgressReader(
-                provider.GetService<IProjectWorkspace>(),
-                provider.GetService<IDecisionRecorder>(),
-                provider.GetService<IRequirementStore>()))
+            // «Inicio» (docs/24 §3.2): whether the configurator was applied to a project the orchestrator has open, for its next step.
+            .AddSingleton(provider => new ProjectProgressReader(provider.GetService<IDecisionRecorder>()))
             .AddSingleton(provider => new HeadTestsServices(
                 provider.GetService<IVerificationRunner>(),
                 provider.GetService<IVerificationProfileSource>(),

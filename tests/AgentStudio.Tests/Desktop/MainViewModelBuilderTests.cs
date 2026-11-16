@@ -99,7 +99,7 @@ public sealed class MainViewModelBuilderTests
                 monitors: Monitors,
                 setup: setup,
                 setupSuggestions: new SetupSuggestions(Folder.Combine("suggestions")),
-                progress: new ProjectProgressReader(null, null, null));
+                progress: new ProjectProgressReader(null));
         }
 
         public TempDirectory Folder { get; } = new();

@@ -248,6 +248,12 @@ public sealed class MainViewModelTests
         Assert.All(vm.Activities, a => Assert.True(a.IsEnabled));
         Assert.All(vm.Activities, a => Assert.Null(a.AvailableInPhase));
         Assert.Equal(PanelIds.Tests, byId["tests"].PanelId);
+
+        // Review fix 6: the entry and the panel it opens have the same name, in both languages.
+        Assert.Equal(Texts.Get("Shell_Activity_Tests"), Texts.Get("Panels_Tests_Title"));
+        var english = new AgentStudio.Desktop.Localization.ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("en"));
+        Assert.Equal("Test results", english.Get("Panels_Tests_Title"));
+        Assert.Equal(english.Get("Shell_Activity_Tests"), english.Get("Panels_Tests_Title"));
         Assert.Null(byId["agents"].PanelId);
         Assert.Null(byId["tools"].PanelId);
 
