@@ -294,8 +294,18 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock Style="{StaticResource Setup.OptionalError}" Text="{Binding CheckProblem}"/>
+                        <StackPanel Margin="0,4,0,8" Visibility="{Binding HasProposalSuggestion, Converter={StaticResource Setup.BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Setup_Verification_Suggestion}"/>
+                            <ItemsControl ItemsSource="{Binding ProposalLines}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Style="{StaticResource Setup.Line}" FontFamily="{StaticResource MonoFont}" Text="{Binding}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                         <WrapPanel>
-                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Restore_Proposed}" Command="{Binding RestoreProposedChecksCommand}"
+                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Restore_Proposed}" Command="{Binding UseProposedChecksCommand}"
                                     Visibility="{Binding HasProposedChecks, Converter={StaticResource Setup.BoolToVisibility}}"/>
                             <Button Style="{StaticResource GhostButton}" Margin="0,0,8,4" Content="{l:T Setup_Verification_Restore_Current}" Command="{Binding RestoreCurrentChecksCommand}"
                                     Visibility="{Binding HasCurrentChecks, Converter={StaticResource Setup.BoolToVisibility}}"/>

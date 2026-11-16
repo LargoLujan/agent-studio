@@ -535,7 +535,7 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <value>Volver a las que tienes ahora</value>
   </data>
   <data name="Setup_Verification_Restore_Proposed" xml:space="preserve">
-    <value>Volver a las propuestas</value>
+    <value>Usar la propuesta</value>
   </data>
   <data name="Setup_Verification_Try" xml:space="preserve">
     <value>Probarla ahora</value>
@@ -742,5 +742,11 @@ Elegir cuánto puede durar cada intento.</value>
   </data>
   <data name="Setup_Verification_Hidden" xml:space="preserve">
     <value>Esta orden lleva caracteres invisibles o que cambian la dirección del texto. Escríbela de nuevo a mano.</value>
+  </data>
+  <data name="Setup_Verification_Suggestion" xml:space="preserve">
+    <value>Para tu tecnología te proponemos estas otras órdenes:</value>
+  </data>
+  <data name="Setup_Verification_Not_Saved" xml:space="preserve">
+    <value>Estas órdenes aún no están guardadas. Para guardarlas, marca «Guardar este paso».</value>
   </data>
 </root>

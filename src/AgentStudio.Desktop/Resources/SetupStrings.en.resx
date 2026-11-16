@@ -486,7 +486,7 @@ Apply: saving the check commands or sensitive permissions asks for Windows Hello
     <value>Back to the ones you have now</value>
   </data>
   <data name="Setup_Verification_Restore_Proposed" xml:space="preserve">
-    <value>Back to the proposed ones</value>
+    <value>Use the proposal</value>
   </data>
   <data name="Setup_Verification_Try" xml:space="preserve">
     <value>Try it now</value>
@@ -693,5 +693,11 @@ Choose how long each attempt can last.</value>
   </data>
   <data name="Setup_Verification_Hidden" xml:space="preserve">
     <value>This command has invisible characters or characters that change the direction of the text. Type it again by hand.</value>
+  </data>
+  <data name="Setup_Verification_Suggestion" xml:space="preserve">
+    <value>For your technology we propose these other commands:</value>
+  </data>
+  <data name="Setup_Verification_Not_Saved" xml:space="preserve">
+    <value>These commands are not saved yet. To save them, tick "Save this step".</value>
   </data>
 </root>

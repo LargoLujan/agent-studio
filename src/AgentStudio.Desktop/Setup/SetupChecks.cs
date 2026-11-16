@@ -84,7 +84,7 @@ public sealed partial class SetupCheckRowViewModel : ObservableObject
     {
         Step = step;
         _text = text;
-        Label = text.Has("Setup_Verification_Step_" + step.Id) ? text.Get("Setup_Verification_Step_" + step.Id) : step.Title;
+        Label = SetupChecks.Label(text, step);
         _original = string.IsNullOrWhiteSpace(step.Executable) ? string.Empty : SetupCommandLine.Render(step.Executable, step.Arguments);
         Example = _original.Length == 0 && text.Has("Setup_Verification_Example_" + step.Id) ? text.Get("Setup_Verification_Example_" + step.Id) : string.Empty;
         _commandText = _original;
@@ -171,6 +171,14 @@ public static class SetupChecks
 {
     /// <summary>The name of a profile written for a project whose technology was not recognised.</summary>
     public const string OwnProfileName = "custom";
+
+    /// <summary>What a command is for, in words: «Compilar», «Lanzar las pruebas»; the title of the profile for an id the screen does not know.</summary>
+    public static string Label(IUiTextProvider text, VerificationStep step)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(step);
+        return text.Has("Setup_Verification_Step_" + step.Id) ? text.Get("Setup_Verification_Step_" + step.Id) : step.Title;
+    }
 
     /// <summary>
     /// The blank commands for a project whose technology was not recognised: one that compiles and one that runs the tests and

@@ -90,6 +90,11 @@ public sealed partial class SetupViewModel : ObservableObject
             {
                 if (e.PropertyName == nameof(SetupStepViewModel.IsIncluded))
                 {
+                    if (step.Step == SetupStep.Verification)
+                    {
+                        RefreshVerificationStatus();
+                    }
+
                     OnInclusionChanged();
                 }
             };
@@ -183,8 +188,16 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>The project has commands in force: «Volver a las que tienes ahora» is offered.</summary>
     public bool HasCurrentChecks => _proposal?.Verification.Current is not null && CanEditChecks;
 
-    /// <summary>Commands were proposed for the stack: «Volver a las propuestas» is offered.</summary>
+    /// <summary>Commands were proposed for the stack: «Usar la propuesta» is offered.</summary>
     public bool HasProposedChecks => _proposal?.Verification.Proposed is not null && CanEditChecks;
+
+    /// <summary>
+    /// The commands proposed for the stack when the project already has others saved: only a suggestion, shown with «Usar la
+    /// propuesta». The rows show what is saved, and nothing changes until the person takes it or edits.
+    /// </summary>
+    public ObservableCollection<string> ProposalLines { get; } = [];
+
+    public bool HasProposalSuggestion => ProposalLines.Count > 0;
 
     /// <summary>«Son las que ya tienes», «Al aplicar se pedirá Windows Hello»… or empty.</summary>
     [ObservableProperty]
@@ -454,7 +467,16 @@ public sealed partial class SetupViewModel : ObservableObject
         CanEditChecks = !verification.CurrentUnreadable;
         OnPropertyChanged(nameof(HasCurrentChecks));
         OnPropertyChanged(nameof(HasProposedChecks));
-        LoadChecks(verification.Proposed ?? verification.Current);
+
+        // What is saved is what the rows show; the proposal for the stack is only a suggestion beside it.
+        LoadChecks(verification.Current ?? verification.Proposed);
+        ProposalLines.Clear();
+        if (verification.Current is { } saved && verification.Proposed is { } proposed && saved.ContentHash != proposed.ContentHash)
+        {
+            ProposalLines.AddRange(proposed.Steps.Select(s => Text.Format("Setup_Summary_Item", SetupChecks.Label(Text, s), Command(s))));
+        }
+
+        OnPropertyChanged(nameof(HasProposalSuggestion));
         TrialLines.Clear();
         TrialOutput = string.Empty;
         TrialStatus = string.Empty;
@@ -500,28 +522,42 @@ public sealed partial class SetupViewModel : ObservableObject
             TrialPassed = null;
         }
 
-        var text = Text;
         var edited = EditedChecks(out var problem);
         CheckProblem = problem is not null && CheckRows.All(r => r.Problem.Length == 0) ? problem : string.Empty;
-        VerificationStatus = proposal.Verification.CurrentUnreadable ? text.Get("Setup_Verification_Unreadable")
-            : problem is not null ? string.Empty
-            : edited is null && proposal.Verification.Proposed is null && proposal.Verification.Current is null ? text.Render(UserText.Of(proposal.Verification.NoProposalCode ?? "setup.verification.no-stack"))
-            : edited is null ? text.Get("Setup_Verification_None")
-            : ChecksWouldChange(edited) ? text.Get("Setup_Verification_Hello_Note")
-            : text.Get("Setup_Verification_Same");
 
-        // Changing a command turns the step on; one that cannot be used keeps it on, so «Aplicar» waits until it can.
-        var on = !proposal.Verification.CurrentUnreadable && (problem is not null ? !initial : ChecksWouldChange(edited));
+        // Only an edit of the person turns the step on, never what was read: one that changes the commands, or one that cannot be
+        // used yet (so «Aplicar» waits until it can).
+        var on = !initial && !proposal.Verification.CurrentUnreadable && (problem is not null || ChecksWouldChange(edited));
         if (StepOf(SetupStep.Verification).IsIncluded != on)
         {
             StepOf(SetupStep.Verification).IsIncluded = on;
         }
         else
         {
+            RefreshVerificationStatus();
             OnInclusionChanged();
         }
 
         TryChecksCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>What the check step says of the commands on screen: the same as saved, not saved yet, Windows Hello to come…</summary>
+    private void RefreshVerificationStatus()
+    {
+        if (_proposal is not { } proposal)
+        {
+            return;
+        }
+
+        var text = Text;
+        var edited = EditedChecks(out var problem);
+        VerificationStatus = proposal.Verification.CurrentUnreadable ? text.Get("Setup_Verification_Unreadable")
+            : problem is not null ? string.Empty
+            : edited is null && proposal.Verification.Proposed is null && proposal.Verification.Current is null ? text.Render(UserText.Of(proposal.Verification.NoProposalCode ?? "setup.verification.no-stack"))
+            : edited is null ? text.Get("Setup_Verification_None")
+            : !ChecksWouldChange(edited) ? text.Get("Setup_Verification_Same")
+            : StepOf(SetupStep.Verification).IsIncluded ? text.Get("Setup_Verification_Hello_Note")
+            : text.Get("Setup_Verification_Not_Saved");
     }
 
     /// <summary>«Volver a las que tienes ahora»: the rows of the commands in force.</summary>
@@ -535,9 +571,9 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>«Volver a las propuestas»: the rows of the commands proposed for the stack.</summary>
+    /// <summary>«Usar la propuesta»: the rows of the commands proposed for the stack, as an edit of the person (the step turns on when they change what is saved).</summary>
     [RelayCommand]
-    private void RestoreProposedChecks()
+    private void UseProposedChecks()
     {
         if (_proposal?.Verification.Proposed is { } proposed && CanEditChecks)
         {

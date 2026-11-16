@@ -255,22 +255,63 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
-    public async Task The_commands_in_force_and_the_proposed_ones_can_be_taken_back()
+    public async Task The_saved_commands_are_shown_the_proposal_is_only_a_suggestion_and_nothing_turns_on_by_itself()
     {
         var stored = SetupFakes.Profile("dotnet", "C:\\tools\\dotnet.exe");
         var rig = new Rig { Profiles = new StackProfiles(DotNetVerificationProfile.Propose()) { Stored = stored } };
         var vm = await rig.OpenAsync();
+
+        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.StartsWith("C:\\tools\\dotnet.exe", Assert.Single(vm.CheckRows).CommandText, StringComparison.Ordinal);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+        Assert.True(vm.HasProposalSuggestion);
+        Assert.Equal(2, vm.ProposalLines.Count);
+        Assert.Contains(vm.ProposalLines, l => l.Contains("dotnet test --no-build", StringComparison.Ordinal));
+        Assert.Null(vm.BuildSelection().Profile);
+        Assert.Empty(vm.SummaryLines);
+
+        vm.UseProposedChecksCommand.Execute(null);
+
         Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
-        Assert.True(vm.HasCurrentChecks);
+        Assert.Equal(2, vm.CheckRows.Count);
 
         vm.RestoreCurrentChecksCommand.Execute(null);
 
         Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.StartsWith("C:\\tools\\dotnet.exe", Assert.Single(vm.CheckRows).CommandText, StringComparison.Ordinal);
+    }
 
-        vm.RestoreProposedChecksCommand.Execute(null);
+    [Fact]
+    public async Task Without_saved_commands_the_proposal_fills_the_rows_and_is_saved_only_when_the_person_says_so()
+    {
+        var vm = await new Rig().OpenAsync();
 
-        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.False(vm.HasProposalSuggestion);
+        Assert.Equal(Spanish.Get("Setup_Verification_Not_Saved"), vm.VerificationStatus);
+        Assert.Empty(vm.SummaryLines);
+
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), vm.VerificationStatus);
+        Assert.NotNull(vm.BuildSelection().Profile);
+    }
+
+    [Fact]
+    public async Task After_saving_own_commands_the_wizard_shows_them_and_does_not_propose_undoing_them()
+    {
+        var rig = new Rig();
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.NotNull(rig.Profiles.Stored);
+        Assert.Equal("dotnet build App.slnx", Row(vm, "build").CommandText);
+        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.True(vm.HasProposalSuggestion);
+        Assert.Null(vm.BuildSelection().Profile);
+        Assert.Empty(vm.SummaryLines);
     }
 
     // ---- «Probarla ahora» -----------------------------------------------------------------------------------------
@@ -529,7 +570,7 @@ public sealed class SetupChecksTests
             [SetupStep.Brief, SetupStep.Team, SetupStep.Models, SetupStep.Verification, SetupStep.Skills, SetupStep.Budget],
             vm.SummaryBlocks.Select(b => b.Step));
         var saved = vm.SummaryBlocks.Where(b => b.Saves).Select(b => b.Step).ToList();
-        Assert.Equal([SetupStep.Verification, SetupStep.Budget], saved);
+        Assert.Equal([SetupStep.Budget], saved);
         Assert.All(vm.SummaryBlocks, b => Assert.Equal(Spanish.Get(b.Saves ? "Setup_Summary_Saves" : "Setup_Summary_Stays"), b.State));
         Assert.All(vm.SummaryBlocks, b => Assert.NotEmpty(b.Lines));
         Assert.Equal(3, vm.SummaryBlocks.Single(b => b.Step == SetupStep.Team).Lines.Count);
@@ -565,6 +606,7 @@ public sealed class SetupChecksTests
     {
         var rig = new Rig();
         var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
         var order = new List<string>();
         vm.Applied += (_, _) => order.Add("applied");
         vm.WorkRequested += (_, e) => order.Add("work:" + e.Confirmation);
@@ -576,6 +618,7 @@ public sealed class SetupChecksTests
 
         var denied = new Rig { Gate = new FakeGate(false) };
         var other = await denied.OpenAsync();
+        Step(other, SetupStep.Verification).IsIncluded = true;
         var went = false;
         other.WorkRequested += (_, _) => went = true;
 
