@@ -248,7 +248,7 @@ public sealed partial class MainViewModel
 
     /// <summary>
     /// «Ver la ejecución en marcha» when a run of the project goes on, with what it is doing in plain words: working, paused, waiting
-    /// for your answer, or stopped for something else. In the monitor of its orchestrator, which it opens; or in a monitor of its own
+    /// for your answer (a question), waiting for your approval (a task, with no question), or stopped for something else. In the monitor of its orchestrator, which it opens; or in a monitor of its own
     /// (a run resumed while that one followed another), which «Ejecuciones reanudadas» shows. Null otherwise.
     /// </summary>
     private NextStepViewModel? RunStep(string root)
@@ -264,7 +264,8 @@ public sealed partial class MainViewModel
     }
 
     private static string RunReason(RunMonitorViewModel monitor) =>
-        monitor.HasPendingQuestions || monitor.Phase == RunPhase.AwaitingHuman ? Texts.Get("Welcome_Next_RunWaiting")
+        monitor.HasPendingQuestions ? Texts.Get("Welcome_Next_RunWaiting")
+        : monitor.Phase == RunPhase.AwaitingHuman ? Texts.Get("Welcome_Next_RunApproval")
         : monitor.Phase == RunPhase.Paused ? Texts.Get("Welcome_Next_RunPaused")
         : monitor.Phase is null or RunPhase.Running ? Texts.Get("Welcome_Next_Run")
         : Texts.Get("Welcome_Next_RunStopped");

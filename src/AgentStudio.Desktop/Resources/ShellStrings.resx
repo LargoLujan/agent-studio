@@ -763,11 +763,15 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
     <comment>Why the next step is to see the run: it is paused.</comment>
   </data>
   <data name="Welcome_Next_RunWaiting" xml:space="preserve">
-    <value>Un agente de este proyecto espera tu respuesta. Ábrela y contesta para que siga.</value>
+    <value>Un agente de este proyecto espera tu respuesta. Ve a la ejecución y contesta para que siga.</value>
     <comment>Why the next step is to see the run: it waits for an answer.</comment>
   </data>
   <data name="Welcome_Next_RunStopped" xml:space="preserve">
     <value>La ejecución de este proyecto está parada. Mira qué la detiene.</value>
     <comment>Why the next step is to see the run: it waits for something else (the usage limit, a blocked task).</comment>
+  </data>
+  <data name="Welcome_Next_RunApproval" xml:space="preserve">
+    <value>La ejecución de este proyecto espera tu aprobación. Ve a la ejecución y decide para que siga.</value>
+    <comment>Why the next step is to see the run: a task waits for the approval of the person.</comment>
   </data>
 </root>

@@ -242,6 +242,28 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_Run"), welcome.NextStep?.Reason);
     }
 
+    /// <summary>
+    /// Review fix 8 (and 7): what «Inicio» says of a run in each state, in plain words: in pause, waiting for your approval (a task,
+    /// with no question pending), and stopped for something else (the usage limit of the plan).
+    /// </summary>
+    [Theory]
+    [InlineData(RunPhase.Paused, "La ejecución de este proyecto está en pausa. Mira dónde se quedó y reanúdala cuando quieras.")]
+    [InlineData(RunPhase.AwaitingHuman, "La ejecución de este proyecto espera tu aprobación. Ve a la ejecución y decide para que siga.")]
+    [InlineData(RunPhase.WaitingForQuota, "La ejecución de este proyecto está parada. Mira qué la detiene.")]
+    public async Task What_inicio_says_of_a_run_follows_its_state(RunPhase phase, string expected)
+    {
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()));
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        orchestrator.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), phase, [], FakeRun.Healthy, 0)), orchestrator.Context!.Project!);
+
+        var step = await StepAsync(shell);
+
+        Assert.Equal(NextStepKind.RunGoingOn, step.Kind);
+        Assert.Equal(expected, step.Reason);
+    }
+
     [Fact]
     public async Task Changing_project_drops_the_step_of_the_project_left()
     {
