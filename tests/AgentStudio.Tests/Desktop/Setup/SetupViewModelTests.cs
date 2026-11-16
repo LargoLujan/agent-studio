@@ -107,18 +107,18 @@ public sealed class SetupViewModelTests
 
         var vm = await rig.OpenAsync();
 
-        // The template of the project is the default one, so the team has nothing to add; the commands proposed for the stack
-        // fill the check, but only an edit or a tick of the person saves them (docs/24, wave 1).
+        // The template of the project is the default one, so the team has nothing to add; the project has no profile saved, so the
+        // commands detected for its stack start on, and saving them asks Windows Hello (docs/24, wave 1).
         Assert.False(Step(vm, SetupStep.Brief).IsIncluded);
         Assert.False(Step(vm, SetupStep.Team).IsIncluded);
         Assert.False(Step(vm, SetupStep.Models).IsIncluded);
-        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.False(Step(vm, SetupStep.Skills).IsIncluded);
         Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
         Assert.False(Step(vm, SetupStep.Project).CanSkip);
         Assert.False(Step(vm, SetupStep.Summary).CanSkip);
-        Assert.False(vm.WillAskHello);
-        Assert.Empty(vm.SummaryLines);
+        Assert.True(vm.WillAskHello);
+        Assert.Single(vm.SummaryLines);
     }
 
     [Fact]
@@ -517,9 +517,9 @@ public sealed class SetupViewModelTests
         Assert.Contains("## " + Spanish.Get("Text_setup_brief_section_what"), spanish.BriefText, StringComparison.Ordinal);
         Assert.Equal("small", english.Sizes[0].Label);
         Assert.Contains("effort", english.ModelRows[0].Current, StringComparison.Ordinal);
-        Assert.Equal(Spanish.Get("Setup_Verification_Not_Saved"), spanish.VerificationStatus);
-        Assert.Equal(English.Get("Setup_Verification_Not_Saved"), english.VerificationStatus);
-        Assert.StartsWith("These commands are not saved yet", english.VerificationStatus, StringComparison.Ordinal);
+        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), spanish.VerificationStatus);
+        Assert.Equal(English.Get("Setup_Verification_Hello_Note"), english.VerificationStatus);
+        Assert.StartsWith("Windows Hello will be asked when you apply", english.VerificationStatus, StringComparison.Ordinal);
         Assert.DoesNotContain(english.ModelRows.Select(r => r.Why), w => w is not null && w.StartsWith('['));
     }
 

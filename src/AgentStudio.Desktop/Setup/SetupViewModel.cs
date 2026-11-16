@@ -563,9 +563,12 @@ public sealed partial class SetupViewModel : ObservableObject
         var edited = EditedChecks(out var problem);
         CheckProblem = problem is not null && CheckRows.All(r => r.Problem.Length == 0) ? problem : string.Empty;
 
-        // Only an edit of the person turns the step on, never what was read: one that changes the commands, or one that cannot be
-        // used yet (so «Aplicar» waits until it can).
-        var on = !initial && !proposal.Verification.CurrentUnreadable && (problem is not null || ChecksWouldChange(edited));
+        // With no profile saved, the commands detected for the stack start on: without them the first «Aplicar» would leave the
+        // project with none, and the orchestrator cannot plan. With one saved, what was read never turns the step on: only an edit of
+        // the person does, one that changes the commands or one that cannot be used yet (so «Aplicar» waits until it can).
+        var on = !proposal.Verification.CurrentUnreadable && (initial
+            ? proposal.Verification.Current is null && edited is not null && problem is null
+            : problem is not null || ChecksWouldChange(edited));
         if (StepOf(SetupStep.Verification).IsIncluded != on)
         {
             StepOf(SetupStep.Verification).IsIncluded = on;

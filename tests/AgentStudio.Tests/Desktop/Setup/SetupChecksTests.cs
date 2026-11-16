@@ -377,19 +377,37 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
-    public async Task Without_saved_commands_the_proposal_fills_the_rows_and_is_saved_only_when_the_person_says_so()
+    public async Task Without_saved_commands_the_detected_ones_start_on_so_the_first_apply_leaves_the_project_with_a_profile()
+    {
+        var rig = new Rig();
+        var vm = await rig.OpenAsync();
+
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.False(vm.HasProposalSuggestion);
+        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), vm.VerificationStatus);
+        Assert.Contains(vm.SummaryLines, l => l.StartsWith(Spanish.Get("Setup_Step_Verification") + ":", StringComparison.Ordinal));
+        Assert.Equal(DotNetVerificationProfile.Propose().ContentHash, vm.BuildSelection().Profile!.ContentHash);
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.Equal(PresenceAction.ChangeVerificationProfile, Assert.Single(rig.Gate.Asked).Action);
+        Assert.NotNull(rig.Profiles.Stored);
+
+        // Saved now: read again, the step is off and the commands are the ones accepted.
+        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task Without_saved_commands_unticking_the_step_keeps_them_unsaved_and_says_so()
     {
         var vm = await new Rig().OpenAsync();
 
-        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
-        Assert.False(vm.HasProposalSuggestion);
+        Step(vm, SetupStep.Verification).IsIncluded = false;
+
         Assert.Equal(Spanish.Get("Setup_Verification_Not_Saved"), vm.VerificationStatus);
+        Assert.Null(vm.BuildSelection().Profile);
         Assert.Empty(vm.SummaryLines);
-
-        Step(vm, SetupStep.Verification).IsIncluded = true;
-
-        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), vm.VerificationStatus);
-        Assert.NotNull(vm.BuildSelection().Profile);
     }
 
     [Fact]
@@ -843,7 +861,7 @@ public sealed class SetupChecksTests
             [SetupStep.Brief, SetupStep.Team, SetupStep.Models, SetupStep.Verification, SetupStep.Skills, SetupStep.Budget],
             vm.SummaryBlocks.Select(b => b.Step));
         var saved = vm.SummaryBlocks.Where(b => b.Saves).Select(b => b.Step).ToList();
-        Assert.Equal([SetupStep.Budget], saved);
+        Assert.Equal([SetupStep.Verification, SetupStep.Budget], saved);
         Assert.All(vm.SummaryBlocks, b => Assert.Equal(Spanish.Get(b.Saves ? "Setup_Summary_Saves" : "Setup_Summary_Stays"), b.State));
         Assert.All(vm.SummaryBlocks, b => Assert.NotEmpty(b.Lines));
         Assert.Equal(3, vm.SummaryBlocks.Single(b => b.Step == SetupStep.Team).Lines.Count);
