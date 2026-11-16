@@ -146,6 +146,65 @@ public sealed class MainWindowTests
         Assert.Equal(340, pinnedWidth, 0);
     }
 
+    /// <summary>
+    /// Review of the first wave: with the activity bar showing its names, a layout saved with the explorer about 100 wide brought it
+    /// back with «E…» for a header. The explorer keeps 200 at least: a fresh layout and a restored one alike.
+    /// </summary>
+    [Fact]
+    public async Task AnExplorerSavedTooNarrow_ComesBackWideEnoughForItsHeaderAndItsButton()
+    {
+        using var temp = new TempDirectory();
+        var first = temp.CreateDirectory("first");
+        var second = temp.CreateDirectory("second");
+
+        var (fresh, restored, least) = await WpfHost.RunAsync(async () =>
+        {
+            var window = CreateWindow(ShellFactory.CreateMain(), new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            var vm = (MainViewModel)window.DataContext;
+            var freshLeast = ((LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent).DockMinWidth;
+            await vm.OpenProjectAsync(first);
+            ((LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent).DockWidth = new GridLength(100);
+            await vm.OpenProjectAsync(second);
+            await vm.OpenProjectAsync(first);
+            var pane = (LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent;
+            return (freshLeast, pane.DockWidth, pane.DockMinWidth);
+        });
+
+        Assert.Equal(200, fresh);
+        Assert.Equal(new GridLength(200), restored);
+        Assert.Equal(200, least);
+    }
+
+    /// <summary>
+    /// Review round 3, fix 6: the least width of the explorer only ever raises the least of its pane. Docked in the column on the right
+    /// (240 at least), and that layout restored, its pane keeps 240.
+    /// </summary>
+    [Fact]
+    public async Task TheExplorerDockedInTheRightColumn_KeepsTheLeastWidthOfThatColumn()
+    {
+        using var temp = new TempDirectory();
+        var first = temp.CreateDirectory("first");
+        var second = temp.CreateDirectory("second");
+
+        var (column, restored) = await WpfHost.RunAsync(async () =>
+        {
+            var window = CreateWindow(ShellFactory.CreateMain(), new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            var vm = (MainViewModel)window.DataContext;
+            await vm.OpenProjectAsync(first);
+            var explorer = Panel(window, PanelIds.Explorer);
+            // The column on the right is the last pane of the root (MainWindow.PrepareRightColumn adds it there).
+            var right = Dock(window).Layout.RootPanel.Children.OfType<LayoutAnchorablePane>().Last();
+            right.Children.Add(explorer);
+            var least = right.DockMinWidth;
+            await vm.OpenProjectAsync(second);
+            await vm.OpenProjectAsync(first);
+            return (least, ((LayoutAnchorablePane)Panel(window, PanelIds.Explorer).Parent).DockMinWidth);
+        });
+
+        Assert.Equal(240, column);
+        Assert.Equal(240, restored);
+    }
+
     /// <summary>A project without a saved layout gets the default one back from its serialized copy, the column for pinning included.</summary>
     [Fact]
     public async Task AProjectWithoutASavedLayout_GetsTheDefaultLayout_WithItsColumnForThePinnedPanels()

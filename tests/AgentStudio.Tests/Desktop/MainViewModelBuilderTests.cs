@@ -370,6 +370,33 @@ public sealed class MainViewModelBuilderTests
         Assert.Single(rig.Main.Documents.OfType<SetupDocumentViewModel>());
     }
 
+    /// <summary>
+    /// Review fixes 3: a fresh clone of a project prepared elsewhere has no database yet, but its verification profile is versioned
+    /// and loads with the strict loader of the orchestrator, which takes it as ready: «Inicio» does not ask to set it up, nor
+    /// suggests it. A file that does not load is no profile: that project is offered to be set up.
+    /// </summary>
+    [Fact]
+    public async Task A_fresh_clone_with_a_valid_versioned_profile_is_neither_asked_nor_suggested_to_be_set_up()
+    {
+        using var rig = new Rig();
+        rig.Main.ShowWelcomeCommand.Execute(null);
+        var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
+        var clone = rig.Folder.CreateDirectory("clonado");
+        await AgentStudio.Orchestration.Verification.VerificationProfileFile.SaveAsync(clone, Backends.Profile, new AgentStudio.Infrastructure.Persistence.ProjectStorageFiles(), TestContext.Current.CancellationToken);
+        var broken = rig.Folder.CreateDirectory("roto");
+        rig.Folder.WriteFile(Path.Combine("roto", ".agentstudio", "verification.json"), "{}");
+
+        await rig.Main.OpenProjectAsync(clone);
+        await rig.Main.NextStepRead;
+        Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
+        Assert.False(welcome.HasSetupSuggestion);
+        Assert.False(new SetupSuggestions(rig.Folder.Combine("suggestions")).WasSuggested(clone));
+
+        await rig.Main.OpenProjectAsync(broken);
+        await rig.Main.NextStepRead;
+        Assert.Equal(NextStepKind.SetUp, welcome.NextStep?.Kind);
+    }
+
     [Fact]
     public async Task The_band_of_preparation_of_the_orchestrator_opens_the_configurator_of_its_project()
     {

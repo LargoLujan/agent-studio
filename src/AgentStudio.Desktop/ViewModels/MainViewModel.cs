@@ -413,6 +413,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             _welcome.NextStep = null;
         }
 
+        // Where the keyboard was asked to go in the orchestrator of another project expires with the switch.
+        foreach (var other in _orchestrators.Values.Where(d => !SameProject(d.ProjectRoot, value)))
+        {
+            other.TakePendingFocus();
+        }
+
         RefreshNextStep();
 
         // The tests of HEAD that run are of the project that was open: they are stopped (the copy is cleaned when the verifier ends).
@@ -656,6 +662,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.ConfigureProjectRequested += OnConfigureProjectRequested;
         document.PropertyChanged += OnToolsContextChanged;
         document.PropertyChanged += OnContextChangedForAudits;
+        document.Monitor.PendingQuestions.CollectionChanged += OnQuestionsChangedForHome;
 
         // Phase 10: «Publicar y abrir PR» beside «Entregar a mi rama», only where the section of pull requests exists.
         OfferPublish(document.Monitor, document.ProjectRoot);
@@ -1138,6 +1145,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _runsActive[monitor] = monitor.IsActive;
         monitor.PropertyChanged += OnMonitorPropertyChanged;
         monitor.Finished += (_, _) => OnRunFinished(root);
+        monitor.PendingQuestions.CollectionChanged += OnQuestionsChangedForHome;
         _backgroundMonitors.Add(monitor);
         _backgroundRoots[monitor] = root;
         _backgroundRuns.Add(root, monitor);

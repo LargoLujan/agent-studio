@@ -35,7 +35,13 @@
         <!-- Phase, commands and health. The phase and the commands share a row while there is room; the commands wrap. -->
         <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
             <StackPanel>
-                <orchestratorViews:AdaptiveColumnsPanel ColumnSpacing="12" RowSpacing="4">
+                <!-- The run looked at was delivered already: where, when, and what delivering it again does. Above «Entregar a mi rama»,
+                     so it is read before the button is reached (as the warnings of the plan before «Aprobar plan»). -->
+                <TextBlock x:Name="PreviousDeliveryText" Style="{StaticResource BodyText}" FontSize="12" Margin="0,0,0,4" Foreground="{StaticResource WarningBrush}"
+                           Text="{Binding PreviousDelivery}"
+                           Visibility="{Binding PreviousDelivery, Converter={StaticResource Orchestrator.HasTextToVisibility}}"
+                           AutomationProperties.LiveSetting="Polite"/>
+                <orchestratorViews:AdaptiveColumnsPanel x:Name="RunCommands" ColumnSpacing="12" RowSpacing="4">
                     <WrapPanel orchestratorViews:AdaptiveColumnsPanel.Weight="1" MinWidth="240" VerticalAlignment="Top" Margin="0,4,0,0">
                         <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center"
                                  Fill="{Binding PhaseTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
@@ -79,11 +85,6 @@
                 <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="18,2,0,0" Foreground="{StaticResource TextSecondaryBrush}"
                            Text="{Binding InspectionText}" FontStyle="Italic"
                            Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-                <!-- The run looked at was delivered already: where, when, and what delivering it again does. -->
-                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="18,2,0,0" Foreground="{StaticResource WarningBrush}"
-                           Text="{Binding PreviousDelivery}"
-                           Visibility="{Binding PreviousDelivery, Converter={StaticResource Orchestrator.HasTextToVisibility}}"
-                           AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" Text="{Binding PhaseDetail}"/>
                 <!-- Whether the run has the consent of its header to resume by itself (docs/16 D-39); hidden while not known. -->
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" TextWrapping="Wrap"

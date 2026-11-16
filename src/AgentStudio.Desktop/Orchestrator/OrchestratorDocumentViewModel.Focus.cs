@@ -22,6 +22,9 @@ public sealed partial class OrchestratorDocumentViewModel
     /// </summary>
     public OrchestratorFocus? PendingFocus { get; private set; }
 
+    /// <summary>Counts the requests: the attempts a view schedules for one request are spent on that one only.</summary>
+    public int FocusRequestVersion { get; private set; }
+
     /// <summary>Raised when <see cref="PendingFocus"/> is set: a view already on screen takes it at once.</summary>
     public event EventHandler? FocusRequested;
 
@@ -53,6 +56,7 @@ public sealed partial class OrchestratorDocumentViewModel
     {
         IsPreparationExpanded = true;
         PendingFocus = target;
+        FocusRequestVersion++;
         FocusRequested?.Invoke(this, EventArgs.Empty);
     }
 }

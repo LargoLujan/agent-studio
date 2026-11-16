@@ -1,4 +1,5 @@
 using System.IO;
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Audit;
@@ -214,6 +215,68 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Equal("La ejecución de este proyecto está en pausa. Mira dónde se quedó y reanúdala cuando quieras.", (await StepAsync(paused)).Reason);
     }
 
+    /// <summary>
+    /// Review fix 4: a question of the run does not change its phase (other tasks go on), so «Inicio» follows the questions too: it
+    /// says the run waits for your answer while one waits, and that the agents work once it is answered.
+    /// </summary>
+    [Fact]
+    public async Task A_question_of_the_run_changes_what_inicio_says_of_it()
+    {
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()));
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        await StepAsync(shell);
+        var welcome = shell.Documents.OfType<WelcomeDocumentViewModel>().Single();
+        orchestrator.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), orchestrator.Context!.Project!);
+        await shell.NextStepRead;
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_Run"), welcome.NextStep?.Reason);
+
+        var question = new AgentStudio.Desktop.Orchestrator.Questions.QuestionViewModel(
+            new PendingQuestion(
+                "T1-q1",
+                Tid("T1"),
+                Aid("exec1"),
+                1,
+                new AgentStudio.Domain.Questions.AgentQuestion(
+                    "¿Uso decimal o double?",
+                    "Calc.Multiply necesita un tipo.",
+                    [new AgentStudio.Domain.Questions.QuestionOption("a", "decimal", "Exacto", AgentStudio.Domain.Questions.QuestionEffort.Small, true), new AgentStudio.Domain.Questions.QuestionOption("b", "double", "Rápido", AgentStudio.Domain.Questions.QuestionEffort.Small, false)],
+                    false),
+                Eid("EV-1"),
+                [],
+                T0), _ => Task.CompletedTask);
+        orchestrator.Monitor.PendingQuestions.Add(question);
+        await shell.NextStepRead;
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_RunWaiting"), welcome.NextStep?.Reason);
+
+        orchestrator.Monitor.PendingQuestions.Remove(question);
+        await shell.NextStepRead;
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Welcome_Next_Run"), welcome.NextStep?.Reason);
+    }
+
+    /// <summary>
+    /// Review fix 8 (and 7): what «Inicio» says of a run in each state, in plain words: in pause, waiting for your approval (a task,
+    /// with no question pending), and stopped for something else (the usage limit of the plan).
+    /// </summary>
+    [Theory]
+    [InlineData(RunPhase.Paused, "La ejecución de este proyecto está en pausa. Mira dónde se quedó y reanúdala cuando quieras.")]
+    [InlineData(RunPhase.AwaitingHuman, "La ejecución de este proyecto espera tu aprobación. Ve a la ejecución y decide para que siga.")]
+    [InlineData(RunPhase.WaitingForQuota, "La ejecución de este proyecto está parada. Mira qué la detiene.")]
+    public async Task What_inicio_says_of_a_run_follows_its_state(RunPhase phase, string expected)
+    {
+        var shell = Shell(new ProjectProgressReader(new LogRecorder()));
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        orchestrator.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), phase, [], FakeRun.Healthy, 0)), orchestrator.Context!.Project!);
+
+        var step = await StepAsync(shell);
+
+        Assert.Equal(NextStepKind.RunGoingOn, step.Kind);
+        Assert.Equal(expected, step.Reason);
+    }
+
     [Fact]
     public async Task Changing_project_drops_the_step_of_the_project_left()
     {
@@ -243,6 +306,22 @@ public sealed class HomeNextStepTests : IDisposable
         var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
         Assert.True(orchestrator.IsPreparationExpanded);
         Assert.Equal(OrchestratorFocus.Requirements, orchestrator.TakePendingFocus());
+        Assert.Null(orchestrator.PendingFocus);
+    }
+
+    /// <summary>Review fix 6: where the keyboard was asked to go in the orchestrator of a project expires when another project is opened.</summary>
+    [Fact]
+    public async Task The_place_for_the_keyboard_expires_when_another_project_is_opened()
+    {
+        var root = _temp.CreateDirectory("calc");
+        var shell = Shell(null);
+        await shell.OpenProjectAsync(root);
+        await shell.OpenRequirementsAsync(root);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        Assert.Equal(OrchestratorFocus.Requirements, orchestrator.PendingFocus);
+
+        await shell.OpenProjectAsync(_temp.CreateDirectory("otro"));
+
         Assert.Null(orchestrator.PendingFocus);
     }
 
@@ -289,6 +368,122 @@ public sealed class HomeNextStepTests : IDisposable
 
         Assert.False(audit.ShowsGoToRequirements);
         Assert.DoesNotContain("No se puede auditar sin requisitos congelados.", audit.Problems);
+    }
+
+    /// <summary>A log whose read waits until the test lets it go: what a slow read of a real log looks like.</summary>
+    private sealed class GatedLog(Task<DecisionLogState> gate) : AgentStudio.Application.Decisions.IDecisionRecorder
+    {
+        public int Loads;
+
+        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref Loads);
+            return gate;
+        }
+
+        public Task<DecisionLogState> LoadAsync(string projectId, AgentStudio.Application.Decisions.LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
+
+        public Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, AgentStudio.Application.Decisions.DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("«Inicio» only reads the log.");
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition, string message)
+    {
+        for (var i = 0; i < 500 && !condition(); i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(condition(), message);
+    }
+
+    /// <summary>Review fix 7: a burst of reasons to read the step (Inicio shown again and again) reads the log once.</summary>
+    [Fact]
+    public async Task A_burst_of_reasons_to_read_the_step_reads_the_log_once()
+    {
+        var log = new GatedLog(Task.FromResult(new DecisionLogState([], DecisionLogVerification.Valid)));
+        var shell = Shell(new ProjectProgressReader(log));
+        await shell.OpenProjectAsync(ProjectWithStorage("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+
+        shell.ShowWelcomeCommand.Execute(null);
+        shell.ShowWelcomeCommand.Execute(null);
+        shell.ShowWelcomeCommand.Execute(null);
+        await shell.NextStepRead;
+
+        Assert.Equal(1, log.Loads);
+    }
+
+    /// <summary>Review fix 7: a read of the project left that ends after the switch never paints its step over the new project.</summary>
+    [Fact]
+    public async Task A_read_of_the_project_left_is_cancelled_and_never_painted()
+    {
+        var gate = new TaskCompletionSource<DecisionLogState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var log = new GatedLog(gate.Task);
+        var shell = Shell(new ProjectProgressReader(log), Backends.Complete(new FakeOrchestrator()) with { Requirements = new FakeRequirementStore() });
+        await shell.OpenProjectAsync(ProjectWithStorage("uno"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        shell.ShowWelcomeCommand.Execute(null);
+        var readingTheFirst = shell.NextStepRead;
+        await WaitForAsync(() => log.Loads > 0, "The log of the first project was never read.");
+
+        await shell.OpenProjectAsync(_temp.CreateDirectory("dos"));
+        await shell.NextStepRead;
+        gate.SetResult(new DecisionLogState([], DecisionLogVerification.Valid));
+        await readingTheFirst;
+
+        // The first project would have asked for its first request (agents and a profile, no requirements); the second, a new one.
+        var welcome = shell.Documents.OfType<WelcomeDocumentViewModel>().Single();
+        Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
+    }
+
+    /// <summary>Review fix 7: requirements frozen in the orchestrator (its context changes) reach an «Auditar» tab of the project that is open.</summary>
+    [Fact]
+    public async Task Requirements_frozen_in_the_orchestrator_reach_the_open_auditar_tab()
+    {
+        var store = new FakeRequirementStore();
+        var backend = new DebateScreenBackend(
+            Challenges: new FakeVerdictChallenges(),
+            Audits: new FakeProjectAuditService(),
+            Workspace: new FakeWorkspace(),
+            Roster: new FakeRoster(() => DebateSamples.Roster),
+            Requirements: store,
+            Verdicts: new FakeVerdictStore());
+        MainViewModel? shell = null;
+        var screens = new DebateScreens(backend, new FakeClock(DateTimeOffset.UnixEpoch), () => shell);
+        shell = Shell(null, Backends.Complete(new FakeOrchestrator()) with { Requirements = store }, screens);
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenAuditCommand.ExecuteAsync(null);
+        var audit = Assert.IsType<ProjectAuditDocumentViewModel>(shell.ActiveContent);
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        Assert.True(audit.ShowsGoToRequirements);
+
+        await store.SaveAsync("p-1", DebateSamples.Requirements, TestContext.Current.CancellationToken);
+        await orchestrator.ReloadCommand.ExecuteAsync(null);
+        await shell.AuditRequirementsRead;
+
+        Assert.False(audit.ShowsGoToRequirements);
+    }
+
+    /// <summary>Review fix 7: the band of the plan unfolds by itself when the run ends.</summary>
+    [Fact]
+    public async Task The_band_of_the_plan_unfolds_when_the_run_ends()
+    {
+        var shell = Shell(null);
+        await shell.OpenProjectAsync(_temp.CreateDirectory("calc"));
+        await shell.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        var id = new RunId("20261116-a1b2c3");
+        var run = new FakeRun(new RunSnapshot(id, RunPhase.Running, [], FakeRun.Healthy, 0));
+        orchestrator.Monitor.Attach(run, orchestrator.Context!.Project!);
+        Assert.True(orchestrator.IsReviewFolded);
+
+        run.Finish(new RunResult(id, RunPhase.Succeeded, FakeRun.Healthy, null, null, "Terminada."));
+        await WaitForAsync(() => !orchestrator.Monitor.IsActive, "The run never ended in the monitor.");
+
+        Assert.False(orchestrator.IsReviewFolded);
+        Assert.False(orchestrator.CanFoldReview);
     }
 
     /// <summary>The status band of the orchestrator offers the way to «Requisitos» while the project has none frozen.</summary>

@@ -302,7 +302,8 @@ public sealed partial class MainViewModel
             return;
         }
 
-        if (projectRoot is null || _setupSuggestions is not { } suggestions || suggestions.WasSuggested(projectRoot))
+        // A project that carries its verification profile (a fresh clone of one prepared elsewhere) is not suggested to be set up.
+        if (projectRoot is null || _setupSuggestions is not { } suggestions || suggestions.WasSuggested(projectRoot) || Services.ProjectProgressReader.HasVersionedProfileFile(projectRoot))
         {
             _welcome.SetupSuggestion = null;
             return;

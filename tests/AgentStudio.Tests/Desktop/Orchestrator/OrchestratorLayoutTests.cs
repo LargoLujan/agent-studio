@@ -102,8 +102,9 @@ public sealed class OrchestratorLayoutTests
     }
 
     /// <summary>
-    /// docs/24 §1, rows 14 and 15: the tab never scrolls as a whole. In a short pane the bands take at most half of it and scroll
-    /// inside, and the canvas and the monitor keep at least their least height (120 each), so the divider always has room.
+    /// docs/24 §1, rows 14 and 15: a pane of 400 px or more never scrolls as a whole. The bands take at most 40 % of it and leave
+    /// 360 px to the canvas, the divider and the monitor, 100 px at least: in a pane of 450 that is 100, and they scroll inside;
+    /// the canvas and the monitor keep at least their least height (120 each), so the divider always has room.
     /// </summary>
     [Fact]
     public async Task In_a_short_pane_the_bands_scroll_inside_and_the_canvas_and_the_monitor_keep_their_least_height()
@@ -121,8 +122,8 @@ public sealed class OrchestratorLayoutTests
         });
 
         Assert.Equal(450, layoutHeight, 0.5);
-        Assert.True(bands <= 225.5, $"The bands take {bands} of 450.");
-        Assert.True(bandsScrollable > 0, "The bands do not fit in half of 450: they scroll inside.");
+        Assert.True(bands <= 100.5, $"The bands take {bands} of 450, more than the 100 the 360 px of the canvas and the monitor leave.");
+        Assert.True(bandsScrollable > 0, "The bands do not fit in 100 px: they scroll inside.");
         Assert.True(canvasHeight >= 119.5, $"The canvas got {canvasHeight}.");
         Assert.True(monitorHeight >= 119.5, $"The monitor got {monitorHeight}.");
     }
@@ -197,11 +198,12 @@ public sealed class OrchestratorLayoutTests
     /// <summary>
     /// docs/24 §2, principle 4: the screens that bring the person here leave the keyboard where to write. The request waits on
     /// the document until a view on screen takes it, after the dock is done moving the keyboard (ContextIdle), and it is cleared
-    /// only once the keyboard landed there: the box of the request takes it (in a view never shown, as the focused element of its
-    /// scope); «Requisitos», whose controls are not visible in a view never shown, cannot, so the request stays for the next time.
+    /// once the keyboard landed there: the box of the request takes it (in a view never shown, as the focused element of its
+    /// scope). «Requisitos», whose controls are not visible in a view never shown, cannot: it is tried once more and then the
+    /// request expires (review fix 6), so a later showing of the tab never takes the keyboard by surprise.
     /// </summary>
     [Fact]
-    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_and_keeps_the_request_until_it_lands()
+    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_and_the_request_expires_after_one_retry()
     {
         var document = await WpfHost.RunAsync(() => OpenAsync());
 
@@ -227,7 +229,67 @@ public sealed class OrchestratorLayoutTests
         Assert.True(expanded);
         Assert.True(requestLanded, "The box of the request took the keyboard, but the request was not cleared.");
         Assert.True(focused, "The box of the request is not the focused element of its scope.");
-        Assert.Equal(OrchestratorFocus.Requirements, requirementsPending);
+        Assert.Null(requirementsPending);
+    }
+
+    /// <summary>
+    /// Review round 3, fix 5: the retry of a request is spent on that request only. A newer request that comes between the first
+    /// attempt of the old one and its retry gets its own two attempts: the old retry neither spends nor expires it.
+    /// </summary>
+    [Fact]
+    public async Task The_retry_of_a_request_for_the_keyboard_never_spends_a_newer_one()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (afterTheOldRetry, afterBoth) = WpfHost.Run(() =>
+        {
+            var view = new OrchestratorView { DataContext = document };
+            OffscreenRender.Render(view, 1040, 900);
+            view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, view));
+            static void Step() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(static () => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+
+            // «Requisitos» cannot take the keyboard in a view never shown: each request fails its two attempts.
+            document.ShowRequirements();
+            Step();
+            document.ShowRequirements();
+            Step();
+            var pending = document.PendingFocus;
+            WpfHost.FlushBindings();
+            return (pending, document.PendingFocus);
+        });
+
+        Assert.Equal(OrchestratorFocus.Requirements, afterTheOldRetry);
+        Assert.Null(afterBoth);
+    }
+
+    /// <summary>
+    /// Review fix 2: folded for a run, the band of the plan keeps in view what failed (a run resumed by the planner can fail to show
+    /// its header), and its line says the truth: that the plan runs, or that the run waits for an answer or an approval of yours.
+    /// </summary>
+    [Fact]
+    public async Task Folded_for_a_run_the_band_keeps_its_error_in_view_and_says_when_the_run_waits_for_you()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+        var waitingDocument = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (folded, errorShown, contentHidden, running, waiting) = WpfHost.Run(() =>
+        {
+            document.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), document.Context!.Project!);
+            document.ErrorMessage = "No se pudo leer la cabecera de la ejecución.";
+            var view = new OrchestratorView { DataContext = document };
+            OffscreenRender.Render(view, 1040, 900);
+            var error = (TextBlock)view.FindName("ReviewError");
+            var content = (FrameworkElement)view.FindName("ReviewContent");
+            waitingDocument.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-d4e5f6"), RunPhase.AwaitingHuman, [], FakeRun.Healthy, 0)), waitingDocument.Context!.Project!);
+            return (document.IsReviewFolded, error.Visibility == Visibility.Visible && error.ActualHeight > 0, content.Visibility == Visibility.Collapsed, document.ReviewFoldedText, waitingDocument.ReviewFoldedText);
+        });
+
+        Assert.True(folded);
+        Assert.True(contentHidden);
+        Assert.True(errorShown, "Folded, the band hides the error.");
+        Assert.Equal("El plan está en marcha y no cambia mientras se ejecuta. Síguelo en el monitor, abajo.", running);
+        Assert.Equal("La ejecución espera tu respuesta o tu aprobación. La tienes en el monitor, abajo.", waiting);
+        Assert.True(waitingDocument.ReviewWaitsForYou);
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root)

@@ -2,6 +2,7 @@ using System.IO;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Orchestration.Verification;
 
 namespace AgentStudio.Desktop.Services;
 
@@ -18,6 +19,39 @@ public sealed class ProjectProgressReader(IDecisionRecorder? decisions)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
         return File.Exists(Path.Combine(projectRoot, AgentStudioFiles.DataFolder, AgentStudioFiles.DatabaseFiles[0]));
+    }
+
+    /// <summary>
+    /// The project carries a file of verification profile in its repository (<c>.agentstudio/verification.json</c>, versioned, unlike
+    /// the database). Only that it is there: whether it is a valid profile is <see cref="HasValidVersionedProfileAsync"/>.
+    /// </summary>
+    public static bool HasVersionedProfileFile(string projectRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
+        return File.Exists(Path.Combine(projectRoot, AgentStudioFiles.DataFolder, AgentStudioFiles.VerificationProfileFile));
+    }
+
+    /// <summary>
+    /// The versioned verification profile of the project loads, with the same strict loader the orchestrator uses: a fresh clone of a
+    /// project prepared elsewhere, which the orchestrator takes as ready, is not one to set up. A file that does not load is not one.
+    /// </summary>
+    public static async Task<bool> HasValidVersionedProfileAsync(string projectRoot, CancellationToken ct)
+    {
+        if (!HasVersionedProfileFile(projectRoot))
+        {
+            return false;
+        }
+
+        try
+        {
+            return (await VerificationProfileFile.LoadAsync(projectRoot, ct).ConfigureAwait(false)).Status == VerificationProfileStatus.Loaded;
+        }
+#pragma warning disable CA1031 // A file that cannot be read is no profile: the person is offered to set the project up.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            return false;
+        }
     }
 
     /// <summary>

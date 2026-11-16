@@ -42,6 +42,18 @@ public sealed class ActivityItemViewModel
 
     public string Title { get; }
 
+    /// <summary>
+    /// What the bar writes beside the icon: the title, or a shorter form when the title does not fit the bar. The tooltip and what a
+    /// screen reader says keep the whole title.
+    /// </summary>
+    public string Label
+    {
+        get => _label ?? Title;
+        init => _label = value;
+    }
+
+    private readonly string? _label;
+
     /// <summary>Segoe MDL2 Assets character.</summary>
     public string Glyph { get; }
 

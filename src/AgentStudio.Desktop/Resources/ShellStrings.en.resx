@@ -692,11 +692,19 @@ If you choose No, your changes stay in the editor, unsaved.</value>
     <comment>Why the next step is to see the run: it is paused.</comment>
   </data>
   <data name="Welcome_Next_RunWaiting" xml:space="preserve">
-    <value>An agent of this project is waiting for your answer. Open it and reply so it can go on.</value>
+    <value>An agent of this project is waiting for your answer. Go to the run and reply so it can go on.</value>
     <comment>Why the next step is to see the run: it waits for an answer.</comment>
   </data>
   <data name="Welcome_Next_RunStopped" xml:space="preserve">
     <value>The run of this project has stopped. See what is holding it.</value>
     <comment>Why the next step is to see the run: it waits for something else (the usage limit, a blocked task).</comment>
+  </data>
+  <data name="Welcome_Next_RunApproval" xml:space="preserve">
+    <value>The run of this project is waiting for your approval. Go to the run and decide so it can go on.</value>
+    <comment>Why the next step is to see the run: a task waits for the approval of the person.</comment>
+  </data>
+  <data name="Main_Activity_DocumentsShort" xml:space="preserve">
+    <value>Client docs</value>
+    <comment>The name of «Documentación para clientes» in the activity bar, which is narrow; the tooltip and the screen keep the whole name.</comment>
   </data>
 </root>

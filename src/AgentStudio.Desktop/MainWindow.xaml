@@ -132,7 +132,7 @@
                                 <TextBlock DockPanel.Dock="Left" Width="20" FontSize="16" TextAlignment="Center" VerticalAlignment="Center"
                                            Text="{Binding Glyph}"/>
                                 <TextBlock Margin="10,0,0,0" FontFamily="{StaticResource UiFont}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center"
-                                           Text="{Binding Title}"
+                                           Text="{Binding Label}"
                                            Visibility="{Binding (controls:ActivityBarState.ShowsTitles), RelativeSource={RelativeSource Self}, Converter={StaticResource Shell.BoolToVisibility}}"/>
                             </DockPanel>
                         </Button>
@@ -213,7 +213,7 @@
                      the pin docks them. -->
                 <xcad:LayoutRoot>
                     <xcad:LayoutPanel Orientation="Horizontal">
-                        <xcad:LayoutAnchorablePane DockWidth="240">
+                        <xcad:LayoutAnchorablePane DockWidth="240" DockMinWidth="200">
                             <xcad:LayoutAnchorable ContentId="panel:explorer" Title="{l:T Main_Panel_Explorer}" CanFloat="True">
                                 <views:ExplorerView x:Name="ExplorerPanel"/>
                             </xcad:LayoutAnchorable>

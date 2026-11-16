@@ -159,6 +159,9 @@ public sealed partial class MainViewModel
 
     private CancellationTokenSource? _nextStepCancellation;
 
+    /// <summary>A question of a run came or was answered: what «Inicio» says of the run follows it (waiting for your answer, or working).</summary>
+    private void OnQuestionsChangedForHome(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RefreshNextStep();
+
     /// <summary>
     /// The next step (docs/24 §3.2) from what is known without opening anything the app did not open already. A run going on comes
     /// first, since it is the most certain thing and can go on in a project never set up. A folder where Agent Studio never wrote was
@@ -189,16 +192,38 @@ public sealed partial class MainViewModel
 
         if (!ProjectProgressReader.HasStorage(root))
         {
-            welcome.NextStep = _setupFactory is null ? NewRequestStep() : SetUpStep();
+            if (_setupFactory is null)
+            {
+                welcome.NextStep = NewRequestStep();
+                return;
+            }
+
+            // Never opened here; but a versioned profile that loads says it was prepared elsewhere (a fresh clone): not one to set up.
+            bool prepared;
+            try
+            {
+                prepared = await ProjectProgressReader.HasValidVersionedProfileAsync(root, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (!ct.IsCancellationRequested && read == _nextStepReads && SameProject(root, ProjectPath))
+            {
+                welcome.NextStep = RunStep(root) ?? (prepared ? NewRequestStep() : SetUpStep());
+            }
+
             return;
         }
 
-        if (!_orchestrators.TryGetValue(root, out var document) || document.Context is not { Project: { } project } context)
+        if (!_orchestrators.TryGetValue(root, out var document) || document.Context is not { Project: { } project } opened)
         {
             welcome.NextStep = NewRequestStep();
             return;
         }
 
+        var context = opened;
         bool? applied;
         try
         {
@@ -215,6 +240,15 @@ public sealed partial class MainViewModel
         {
             return;
         }
+
+        // What the orchestrator has open is read again: it may have been reloaded (requirements frozen, a profile saved) meanwhile.
+        if (!_orchestrators.TryGetValue(root, out var after) || after.Context is not { Project: not null } current)
+        {
+            welcome.NextStep = RunStep(root) ?? NewRequestStep();
+            return;
+        }
+
+        context = current;
 
         var configured = applied == true || (context.Roster.Count > 0 && context.Verification is not null);
         welcome.NextStep = RunStep(root)
@@ -234,7 +268,7 @@ public sealed partial class MainViewModel
 
     /// <summary>
     /// «Ver la ejecución en marcha» when a run of the project goes on, with what it is doing in plain words: working, paused, waiting
-    /// for your answer, or stopped for something else. In the monitor of its orchestrator, which it opens; or in a monitor of its own
+    /// for your answer (a question), waiting for your approval (a task, with no question), or stopped for something else. In the monitor of its orchestrator, which it opens; or in a monitor of its own
     /// (a run resumed while that one followed another), which «Ejecuciones reanudadas» shows. Null otherwise.
     /// </summary>
     private NextStepViewModel? RunStep(string root)
@@ -250,7 +284,8 @@ public sealed partial class MainViewModel
     }
 
     private static string RunReason(RunMonitorViewModel monitor) =>
-        monitor.HasPendingQuestions || monitor.Phase == RunPhase.AwaitingHuman ? Texts.Get("Welcome_Next_RunWaiting")
+        monitor.HasPendingQuestions ? Texts.Get("Welcome_Next_RunWaiting")
+        : monitor.Phase == RunPhase.AwaitingHuman ? Texts.Get("Welcome_Next_RunApproval")
         : monitor.Phase == RunPhase.Paused ? Texts.Get("Welcome_Next_RunPaused")
         : monitor.Phase is null or RunPhase.Running ? Texts.Get("Welcome_Next_Run")
         : Texts.Get("Welcome_Next_RunStopped");
