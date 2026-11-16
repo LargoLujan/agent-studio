@@ -184,6 +184,33 @@ public sealed class SetupViewTests
     }
 
     [Fact]
+    public async Task The_box_where_a_model_is_typed_carries_the_name_of_its_combo_and_shows_the_accent_frame_with_the_keyboard()
+    {
+        var vm = await WpfHost.RunAsync(OpenAsync);
+
+        var (names, frame) = WpfHost.Run(() =>
+        {
+            var view = Build(vm);
+            vm.Step = SetupStep.Models;
+            view.UpdateLayout();
+            var boxes = Descendants<ComboBox>(view).Where(c => c.IsEditable).ToList();
+            var names = boxes.Select(c => (Combo: AutomationProperties.GetName(c), Box: AutomationProperties.GetName((TextBox)c.Template.FindName("PART_EditableTextBox", c)))).ToList();
+            var combo = boxes[0];
+            var border = (Border)combo.Template.FindName("FocusFrame", combo);
+            var trigger = combo.Template.Triggers.OfType<Trigger>().Single(t => t.SourceName == "PART_EditableTextBox");
+            return (names, (border.Visibility, border.BorderThickness, trigger.Property, trigger.Value, ((Setter)trigger.Setters[0]).TargetName));
+        });
+
+        Assert.Equal(vm.ModelRows.Select(r => r.ModelName), names.Select(n => n.Combo));
+        Assert.All(names, n => Assert.Equal(n.Combo, n.Box));
+        Assert.Equal(Visibility.Collapsed, frame.Visibility);
+        Assert.Equal(new Thickness(2), frame.BorderThickness);
+        Assert.Equal(UIElement.IsKeyboardFocusedProperty, frame.Property);
+        Assert.Equal(true, frame.Value);
+        Assert.Equal("FocusFrame", frame.TargetName);
+    }
+
+    [Fact]
     public async Task Picking_a_model_from_the_list_puts_its_name_in_the_row_and_typing_another_keeps_what_is_typed()
     {
         var vm = await WpfHost.RunAsync(OpenAsync);
