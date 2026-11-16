@@ -274,6 +274,22 @@ public sealed class HomeNextStepTests : IDisposable
         Assert.Null(orchestrator.PendingFocus);
     }
 
+    /// <summary>Review fix 6: where the keyboard was asked to go in the orchestrator of a project expires when another project is opened.</summary>
+    [Fact]
+    public async Task The_place_for_the_keyboard_expires_when_another_project_is_opened()
+    {
+        var root = _temp.CreateDirectory("calc");
+        var shell = Shell(null);
+        await shell.OpenProjectAsync(root);
+        await shell.OpenRequirementsAsync(root);
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(shell.ActiveContent);
+        Assert.Equal(OrchestratorFocus.Requirements, orchestrator.PendingFocus);
+
+        await shell.OpenProjectAsync(_temp.CreateDirectory("otro"));
+
+        Assert.Null(orchestrator.PendingFocus);
+    }
+
     [Fact]
     public async Task Ir_a_los_requisitos_of_another_project_opens_nothing_and_says_why()
     {

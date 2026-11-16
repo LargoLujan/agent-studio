@@ -66,7 +66,7 @@ public partial class OrchestratorView : UserControl
     /// <summary>
     /// Once the band «Preparación» it opened is laid out, and the dock is done moving the keyboard (it does so after it activates
     /// a tab, so the shell waits for <see cref="DispatcherPriority.ContextIdle"/> too), the part asked for is brought into view and
-    /// given the keyboard. The request stays on the document until the keyboard lands there; it is tried once more if it did not.
+    /// given the keyboard. The request stays on the document until the keyboard lands there; it is tried once more if it did not, and then it expires.
     /// </summary>
     private void TakeFocusLater()
     {
@@ -90,6 +90,11 @@ public partial class OrchestratorView : UserControl
         else if (retry)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => TakeFocus(retry: false));
+        }
+        else
+        {
+            // Tried twice: the request expires, so a later showing of the tab never takes the keyboard nor scrolls the bands by surprise.
+            _document.TakePendingFocus();
         }
     }
 }

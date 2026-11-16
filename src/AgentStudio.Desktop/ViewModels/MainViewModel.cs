@@ -413,6 +413,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             _welcome.NextStep = null;
         }
 
+        // Where the keyboard was asked to go in the orchestrator of another project expires with the switch.
+        foreach (var other in _orchestrators.Values.Where(d => !SameProject(d.ProjectRoot, value)))
+        {
+            other.TakePendingFocus();
+        }
+
         RefreshNextStep();
 
         // The tests of HEAD that run are of the project that was open: they are stopped (the copy is cleaned when the verifier ends).

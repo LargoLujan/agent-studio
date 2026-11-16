@@ -197,11 +197,12 @@ public sealed class OrchestratorLayoutTests
     /// <summary>
     /// docs/24 §2, principle 4: the screens that bring the person here leave the keyboard where to write. The request waits on
     /// the document until a view on screen takes it, after the dock is done moving the keyboard (ContextIdle), and it is cleared
-    /// only once the keyboard landed there: the box of the request takes it (in a view never shown, as the focused element of its
-    /// scope); «Requisitos», whose controls are not visible in a view never shown, cannot, so the request stays for the next time.
+    /// once the keyboard landed there: the box of the request takes it (in a view never shown, as the focused element of its
+    /// scope). «Requisitos», whose controls are not visible in a view never shown, cannot: it is tried once more and then the
+    /// request expires (review fix 6), so a later showing of the tab never takes the keyboard by surprise.
     /// </summary>
     [Fact]
-    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_and_keeps_the_request_until_it_lands()
+    public async Task A_view_on_screen_takes_the_part_the_keyboard_should_go_to_and_the_request_expires_after_one_retry()
     {
         var document = await WpfHost.RunAsync(() => OpenAsync());
 
@@ -227,7 +228,7 @@ public sealed class OrchestratorLayoutTests
         Assert.True(expanded);
         Assert.True(requestLanded, "The box of the request took the keyboard, but the request was not cleared.");
         Assert.True(focused, "The box of the request is not the focused element of its scope.");
-        Assert.Equal(OrchestratorFocus.Requirements, requirementsPending);
+        Assert.Null(requirementsPending);
     }
 
     /// <summary>
