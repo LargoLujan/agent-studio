@@ -209,7 +209,36 @@ public sealed class ProjectSetupService
         }
 
         var proposed = _profiles.Propose(facts.Files);
-        return new SetupVerificationProposal(current, proposed, unreadable, proposed is null ? "setup.verification.no-stack" : null);
+        return new SetupVerificationProposal(current, proposed, unreadable, proposed is null ? "setup.verification.no-stack" : null)
+        {
+            Accepted = await AcceptedProfileHashesAsync(project, ct).ConfigureAwait(false),
+        };
+    }
+
+    /// <summary>
+    /// The content hashes of the verification profiles the person accepted here: the ones <c>ProjectSetupApplied</c> names, which the
+    /// configurator only writes after Windows Hello confirmed the profile. A log that does not verify, or cannot be read, gives none:
+    /// nothing is taken as accepted that the log cannot vouch for.
+    /// </summary>
+    private async Task<IReadOnlySet<string>> AcceptedProfileHashesAsync(ProjectContext project, CancellationToken ct)
+    {
+        try
+        {
+            var log = await _recorder.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+            return !log.Verification.IsValid
+                ? new HashSet<string>(StringComparer.Ordinal)
+                : log.Entries
+                    .Where(e => e.Kind == DecisionKind.ProjectSetupApplied)
+                    .Select(e => DecisionPayloadSerializer.Deserialize<ProjectSetupAppliedPayload>(e.PayloadJson).VerificationProfileHash)
+                    .OfType<string>()
+                    .ToHashSet(StringComparer.Ordinal);
+        }
+#pragma warning disable CA1031 // Reading what was accepted only informs: whatever goes wrong means nothing is taken as accepted.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
     }
 
     private async Task<IReadOnlyList<SetupModelProposal>> ProposeModelsAsync(

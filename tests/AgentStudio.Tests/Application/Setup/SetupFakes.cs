@@ -140,9 +140,15 @@ internal sealed class RecordingRecorder : IDecisionRecorder
 
     public bool FailWithIntegrity { get; set; }
 
-    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    /// <summary>The log does not verify: nothing it holds can be relied on.</summary>
+    public bool Broken { get; set; }
 
-    public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
+        Task.FromResult(new DecisionLogState(
+            [.. Entries.Select((e, i) => new DecisionEntry(i + 1, DateTimeOffset.UnixEpoch, e.Actor, e.Kind, e.Summary, DecisionPayloadSerializer.Serialize(e.Payload), null, new string('0', 64), new string('1', 64)))],
+            Broken ? new DecisionLogVerification(false, 1, "The chain does not verify.") : DecisionLogVerification.Valid));
+
+    public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
 
     public Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default)
     {

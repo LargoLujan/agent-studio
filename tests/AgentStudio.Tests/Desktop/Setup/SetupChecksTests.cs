@@ -74,7 +74,7 @@ public sealed class SetupChecksTests
     {
         public VerificationProfile? Stored { get; set; }
 
-        public bool Unreadable { get; init; }
+        public bool Unreadable { get; set; }
 
         public VerificationProfile? Propose(IReadOnlyList<string> relativeFiles) => proposed;
 
@@ -126,6 +126,52 @@ public sealed class SetupChecksTests
         Assert.Null(SetupCommandLine.Parse("dotnet \"build"));
     }
 
+    public static TheoryData<string> Tricky() =>
+    [
+        "a\" \"b",
+        "\"",
+        "\"\"",
+        "",
+        " ",
+        @"C:\Program Files\dotnet\",
+        @"C:\a\\b\",
+        @"x\""y",
+        @"\\server\share\x y",
+        @"a\\\""b c",
+        "--name=\"x y\"",
+        "{results}/test.xml",
+    ];
+
+    [Theory]
+    [MemberData(nameof(Tricky))]
+    public void An_argument_goes_to_one_line_and_back_as_the_same_single_argument(string argument)
+    {
+        var line = SetupCommandLine.Render(@"C:\Program Files\tool\run.exe", ["first", argument, "last"]);
+
+        Assert.Equal([@"C:\Program Files\tool\run.exe", "first", argument, "last"], SetupCommandLine.Parse(line));
+    }
+
+    [Fact]
+    public void An_argument_with_double_quotes_shows_them_escaped_so_it_can_never_look_like_two()
+    {
+        Assert.Equal("tool \"a\\\" \\\"b\"", SetupCommandLine.Render("tool", ["a\" \"b"]));
+        Assert.Equal(["tool", "a\" \"b"], SetupCommandLine.Parse("tool \"a\\\" \\\"b\""));
+        Assert.Equal(["tool", "a", "b"], SetupCommandLine.Parse("tool \"a\" \"b\""));
+    }
+
+    [Fact]
+    public async Task A_program_with_a_double_quote_in_its_name_is_refused_on_the_screen_and_by_the_rules()
+    {
+        var vm = await new Rig().OpenAsync();
+
+        Row(vm, "build").CommandText = "\"dot\\\"net\" build";
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Quote_In_Program"), Row(vm, "build").Problem);
+        Assert.Contains(
+            VerificationRules.Check(DotNetVerificationProfile.Propose().Steps[0] with { Executable = "dot\"net" }),
+            p => p.Contains("executable contains a double quote", StringComparison.Ordinal));
+    }
+
     [Theory]
     [MemberData(nameof(Stacks))]
     public async Task Untouched_rows_make_the_very_same_profile_so_nothing_changes_against_the_one_in_force(string stack)
@@ -135,7 +181,7 @@ public sealed class SetupChecksTests
 
         Assert.Equal(proposal.Steps.Count, vm.CheckRows.Count);
         Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
-        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
         Assert.Null(vm.BuildSelection().Profile);
         Assert.Equal(proposal.ContentHash, SetupChecks.Profile(proposal.Name, vm.CheckRows, Spanish, out var problem)!.ContentHash);
         Assert.Null(problem);
@@ -312,7 +358,7 @@ public sealed class SetupChecksTests
 
         Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.StartsWith("C:\\tools\\dotnet.exe", Assert.Single(vm.CheckRows).CommandText, StringComparison.Ordinal);
-        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
         Assert.True(vm.HasProposalSuggestion);
         Assert.Equal(2, vm.ProposalLines.Count);
         Assert.Contains(vm.ProposalLines, l => l.Contains("dotnet test --no-build", StringComparison.Ordinal));
@@ -331,19 +377,37 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
-    public async Task Without_saved_commands_the_proposal_fills_the_rows_and_is_saved_only_when_the_person_says_so()
+    public async Task Without_saved_commands_the_detected_ones_start_on_so_the_first_apply_leaves_the_project_with_a_profile()
+    {
+        var rig = new Rig();
+        var vm = await rig.OpenAsync();
+
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.False(vm.HasProposalSuggestion);
+        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), vm.VerificationStatus);
+        Assert.Contains(vm.SummaryLines, l => l.StartsWith(Spanish.Get("Setup_Step_Verification") + ":", StringComparison.Ordinal));
+        Assert.Equal(DotNetVerificationProfile.Propose().ContentHash, vm.BuildSelection().Profile!.ContentHash);
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.Equal(PresenceAction.ChangeVerificationProfile, Assert.Single(rig.Gate.Asked).Action);
+        Assert.NotNull(rig.Profiles.Stored);
+
+        // Saved now: read again, the step is off and the commands are the ones accepted.
+        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task Without_saved_commands_unticking_the_step_keeps_them_unsaved_and_says_so()
     {
         var vm = await new Rig().OpenAsync();
 
-        Assert.False(Step(vm, SetupStep.Verification).IsIncluded);
-        Assert.False(vm.HasProposalSuggestion);
+        Step(vm, SetupStep.Verification).IsIncluded = false;
+
         Assert.Equal(Spanish.Get("Setup_Verification_Not_Saved"), vm.VerificationStatus);
+        Assert.Null(vm.BuildSelection().Profile);
         Assert.Empty(vm.SummaryLines);
-
-        Step(vm, SetupStep.Verification).IsIncluded = true;
-
-        Assert.Equal(Spanish.Get("Setup_Verification_Hello_Note"), vm.VerificationStatus);
-        Assert.NotNull(vm.BuildSelection().Profile);
     }
 
     [Fact]
@@ -471,18 +535,20 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
-    public async Task The_saved_profile_untouched_runs_without_the_question_and_edited_it_asks_again()
+    public async Task A_profile_accepted_here_with_windows_hello_runs_without_the_question_and_edited_it_asks_again()
     {
         var runner = new SetupTrialRunner();
         var answer = new SetupTrialAnswer(true);
-        var saved = DotNetVerificationProfile.Propose();
         var rig = new Rig
         {
-            Profiles = new StackProfiles(DotNetVerificationProfile.Propose()) { Stored = saved },
             Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
             Answer = answer,
         };
         var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+        await vm.ApplyCommand.ExecuteAsync(null);
+        Assert.Single(rig.Gate.Asked);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same"), vm.VerificationStatus);
 
         await vm.TryChecksCommand.ExecuteAsync(null);
 
@@ -494,6 +560,95 @@ public sealed class SetupChecksTests
 
         Assert.Single(answer.Asked);
         Assert.Equal(2, runner.Calls.Count);
+    }
+
+    [Fact]
+    public async Task A_profile_only_in_the_file_of_the_repository_is_not_taken_as_accepted_and_always_asks()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var rig = new Rig
+        {
+            Profiles = new StackProfiles(DotNetVerificationProfile.Propose()) { Stored = DotNetVerificationProfile.Propose() },
+            Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
+            Answer = answer,
+        };
+        var vm = await rig.OpenAsync();
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Single(answer.Asked);
+        Assert.Single(runner.Calls);
+    }
+
+    [Fact]
+    public async Task With_a_log_that_does_not_verify_nothing_counts_as_accepted()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()), Answer = answer };
+        var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+        await vm.ApplyCommand.ExecuteAsync(null);
+        rig.Recorder.Broken = true;
+        await vm.LoadAsync(SetupFakes.Project);
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        Assert.Single(answer.Asked);
+        Assert.Equal(Spanish.Get("Setup_Verification_Same_Unaccepted"), vm.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task The_question_lists_exactly_the_commands_that_will_run_and_says_which_will_not_and_why()
+    {
+        var runner = new SetupTrialRunner();
+        var answer = new SetupTrialAnswer(true);
+        var profile = DotNetVerificationProfile.Propose() with
+        {
+            Steps = [.. DotNetVerificationProfile.Propose().Steps, new VerificationStep("lint", "Revisar estilo", "tool", ["lint"], EvidenceKind.CommandOutput, TestReportFormat.None, null, TimeSpan.FromMinutes(1), ProcessIsolation.None)],
+        };
+        var rig = new Rig
+        {
+            Profiles = new StackProfiles(profile),
+            Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()),
+            Answer = answer,
+        };
+        var vm = await rig.OpenAsync();
+
+        await vm.TryChecksCommand.ExecuteAsync(null);
+
+        var asked = Assert.Single(answer.Asked);
+        Assert.Equal(2, asked.Count);
+        Assert.DoesNotContain(asked, c => c.Contains("lint", StringComparison.Ordinal));
+        Assert.Equal(Spanish.Format("Setup_Trial_Skipped", "Revisar estilo"), Assert.Single(answer.Skipped));
+        Assert.Equal(["build", "test"], runner.Calls.Single().Steps.Select(s => s.Id));
+    }
+
+    [Fact]
+    public void The_question_never_grows_past_the_work_area_and_its_buttons_stay_in_view_with_many_commands()
+    {
+        var (maxHeight, workArea, runBottom, cancelBottom, scrollable) = WpfHost.Run(() =>
+        {
+            var window = new AgentStudio.Desktop.Views.Setup.SetupTrialWindow
+            {
+                DataContext = new SetupTrialConfirmationViewModel([.. Enumerable.Range(1, 80).Select(i => $"Paso {i}: tool --flag {i}")], "No se ejecutarán: x."),
+            };
+            var content = (System.Windows.FrameworkElement)window.Content;
+            content.Measure(new System.Windows.Size(560, 400));
+            content.Arrange(new System.Windows.Rect(0, 0, 560, 400));
+            content.UpdateLayout();
+            double Bottom(string name) =>
+                ((System.Windows.FrameworkElement)window.FindName(name)).TransformToAncestor(content).TransformBounds(new System.Windows.Rect(0, 0, 1, ((System.Windows.FrameworkElement)window.FindName(name)).ActualHeight)).Bottom;
+            var scroller = (System.Windows.Controls.ScrollViewer)window.FindName("CommandsScroller");
+            return (window.MaxHeight, System.Windows.SystemParameters.WorkArea.Height, Bottom("RunButton"), Bottom("CancelButton"), scroller.ScrollableHeight);
+        });
+
+        Assert.Equal(workArea, maxHeight);
+        Assert.True(runBottom <= 400, $"«Ejecutar» ends at {runBottom}.");
+        Assert.True(cancelBottom <= 400, $"«Cancelar» ends at {cancelBottom}.");
+        Assert.True(scrollable > 0, "The list does not scroll.");
     }
 
     [Fact]
@@ -595,6 +750,30 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task Opening_the_same_project_again_during_a_trial_keeps_the_commands_and_the_trial_on_screen()
+    {
+        var runner = new GatedTrialRunner();
+        var rig = new Rig { Trial = new SetupCheckTrial(runner, new AuditRepository(Head), new FakeProjectActivity()) };
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        var rows = vm.CheckRows.ToList();
+        var trying = vm.TryChecksCommand.ExecuteAsync(null);
+        await WaitForAsync(() => runner.Started);
+
+        await vm.LoadAsync(SetupFakes.Project);
+
+        Assert.True(vm.IsTrying);
+        Assert.Equal(Spanish.Get("Setup_Verification_Trying"), vm.TrialStatus);
+        Assert.Equal(rows, vm.CheckRows);
+        Assert.Equal("dotnet build App.slnx", Row(vm, "build").CommandText);
+
+        runner.Release();
+        await trying;
+
+        Assert.Equal(Spanish.Get("Setup_Verification_Trial_Passed"), vm.TrialStatus);
+    }
+
+    [Fact]
     public async Task Whatever_the_verifier_throws_is_said_on_the_screen_and_never_escapes_the_command()
     {
         var runner = new GatedTrialRunner { Failure = new FormatException("The database of evidence is damaged.") };
@@ -682,7 +861,7 @@ public sealed class SetupChecksTests
             [SetupStep.Brief, SetupStep.Team, SetupStep.Models, SetupStep.Verification, SetupStep.Skills, SetupStep.Budget],
             vm.SummaryBlocks.Select(b => b.Step));
         var saved = vm.SummaryBlocks.Where(b => b.Saves).Select(b => b.Step).ToList();
-        Assert.Equal([SetupStep.Budget], saved);
+        Assert.Equal([SetupStep.Verification, SetupStep.Budget], saved);
         Assert.All(vm.SummaryBlocks, b => Assert.Equal(Spanish.Get(b.Saves ? "Setup_Summary_Saves" : "Setup_Summary_Stays"), b.State));
         Assert.All(vm.SummaryBlocks, b => Assert.NotEmpty(b.Lines));
         Assert.Equal(3, vm.SummaryBlocks.Single(b => b.Step == SetupStep.Team).Lines.Count);
@@ -756,7 +935,7 @@ public sealed class SetupChecksTests
         Assert.Equal("dotnet build App.slnx", Row(vm, "build").CommandText);
         Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
         Assert.False(Step(vm, SetupStep.Budget).IsIncluded);
-        Assert.Contains(Spanish.Format("Setup_Apply_Kept", Spanish.Get("Setup_Step_Verification")), vm.Notice, StringComparison.Ordinal);
+        Assert.Contains(Spanish.Format("Setup_Apply_Kept_One", Spanish.Format("Setup_List_Item", Spanish.Get("Setup_Step_Verification"))), vm.Notice, StringComparison.Ordinal);
         Assert.NotNull(vm.BuildSelection().Profile);
     }
 
@@ -779,8 +958,34 @@ public sealed class SetupChecksTests
         Assert.True(Step(vm, SetupStep.Models).IsIncluded);
         Assert.Equal("40", vm.MaxAgentRunsText);
         Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
-        Assert.Contains(Spanish.Get("Setup_Step_Models"), vm.Notice, StringComparison.Ordinal);
-        Assert.Contains(Spanish.Get("Setup_Step_Budget"), vm.Notice, StringComparison.Ordinal);
+        // Only the models were changed of what the template carries: the team is not named, and the list reads as a sentence.
+        Assert.Contains("No se guardaron los pasos «Modelos» y «Límites». Siguen en pantalla para que lo intentes otra vez.", vm.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain(Spanish.Get("Setup_Step_Team"), vm.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Commands_that_cannot_be_put_back_over_a_file_that_became_unusable_are_said_lost_and_not_still_on_screen()
+    {
+        var rig = new Rig();
+        var vm = await rig.OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        rig.Profiles.Unreadable = true;
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.False(vm.CanEditChecks);
+        Assert.Contains("No se guardó el paso «Comprobación», y lo que cambiaste no se puede volver a mostrar.", vm.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sigue en pantalla", vm.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_list_of_steps_reads_as_a_sentence_in_english_too()
+    {
+        var english = new ResourceTextProvider(CultureInfo.GetCultureInfo("en"));
+
+        Assert.Equal(
+            "The steps \u201cTeam\u201d and \u201cModels\u201d were not saved. They are still on screen so you can try again.",
+            english.Format("Setup_Apply_Kept_Many", english.Format("Setup_List_And", english.Format("Setup_List_Item", "Team"), english.Format("Setup_List_Item", "Models"))));
     }
 
     [Fact]
@@ -801,6 +1006,35 @@ public sealed class SetupChecksTests
         Assert.Contains(vm.SummaryLines, l => l.StartsWith(Spanish.Get("Setup_Step_Models") + ":", StringComparison.Ordinal) && l.Contains("Revisor", StringComparison.Ordinal) && l.Contains(model, StringComparison.Ordinal));
         Assert.False(vm.IsSummaryEmpty);
         Assert.False(vm.GoToWorkCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Unticking_the_team_after_choosing_a_model_for_a_new_agent_never_drops_it_in_silence()
+    {
+        var vm = await new Rig().OpenAsync();
+        vm.SelectedSize = vm.Sizes.Single(s => s.Size == SetupSize.Large);
+        await WaitForAsync(() => vm.TeamRows.Count == 5);
+        Step(vm, SetupStep.Verification).IsIncluded = false;
+        var reviewer = vm.ModelRows.Single(r => r.Name == "Revisor");
+        var model = reviewer.Models[0].Model;
+        reviewer.ModelText = model;
+        Assert.True(Step(vm, SetupStep.Team).IsIncluded);
+
+        Step(vm, SetupStep.Team).IsIncluded = false;
+
+        Assert.Equal(Spanish.Format("Setup_Models_Needs_Team", Spanish.Format("Setup_List_Item", "Revisor")), vm.ModelsProblem);
+        Assert.True(vm.HasInvalidEdits);
+        Assert.False(vm.IsSummaryEmpty);
+        Assert.False(vm.ApplyCommand.CanExecute(null));
+        Assert.False(vm.GoToWorkCommand.CanExecute(null));
+        Assert.Contains(
+            vm.SummaryBlocks.Single(b => b.Step == SetupStep.Models).Lines,
+            l => l.StartsWith("Revisor: ", StringComparison.Ordinal) && l.Contains(model, StringComparison.Ordinal) && l.EndsWith("no se guardará porque «Equipo» está desmarcado", StringComparison.Ordinal));
+
+        Step(vm, SetupStep.Team).IsIncluded = true;
+
+        Assert.Equal(string.Empty, vm.ModelsProblem);
+        Assert.True(vm.ApplyCommand.CanExecute(null));
     }
 
     [Fact]
@@ -899,9 +1133,12 @@ internal sealed class SetupTrialAnswer(bool yes) : ISetupTrialConfirmation
 
     public List<IReadOnlyList<string>> Asked { get; } = [];
 
-    public bool Confirm(IReadOnlyList<string> commands, CancellationToken cancellationToken)
+    public List<string?> Skipped { get; } = [];
+
+    public bool Confirm(IReadOnlyList<string> commands, string? skipped, CancellationToken cancellationToken)
     {
         Asked.Add(commands);
+        Skipped.Add(skipped);
         return Yes;
     }
 }

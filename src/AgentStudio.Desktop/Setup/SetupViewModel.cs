@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
@@ -292,8 +293,23 @@ public sealed partial class SetupViewModel : ObservableObject
     /// </summary>
     public bool HasInvalidEdits =>
         (StepOf(SetupStep.Models).IsIncluded && ModelRows.Any(r => r.IsEdited && !r.IsValid))
+        || OrphanModels().Count > 0
         || (StepOf(SetupStep.Verification).IsIncluded && ChecksProblem() is not null)
         || BudgetProblem.Length > 0;
+
+    /// <summary>Why a model chosen cannot be saved as things are (a new agent with «Equipo» unticked), or empty.</summary>
+    [ObservableProperty]
+    private string _modelsProblem = string.Empty;
+
+    /// <summary>
+    /// The rows with a model chosen for an agent the team does not have yet while «Equipo» is unticked: the template would leave them
+    /// out, so they are never dropped in silence. The summary names them and «Aplicar» waits until the person ticks «Equipo» or puts
+    /// the model back.
+    /// </summary>
+    private IReadOnlyList<SetupModelRowViewModel> OrphanModels() =>
+        _proposal is { } proposal && StepOf(SetupStep.Models).IsIncluded && !StepOf(SetupStep.Team).IsIncluded
+            ? [.. ModelRows.Where(r => r.IsEdited && r.IsValid && proposal.Team.Changes.Any(c => c.IsAdded && c.After.Id == r.Proposal.Agent.Id))]
+            : [];
 
     /// <summary>There is something to apply: «Aplicar los cambios» is offered instead of «Ir a trabajar».</summary>
     public bool HasChanges => !IsSummaryEmpty;
@@ -317,6 +333,12 @@ public sealed partial class SetupViewModel : ObservableObject
         if (_project is { } before && (project is null || !string.Equals(before.ProjectId, project.ProjectId, StringComparison.Ordinal)))
         {
             CancelTrial();
+        }
+        else if (IsTrying && project is not null)
+        {
+            // The same project while «Probarla ahora» runs (the tab opened again): what is on screen is what runs, and reading the
+            // project again would erase it, and its «Probando…», under the trial. It is read again once the person asks after it.
+            return;
         }
 
         _project = project;
@@ -541,9 +563,12 @@ public sealed partial class SetupViewModel : ObservableObject
         var edited = EditedChecks(out var problem);
         CheckProblem = problem is not null && CheckRows.All(r => r.Problem.Length == 0) ? problem : string.Empty;
 
-        // Only an edit of the person turns the step on, never what was read: one that changes the commands, or one that cannot be
-        // used yet (so «Aplicar» waits until it can).
-        var on = !initial && !proposal.Verification.CurrentUnreadable && (problem is not null || ChecksWouldChange(edited));
+        // With no profile saved, the commands detected for the stack start on: without them the first «Aplicar» would leave the
+        // project with none, and the orchestrator cannot plan. With one saved, what was read never turns the step on: only an edit of
+        // the person does, one that changes the commands or one that cannot be used yet (so «Aplicar» waits until it can).
+        var on = !proposal.Verification.CurrentUnreadable && (initial
+            ? proposal.Verification.Current is null && edited is not null && problem is null
+            : problem is not null || ChecksWouldChange(edited));
         if (StepOf(SetupStep.Verification).IsIncluded != on)
         {
             StepOf(SetupStep.Verification).IsIncluded = on;
@@ -571,7 +596,7 @@ public sealed partial class SetupViewModel : ObservableObject
             : problem is not null ? string.Empty
             : edited is null && proposal.Verification.Proposed is null && proposal.Verification.Current is null ? text.Render(UserText.Of(proposal.Verification.NoProposalCode ?? "setup.verification.no-stack"))
             : edited is null ? text.Get("Setup_Verification_None")
-            : !ChecksWouldChange(edited) ? text.Get("Setup_Verification_Same")
+            : !ChecksWouldChange(edited) ? text.Get(proposal.Verification.CurrentAccepted ? "Setup_Verification_Same" : "Setup_Verification_Same_Unaccepted")
             : StepOf(SetupStep.Verification).IsIncluded ? text.Get("Setup_Verification_Hello_Note")
             : text.Get("Setup_Verification_Not_Saved");
     }
@@ -615,9 +640,15 @@ public sealed partial class SetupViewModel : ObservableObject
 
         var text = Text;
 
-        // Commands the person has not accepted yet (none saved, or edited here) run only once they say so, with the commands in front of them.
-        if (NeedsTrialConfirmation(profile)
-            && (_confirmTrial is null || !_confirmTrial.Confirm([.. profile.Steps.Select(s => text.Format("Setup_Summary_Item", LabelOf(s), Command(s)))], CancellationToken.None)))
+        // Commands the person has not accepted yet (none saved, or edited here) run only once they say so, with in front of them exactly
+        // the commands that will run (the isolated ones, as SetupCheckTrial runs) and a line for the ones that will not.
+        var running = profile.Steps.Where(s => s.Isolation == ProcessIsolation.LowIntegrity).ToList();
+        var notRunning = profile.Steps.Where(s => s.Isolation != ProcessIsolation.LowIntegrity).Select(LabelOf).ToList();
+        if (running.Count > 0 && NeedsTrialConfirmation(profile)
+            && (_confirmTrial is null || !_confirmTrial.Confirm(
+                [.. running.Select(s => text.Format("Setup_Summary_Item", LabelOf(s), Command(s)))],
+                notRunning.Count == 0 ? null : text.Format("Setup_Trial_Skipped", string.Join(", ", notRunning)),
+                CancellationToken.None)))
         {
             TrialPassed = null;
             TrialLines.Clear();
@@ -668,9 +699,12 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>Whether <paramref name="profile"/> is not exactly the profile the project has saved, which the person accepted with Windows Hello.</summary>
+    /// <summary>
+    /// Whether <paramref name="profile"/> is not one the person accepted in this app (with Windows Hello, as the decision log says).
+    /// The file of the profile alone does not count: a cloned repository can carry it with any command in it.
+    /// </summary>
     private bool NeedsTrialConfirmation(VerificationProfile profile) =>
-        _proposal is not { Verification: { CurrentUnreadable: false, Current: { } saved } } || saved.ContentHash != profile.ContentHash;
+        _proposal?.Verification.Accepted.Contains(profile.ContentHash) != true;
 
     private string LabelOf(VerificationStep step) => CheckRows.FirstOrDefault(r => r.Step.Id == step.Id)?.Label ?? step.Title;
 
@@ -767,12 +801,35 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The step of the list that is on screen: choosing another in the list (the mouse, the arrows, a screen reader) goes to it, the
+    /// same jump as «Cambiar» of the summary and as an entry of the list. While the project is read it stays where it is.
+    /// </summary>
+    public SetupStepViewModel CurrentStepItem
+    {
+        get => StepOf(Step);
+        set
+        {
+            if (value is not null && value.Step != Step && !IsBusy)
+            {
+                ChangeStep(value.Step);
+            }
+            else
+            {
+                // A choice that is not taken: the list shows the step on screen again.
+                OnPropertyChanged();
+            }
+        }
+    }
+
     partial void OnStepChanged(SetupStep value)
     {
         foreach (var item in Steps)
         {
             item.IsCurrent = item.Step == value;
         }
+
+        OnPropertyChanged(nameof(CurrentStepItem));
 
         if (value == SetupStep.Summary)
         {
@@ -905,12 +962,12 @@ public sealed partial class SetupViewModel : ObservableObject
                     // The model chosen for it, against the one its template brings.
                     if (proposal.Team.Changes.FirstOrDefault(c => c.After.Id == agent.Id)?.After is { } template && RosterHash.Of([template]) != RosterHash.Of([agent]))
                     {
-                        Change(SetupStep.Models, $"{agent.Name}: {SetupTexts.Power(text, template.Model.Model, template.Effort)}", SetupTexts.Power(text, agent.Model.Model, agent.Effort));
+                        Change(SetupStep.Models, text.Format("Setup_Summary_Item", agent.Name, SetupTexts.Power(text, template.Model.Model, template.Effort)), SetupTexts.Power(text, agent.Model.Model, agent.Effort));
                     }
                 }
                 else if (RosterHash.Of([before]) != RosterHash.Of([agent]))
                 {
-                    Change(SetupStep.Models, $"{agent.Name}: {SetupTexts.Power(text, before.Model.Model, before.Effort)}", SetupTexts.Power(text, agent.Model.Model, agent.Effort));
+                    Change(SetupStep.Models, text.Format("Setup_Summary_Item", agent.Name, SetupTexts.Power(text, before.Model.Model, before.Effort)), SetupTexts.Power(text, agent.Model.Model, agent.Effort));
                 }
             }
 
@@ -933,7 +990,7 @@ public sealed partial class SetupViewModel : ObservableObject
         foreach (var skill in selection.Skills ?? [])
         {
             var row = SkillRows.First(r => r.Agent == skill.Agent && r.Skill == skill.Skill);
-            Change(SetupStep.Skills, text.Get("Setup_Summary_Inactive"), $"{row.SkillName}: {row.AgentName}");
+            Change(SetupStep.Skills, text.Get("Setup_Summary_Inactive"), text.Format("Setup_Summary_Skill", row.SkillName, row.AgentName));
         }
 
         // The limits.
@@ -944,7 +1001,12 @@ public sealed partial class SetupViewModel : ObservableObject
 
         Block(SetupStep.Brief, [selection.BriefText is { } written ? text.Format("Setup_Summary_Brief_After", written.Trim().Length) : briefBefore]);
         Block(SetupStep.Team, [.. team.Select(a => text.Format("Setup_Summary_Item", a.Name, SetupTexts.AgentLine(text, a)))]);
-        Block(SetupStep.Models, [.. team.Select(a => text.Format("Setup_Summary_Item", a.Name, SetupTexts.Power(text, a.Model.Model, a.Effort)))]);
+        var orphans = OrphanModels();
+        ModelsProblem = orphans.Count == 0 ? string.Empty : text.Format("Setup_Models_Needs_Team", NameList(orphans.Select(r => r.Name).ToList()));
+        Block(SetupStep.Models, [
+            .. team.Select(a => text.Format("Setup_Summary_Item", a.Name, SetupTexts.Power(text, a.Model.Model, a.Effort))),
+            .. orphans.Select(r => text.Format("Setup_Summary_Not_Saved_Team", r.Name, SetupTexts.Power(text, r.Edited.Model.Model, r.Edited.Effort))),
+        ]);
         Block(SetupStep.Verification, checks is null
             ? [text.Get("Setup_Summary_Check_None")]
             : [.. checks.Steps.Select(s => text.Format("Setup_Summary_Item", CheckRows.FirstOrDefault(r => r.Step.Id == s.Id)?.Label ?? s.Title, Command(s)))]);
@@ -1082,6 +1144,7 @@ public sealed partial class SetupViewModel : ObservableObject
         !IsBusy && !IsTrying && _project is not null && SummaryLines.Count > 0
         && (!StepOf(SetupStep.Budget).IsIncluded || ParseBudget(out _) is not null)
         && (!StepOf(SetupStep.Models).IsIncluded || ModelRows.All(r => r.IsValid))
+        && OrphanModels().Count == 0
         && (!StepOf(SetupStep.Verification).IsIncluded || ChecksProblem() is null);
 
     private string? ChecksProblem()
@@ -1154,11 +1217,11 @@ public sealed partial class SetupViewModel : ObservableObject
         Notice = notice;
 
         // What was not written (Windows Hello not confirmed, a store that failed) is still the person's: it is put back, with its step on.
-        var kept = NotSaved(result);
-        if (kept.Count > 0)
+        var notSaved = NotSaved(result, edits);
+        if (notSaved.Count > 0)
         {
-            await RestoreEditsAsync(edits, kept).ConfigureAwait(true);
-            var line = Text.Format("Setup_Apply_Kept", string.Join(", ", Enum.GetValues<SetupStep>().Where(kept.Contains).Select(s => SetupTexts.Step(Text, s))));
+            var restored = await RestoreEditsAsync(edits, notSaved).ConfigureAwait(true);
+            var line = string.Join(" ", NotSavedLines(notSaved, restored).Where(l => l.Length > 0));
             Notice = string.IsNullOrEmpty(Notice) ? line : Notice + " " + line;
         }
 
@@ -1181,16 +1244,56 @@ public sealed partial class SetupViewModel : ObservableObject
         await RestoreEditsAsync(edits, new HashSet<SetupStep> { SetupStep.Models, SetupStep.Verification, SetupStep.Skills, SetupStep.Budget }).ConfigureAwait(true);
     }
 
-    /// <summary>The steps whose part was not written: denied or failed. The template carries the team and the models together.</summary>
-    private static HashSet<SetupStep> NotSaved(SetupApplyResult result)
+    /// <summary>
+    /// The steps whose part was not written: denied or failed. The template carries the team and the models in one part, so of the two
+    /// only the ones the person changed are named: the team when its step was on, the models when a row was changed.
+    /// </summary>
+    private static HashSet<SetupStep> NotSaved(SetupApplyResult result, SetupEdits edits)
     {
         var steps = result.Parts.Where(p => p.Outcome is SetupPartOutcome.Denied or SetupPartOutcome.Failed).Select(p => p.Step).ToHashSet();
-        if (steps.Contains(SetupStep.Team))
+        if (steps.Remove(SetupStep.Team))
         {
-            steps.Add(SetupStep.Models);
+            if (edits.TeamOn)
+            {
+                steps.Add(SetupStep.Team);
+            }
+
+            if (edits.Models.Count > 0)
+            {
+                steps.Add(SetupStep.Models);
+            }
         }
 
         return steps;
+    }
+
+    /// <summary>
+    /// «No se guardaron los pasos «Equipo» y «Modelos». Siguen en pantalla…», and apart the ones whose changes could not be put back
+    /// (the file of the commands became one that cannot be used): exactly what was not saved, and whether it is still on screen.
+    /// </summary>
+    private IEnumerable<string> NotSavedLines(IReadOnlySet<SetupStep> notSaved, IReadOnlySet<SetupStep> restored)
+    {
+        var order = Enum.GetValues<SetupStep>();
+        var kept = order.Where(s => notSaved.Contains(s) && restored.Contains(s)).ToList();
+        var lost = order.Where(s => notSaved.Contains(s) && !restored.Contains(s)).ToList();
+        yield return kept.Count == 0 ? string.Empty : Text.Format(kept.Count == 1 ? "Setup_Apply_Kept_One" : "Setup_Apply_Kept_Many", StepList(kept));
+        yield return lost.Count == 0 ? string.Empty : Text.Format(lost.Count == 1 ? "Setup_Apply_Lost_One" : "Setup_Apply_Lost_Many", StepList(lost));
+    }
+
+    /// <summary>«Equipo», «Modelos» y «Límites», in the words and the punctuation of the language of the screen.</summary>
+    private string StepList(IReadOnlyList<SetupStep> steps) => NameList([.. steps.Select(s => SetupTexts.Step(Text, s))]);
+
+    /// <summary>Names as a list of the language of the screen: «A», «B» y «C».</summary>
+    private string NameList(IReadOnlyList<string> names)
+    {
+        var items = names.Select(n => Text.Format("Setup_List_Item", n)).ToList();
+        var head = items[0];
+        for (var i = 1; i < items.Count - 1; i++)
+        {
+            head = Text.Format("Setup_List_Comma", head, items[i]);
+        }
+
+        return items.Count == 1 ? head : Text.Format("Setup_List_And", head, items[^1]);
     }
 
     /// <summary>What the person typed or chose in the steps, to put back after the project is read again.</summary>
@@ -1222,10 +1325,12 @@ public sealed partial class SetupViewModel : ObservableObject
 
     /// <summary>
     /// Puts back what <paramref name="edits"/> holds for <paramref name="steps"/> over the project as it was just read: the size of the
-    /// team first (its agents are the rows of the models), then each step with its mark as the person left it.
+    /// team first (its agents are the rows of the models), then each step with its mark as the person left it. Returns the steps it
+    /// put back: the commands are not, over a file that cannot be used.
     /// </summary>
-    private async Task RestoreEditsAsync(SetupEdits edits, IReadOnlySet<SetupStep> steps)
+    private async Task<IReadOnlySet<SetupStep>> RestoreEditsAsync(SetupEdits edits, IReadOnlySet<SetupStep> steps)
     {
+        var restored = new HashSet<SetupStep>(steps);
         if (steps.Contains(SetupStep.Team) && edits.Size != SelectedSize.Size)
         {
             await ProposeAsync(edits.Size).ConfigureAwait(true);
@@ -1263,6 +1368,10 @@ public sealed partial class SetupViewModel : ObservableObject
             ChecksEdited(initial: true);
             StepOf(SetupStep.Verification).IsIncluded = edits.ChecksOn;
         }
+        else
+        {
+            restored.Remove(SetupStep.Verification);
+        }
 
         if (steps.Contains(SetupStep.Skills))
         {
@@ -1280,6 +1389,7 @@ public sealed partial class SetupViewModel : ObservableObject
         }
 
         RefreshSummary();
+        return restored;
     }
 
     /// <summary>The one rule of when «Aplicar» leads to work: no part was denied or failed, and the registry was written when it had to be.</summary>

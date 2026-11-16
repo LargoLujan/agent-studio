@@ -3640,4 +3640,8 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Hide the plan</value>
     <comment>Button that folds the plan band while a run goes on.</comment>
   </data>
+  <data name="Text_resume_profile_breaks_rules" xml:space="preserve">
+    <value>It cannot be resumed. Its commands have signs you cannot see or quotes where they do not go. Fix them in "Set up project" and start again.</value>
+    <comment>(resume.profile-breaks-rules)</comment>
+  </data>
 </root>

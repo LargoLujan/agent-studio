@@ -1,7 +1,7 @@
 ---
 title: Preparing the work
 screens: preparation
-info: Info_Preparation, Info_Requirements, Info_Roster, Info_VerificationProfile, Info_Approval, Info_Canvas_Brief, Info_Canvas_Chat, Info_Canvas_Analysis, Setup_Info
+info: Info_Preparation, Info_Requirements, Info_Roster, Info_VerificationProfile, Info_Approval, Info_Canvas_Brief, Info_Canvas_Chat, Info_Canvas_Analysis, Setup_Info, Setup_Verification_Info, Setup_Budget_Info
 ---
 Here you get everything ready before asking the agents for anything.
 

@@ -138,7 +138,7 @@ internal static class UiScreensShell
         UiScreens.ScreenAsync("Configurator check", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Verification)), 1000, 800),
         UiScreens.ScreenAsync("Configurator limits", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Budget)), 1000, 800),
         UiScreens.ScreenAsync("Configurator summary", async () => UiScreens.Of(new SetupView(), await SetupAsync(SetupStep.Summary)), 1000, 800),
-        UiScreens.Screen("Check trial window", () => UiScreens.OfWindow(new SetupTrialWindow(), new SetupTrialConfirmationViewModel(["dotnet build App.slnx", "dotnet test --no-build"])), 560, 420),
+        UiScreens.Screen("Check trial window", () => UiScreens.OfWindow(new SetupTrialWindow(), new SetupTrialConfirmationViewModel(["dotnet build App.slnx", "dotnet test --no-build"], Texts.Format("Setup_Trial_Skipped", "lint"))), 560, 420),
         UiScreens.ScreenAsync("Client documents", async () => UiScreens.Of(new ClientDocumentsView(), await ClientDocumentsAsync()), 1100, 900),
         UiScreens.ScreenAsync("Quick open window", async () =>
         {

@@ -241,7 +241,7 @@ Aplicar: guardar las órdenes de comprobación o permisos delicados pide Windows
     <value>Al aplicar se pedirá Windows Hello, porque estas órdenes se ejecutan en tu equipo.</value>
   </data>
   <data name="Setup_Verification_Same" xml:space="preserve">
-    <value>Son las órdenes que ya tienes.</value>
+    <value>Son las órdenes que ya aceptaste.</value>
   </data>
   <data name="Setup_Skills_Hint" xml:space="preserve">
     <value>Skills para cada agente: conocimientos extra elegidos por la tecnología del proyecto y su papel. Ninguna se activa sola: marca las que quieras.</value>
@@ -749,11 +749,53 @@ Elegir cuánto puede durar cada intento.</value>
   <data name="Setup_Verification_Not_Saved" xml:space="preserve">
     <value>Estas órdenes aún no están guardadas. Para guardarlas, marca «Guardar este paso».</value>
   </data>
-  <data name="Setup_Apply_Kept" xml:space="preserve">
-    <value>No se guardó {0}. Tus cambios siguen aquí para que lo intentes otra vez.</value>
-    <comment>{0}: the steps that were not saved.</comment>
-  </data>
   <data name="Setup_Verification_Trial_Stale" xml:space="preserve">
     <value>Las órdenes cambiaron mientras se probaban. Pruébalas otra vez.</value>
+  </data>
+  <data name="Setup_Verification_Same_Unaccepted" xml:space="preserve">
+    <value>Son las órdenes del fichero de tu proyecto. No las has aceptado en esta app: revísalas antes de probarlas.</value>
+  </data>
+  <data name="Setup_Verification_Quote_In_Program" xml:space="preserve">
+    <value>El nombre del programa no puede llevar comillas dentro.</value>
+  </data>
+  <data name="Setup_Trial_Skipped" xml:space="preserve">
+    <value>No se ejecutarán porque van sin aislamiento: {0}.</value>
+    <comment>{0}: what the commands that do not run are for.</comment>
+  </data>
+  <data name="Setup_Apply_Kept_One" xml:space="preserve">
+    <value>No se guardó el paso {0}. Sigue en pantalla para que lo intentes otra vez.</value>
+    <comment>{0}: the step, as Setup_List_Item writes it.</comment>
+  </data>
+  <data name="Setup_Apply_Kept_Many" xml:space="preserve">
+    <value>No se guardaron los pasos {0}. Siguen en pantalla para que lo intentes otra vez.</value>
+    <comment>{0}: the steps, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_Apply_Lost_One" xml:space="preserve">
+    <value>No se guardó el paso {0}, y lo que cambiaste no se puede volver a mostrar.</value>
+    <comment>{0}: the step, as Setup_List_Item writes it.</comment>
+  </data>
+  <data name="Setup_Apply_Lost_Many" xml:space="preserve">
+    <value>No se guardaron los pasos {0}, y lo que cambiaste no se puede volver a mostrar.</value>
+    <comment>{0}: the steps, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_List_Item" xml:space="preserve">
+    <value>«{0}»</value>
+    <comment>A name in a list of steps.</comment>
+  </data>
+  <data name="Setup_List_Comma" xml:space="preserve">
+    <value>{0}, {1}</value>
+    <comment>The head of a list and its next item.</comment>
+  </data>
+  <data name="Setup_List_And" xml:space="preserve">
+    <value>{0} y {1}</value>
+    <comment>The head of a list and its last item.</comment>
+  </data>
+  <data name="Setup_Models_Needs_Team" xml:space="preserve">
+    <value>{0} es un agente nuevo: su modelo solo se guarda con el equipo. Marca «Equipo» o deja el modelo como estaba.</value>
+    <comment>{0}: the agents, as Setup_List_And joins them.</comment>
+  </data>
+  <data name="Setup_Summary_Not_Saved_Team" xml:space="preserve">
+    <value>{0}: {1}, no se guardará porque «Equipo» está desmarcado</value>
+    <comment>{0}: a new agent. {1}: the model and the effort chosen for it.</comment>
   </data>
 </root>

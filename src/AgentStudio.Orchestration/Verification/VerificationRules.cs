@@ -155,6 +155,11 @@ public static partial class VerificationRules
         {
             problems.Add($"Step '{id}': the executable contains an invisible or direction character (a file could show one command and run another).");
         }
+        else if (step.Executable.Contains('"', StringComparison.Ordinal))
+        {
+            // No command line can name it: the isolated launch refuses it, and a quote there would be read as the end of the name.
+            problems.Add($"Step '{id}': the executable contains a double quote.");
+        }
 
         if (step.Arguments is null)
         {

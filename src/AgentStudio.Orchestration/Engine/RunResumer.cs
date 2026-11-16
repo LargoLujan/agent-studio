@@ -96,6 +96,18 @@ internal sealed class RunResumer(EnginePorts ports)
                 cancellationToken).ConfigureAwait(false);
         }
 
+        // A profile frozen before a rule of this version (the invisible and direction characters, the double quote in a program, docs/24)
+        // runs with commands the person may not see as they run, and the verifier would refuse its steps at every attempt: it is not
+        // resumed, the alert says which rule, and the person reads why in plain words.
+        if (VerificationRules.Check(record.Verification) is { Count: > 0 } broken)
+        {
+            await NotResumableAsync(
+                recorder,
+                $"The verification profile run {run} started with breaks a rule of this version of Agent Studio: {string.Join(" ", broken)} It is not resumed: fix the profile and start a new run.",
+                cancellationToken,
+                UserText.Of(OrchestrationUserTexts.ResumeProfileBreaksRules)).ConfigureAwait(false);
+        }
+
         // The same for the whole header (N-05): the roster with its instructions, tools and budgets, the options, the base
         // commit and the plan and requirements it names are stored rows, and RunStarted anchored the hash of all of them.
         await CheckHeaderAsync(recorder, record, started, cancellationToken).ConfigureAwait(false);
@@ -231,15 +243,20 @@ internal sealed class RunResumer(EnginePorts ports)
         throw new RunNeedsApprovalException($"Run {recorder.Run} cannot be resumed: {problem}", recorder.Run, started.PlanHash, anchored, anchored ? started.ApprovedWarning : null, now);
     }
 
-    /// <summary>A run that cannot be rebuilt faithfully is not resumed: the alert says why, and nothing more is written.</summary>
-    private static async Task NotResumableAsync(RunRecorder recorder, string problem, CancellationToken cancellationToken)
+    /// <summary>
+    /// A run that cannot be rebuilt faithfully is not resumed: the alert says why, and nothing more is written. With
+    /// <paramref name="text"/> the refusal also carries what the person reads, in their language (a <see cref="UserTextException"/>,
+    /// which is still the <see cref="InvalidOperationException"/> every caller expects).
+    /// </summary>
+    private static async Task NotResumableAsync(RunRecorder recorder, string problem, CancellationToken cancellationToken, UserText? text = null)
     {
         await recorder.RecordAsync(
             DecisionKind.AuditAlertRaised,
             $"La ejecución {recorder.Run} no se puede reanudar",
             new AuditAlertPayload("run.not-resumable", [], problem) { RunId = recorder.RunValue },
             cancellationToken).ConfigureAwait(false);
-        throw new InvalidOperationException($"Run {recorder.Run} cannot be resumed: {problem}");
+        var message = $"Run {recorder.Run} cannot be resumed: {problem}";
+        throw text is null ? new InvalidOperationException(message) : new UserTextException(text, message);
     }
 
     /// <summary>
