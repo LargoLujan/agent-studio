@@ -271,6 +271,51 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         Assert.True(warningInView, $"With «Aprobar plan» in view, its warning is not: {where}.");
     }
 
+    /// <summary>With a warning on the plan the bands may take 60 %: of the tab, never the 248 px of the canvas, the divider and the monitor.</summary>
+    private static double WarnedCap(double tab) => Math.Max(100, Math.Min(tab * 0.6, tab - 248));
+
+    private static (OrchestrationBackend Backend, Action<OrchestratorDocumentViewModel> Load) PlanWithWarnings()
+    {
+        var steps = Backends.Profile.Steps;
+        var profile = Backends.Profile with { Steps = [steps[0] with { Isolation = AgentStudio.Application.Execution.ProcessIsolation.None }, .. steps.Skip(1)] };
+        return (
+            Backends.Complete(new FakeOrchestrator()) with { Verification = new FakeProfileSource(profile) },
+            document => document.Canvas.LoadTasks(AgentStudio.Tests.Domain.Orchestration.PlanFixtures.Plan().Tasks, CanvasLayout.Empty));
+    }
+
+    /// <summary>
+    /// Review round 3, fix 1: the bands take 60 % only while the plan can be approved. With a run on screen the warnings are still
+    /// worked out, but the monitor keeps its room for «Entregar a mi rama» and its warning, which comes above the button.
+    /// </summary>
+    [Fact]
+    public async Task With_a_run_on_screen_the_bands_keep_their_usual_cap_and_the_monitor_warns_above_its_delivery()
+    {
+        var (backend, load) = PlanWithWarnings();
+        var (tab, document) = await OpenInTheWindowAsync(backend, withRun: false, "ola1-orquestador-aviso-ejecucion.png");
+
+        var (warned, approvable, withRun, warningFirst) = WpfHost.Run(() =>
+        {
+            load(document);
+            var view = new OrchestratorView { DataContext = document };
+            var host = new Border { Width = tab.Width, Height = tab.Height, Child = view };
+            OffscreenRender.Render(host, tab.Width, tab.Height);
+            var bands = (ScrollViewer)view.FindName("Bands");
+            var beforeTheRun = bands.MaxHeight;
+            document.Monitor.Attach(new FakeRun(new RunSnapshot(new RunId("20261116-a1b2c3"), RunPhase.Running, [], FakeRun.Healthy, 0)), document.Context!.Project!);
+            OffscreenRender.Render(host, tab.Width, tab.Height);
+            var monitor = Descendants<RunMonitorView>(view).Single();
+            var warning = (FrameworkElement)monitor.FindName("PreviousDeliveryText");
+            var commands = (FrameworkElement)monitor.FindName("RunCommands");
+            var column = (Panel)VisualTreeHelper.GetParent(warning);
+            return (document.HasIsolationWarning, beforeTheRun, bands.MaxHeight, ReferenceEquals(column, VisualTreeHelper.GetParent(commands)) && column.Children.IndexOf(warning) < column.Children.IndexOf(commands));
+        });
+
+        Assert.True(warned, "The plan has no warning: the test does not test anything.");
+        Assert.Equal(WarnedCap(tab.Height), approvable, 0.5);
+        Assert.Equal(BandsCap(tab.Height), withRun, 0.5);
+        Assert.True(warningFirst, "The warning of a delivery made already is not above «Entregar a mi rama».");
+    }
+
     [Fact]
     public async Task In_a_fresh_project_the_divider_moves_both_ways_at_the_default_size()
     {

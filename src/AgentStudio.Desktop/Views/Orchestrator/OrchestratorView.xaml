@@ -83,12 +83,21 @@
                     <Style TargetType="ScrollViewer">
                         <Setter Property="MaxHeight" Value="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeight}}"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding HasIsolationWarning}" Value="True">
+                            <!-- Only while the plan can be approved: with a run on screen the monitor needs its room (its delivery). -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasIsolationWarning}" Value="True"/>
+                                    <Condition Binding="{Binding Monitor.IsAttached}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
                                 <Setter Property="MaxHeight" Value="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeightWarned}}"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding HasDeliveryWarning}" Value="True">
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasDeliveryWarning}" Value="True"/>
+                                    <Condition Binding="{Binding Monitor.IsAttached}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
                                 <Setter Property="MaxHeight" Value="{Binding ActualHeight, ElementName=Layout, Converter={StaticResource Orchestrator.BandsMaxHeightWarned}}"/>
-                            </DataTrigger>
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </ScrollViewer.Style>
