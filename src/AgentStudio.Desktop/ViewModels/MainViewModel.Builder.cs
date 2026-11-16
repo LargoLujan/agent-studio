@@ -269,7 +269,7 @@ public sealed partial class MainViewModel
                 StatusMessage = confirmation;
             }
 
-            FocusWorkRequest(orchestrator);
+            orchestrator.FocusRequestBox();
         }
 #pragma warning disable CA1031 // Opening the orchestrator reads its stores: a failure is said in the status bar, never thrown into the UI.
         catch (Exception ex)
@@ -290,13 +290,6 @@ public sealed partial class MainViewModel
             }
         }
     }
-
-    /// <summary>
-    /// Integration seam (docs/24, wave 1): puts the focus in the request box of <paramref name="orchestrator"/> once the configurator
-    /// took the person there. The package that adds that method to the orchestrator implements this partial method; until then it
-    /// compiles to nothing and the shell only navigates.
-    /// </summary>
-    partial void FocusWorkRequest(OrchestratorDocumentViewModel orchestrator);
 
     /// <summary>
     /// The entry of the welcome tab: with the project open, «Configurar proyecto» is always there, and the first time a project is opened
