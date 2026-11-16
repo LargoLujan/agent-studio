@@ -21,6 +21,29 @@ public partial class OrchestratorView : UserControl
         DataContextChanged += OnDataContextChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+        Bands.ScrollChanged += (_, _) => KeepWarningsWithApprove();
+    }
+
+    /// <summary>
+    /// ADR-0018 §3: «Aprobar plan» is never seen with the warnings of the plan cut above it. Whenever the bands scroll so that the row
+    /// of the button is in view and the top of the warnings is not, they scroll back up to the top of the warnings: the button goes
+    /// down, out of view if they do not fit together. The box of the warnings is never taller than the bands leave above the row, so
+    /// at any size of the window there is a place where both are seen.
+    /// </summary>
+    private void KeepWarningsWithApprove()
+    {
+        if (PlanWarningsScroller.ActualHeight <= 0 || DecisionRow.ActualHeight <= 0 || ReviewContent.Visibility != Visibility.Visible)
+        {
+            return;
+        }
+
+        var warningsTop = PlanWarningsScroller.TransformToAncestor(Bands).Transform(default).Y;
+        var rowTop = DecisionRow.TransformToAncestor(Bands).Transform(default).Y;
+        var rowInView = rowTop < Bands.ViewportHeight && rowTop + DecisionRow.ActualHeight > 0;
+        if (rowInView && warningsTop < -0.5)
+        {
+            Bands.ScrollToVerticalOffset(Math.Max(0, Bands.VerticalOffset + warningsTop));
+        }
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

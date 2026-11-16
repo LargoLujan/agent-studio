@@ -131,7 +131,7 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
     }
 
     /// <summary>Opens the orchestrator of a project in the real window at its default size and reads its tab.</summary>
-    private async Task<(Tab Tab, OrchestratorDocumentViewModel Document)> OpenInTheWindowAsync(OrchestrationBackend backend, bool withRun, string picture)
+    private async Task<(Tab Tab, OrchestratorDocumentViewModel Document)> OpenInTheWindowAsync(OrchestrationBackend backend, bool withRun, string picture, double clientHeight = ClientHeight)
     {
         var root = _temp.CreateDirectory(withRun ? "listo" : "nuevo");
         return await WpfHost.RunAsync(async () =>
@@ -158,7 +158,7 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
 
             var dock = (DockingManager)window.FindName("DockManager");
             dock.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, dock));
-            OffscreenRender.SaveIfRequested(OffscreenRender.Render((FrameworkElement)window.Content, ClientWidth, ClientHeight), picture);
+            OffscreenRender.SaveIfRequested(OffscreenRender.Render((FrameworkElement)window.Content, ClientWidth, clientHeight), picture);
             return (Read(Descendants<OrchestratorView>(dock).Single()), document);
         });
     }
@@ -245,7 +245,7 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         var backend = Backends.Complete(new FakeOrchestrator()) with { Verification = new FakeProfileSource(profile) };
         var (tab, document) = await OpenInTheWindowAsync(backend, withRun: false, "ola1-orquestador-aviso.png");
 
-        var (warns, approveInView, warningInView, warningAbove, where) = WpfHost.Run(() =>
+        var (warns, approveInView, warningInView, warningAbove, where, cap) = WpfHost.Run(() =>
         {
             document.Canvas.LoadTasks(AgentStudio.Tests.Domain.Orchestration.PlanFixtures.Plan().Tasks, CanvasLayout.Empty);
             document.PlanSummary = "Añadir Calc.Multiply(a, b) con su prueba, revisada por el juez antes de integrarla en la rama del proyecto.";
@@ -262,10 +262,11 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
             var warningTop = warning.TransformToAncestor(bands).Transform(new Point(0, 0)).Y;
             OffscreenRender.SaveIfRequested(OffscreenRender.Render(host, tab.Width, tab.Height), "ola1-orquestador-aviso-aprobar.png");
             var where = $"warning {warningTop:F0}..{warningBottom:F0}, «Aprobar plan» from {approveTop:F0}, viewport {bands.ViewportHeight:F0}";
-            return (document.HasIsolationWarning, InView(approve, bands), InView(warning, bands), warningBottom <= approveTop + 0.5, where);
+            return (document.HasIsolationWarning, InView(approve, bands), InView(warning, bands), warningBottom <= approveTop + 0.5, where, bands.MaxHeight);
         });
 
         Assert.True(warns, "The plan has no warning: the test does not test anything.");
+        Assert.Equal(WarnedCap(tab.Height), cap, 0.5);
         Assert.True(approveInView, "«Aprobar plan» was brought into view, and it is not.");
         Assert.True(warningAbove, "The warning is not above «Aprobar plan».");
         Assert.True(warningInView, $"With «Aprobar plan» in view, its warning is not: {where}.");
@@ -314,6 +315,56 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         Assert.Equal(WarnedCap(tab.Height), approvable, 0.5);
         Assert.Equal(BandsCap(tab.Height), withRun, 0.5);
         Assert.True(warningFirst, "The warning of a delivery made already is not above «Entregar a mi rama».");
+    }
+
+    /// <summary>
+    /// Review round 3, fix 2: at the least size of the window (560 high outside, so about 521 inside) the bands with warnings have
+    /// little room. Wherever the bands are scrolled, «Aprobar plan» is never in view with the top of its warnings out of view above
+    /// it; and there is a place where both are seen, because the box of the warnings scrolls inside and leaves room for the button.
+    /// </summary>
+    [Fact]
+    public async Task At_the_least_window_size_approve_is_never_seen_with_its_warnings_cut_above_it()
+    {
+        var (backend, load) = PlanWithWarnings();
+        var (tab, document) = await OpenInTheWindowAsync(backend, withRun: false, "ola1-orquestador-minimo.png", clientHeight: 521);
+
+        var (warns, cap, violations, offsets, together) = WpfHost.Run(() =>
+        {
+            load(document);
+            document.PlanSummary = "Añadir Calc.Multiply(a, b) con su prueba, revisada por el juez antes de integrarla en la rama del proyecto.";
+            var view = new OrchestratorView { DataContext = document };
+            var host = new Border { Width = tab.Width, Height = tab.Height, Child = view };
+            OffscreenRender.Render(host, tab.Width, tab.Height);
+            var bands = (ScrollViewer)view.FindName("Bands");
+            var warnings = (FrameworkElement)view.FindName("PlanWarningsScroller");
+            var row = (FrameworkElement)view.FindName("DecisionRow");
+            var cut = new List<string>();
+            var tried = 0;
+            for (var offset = 0.0; offset <= bands.ScrollableHeight + 8; offset += 8)
+            {
+                bands.ScrollToVerticalOffset(offset);
+                OffscreenRender.Render(host, tab.Width, tab.Height);
+                tried++;
+                var warningsTop = warnings.TransformToAncestor(bands).Transform(default).Y;
+                var rowTop = row.TransformToAncestor(bands).Transform(default).Y;
+                if (rowTop < bands.ViewportHeight && rowTop + row.ActualHeight > 0 && warningsTop < -0.5)
+                {
+                    cut.Add($"asked {offset:F0}: the row at {rowTop:F0}, the warnings from {warningsTop:F0}");
+                }
+            }
+
+            var approve = Labelled(bands, "Orchestrator_Review_Approve");
+            approve.BringIntoView();
+            OffscreenRender.Render(host, tab.Width, tab.Height);
+            var top = warnings.TransformToAncestor(bands).Transform(default).Y;
+            return (document.HasIsolationWarning, bands.MaxHeight, cut, tried, InView(approve, bands) && top >= -0.5 && top < bands.ViewportHeight);
+        });
+
+        Assert.True(warns, "The plan has no warning: the test does not test anything.");
+        Assert.Equal(WarnedCap(tab.Height), cap, 0.5);
+        Assert.True(offsets > 1, "The bands did not scroll: the test does not test anything.");
+        Assert.Empty(violations);
+        Assert.True(together, "There is no place where «Aprobar plan» and the top of its warnings are seen together.");
     }
 
     [Fact]
