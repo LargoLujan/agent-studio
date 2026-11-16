@@ -754,4 +754,8 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
     <value>Escribir una petición nueva</value>
     <comment>Button of the next step.</comment>
   </data>
+  <data name="Main_Requirements_OtherProject" xml:space="preserve">
+    <value>Esos requisitos son de otro proyecto. Ábrelo para verlos.</value>
+    <comment>Message when the way to the requirements is asked for a project that is not open.</comment>
+  </data>
 </root>

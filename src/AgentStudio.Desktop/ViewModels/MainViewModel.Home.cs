@@ -89,7 +89,7 @@ public sealed partial class MainViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
         if (!SameProject(ProjectPath, projectRoot))
         {
-            StatusMessage = Texts.Get("Main_Corrective_OtherProject");
+            StatusMessage = Texts.Get("Main_Requirements_OtherProject");
             return;
         }
 

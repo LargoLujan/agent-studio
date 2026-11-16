@@ -683,4 +683,8 @@ If you choose No, your changes stay in the editor, unsaved.</value>
     <value>Write a new request</value>
     <comment>Button of the next step.</comment>
   </data>
+  <data name="Main_Requirements_OtherProject" xml:space="preserve">
+    <value>Those requirements belong to another project. Open it to see them.</value>
+    <comment>Message when the way to the requirements is asked for a project that is not open.</comment>
+  </data>
 </root>

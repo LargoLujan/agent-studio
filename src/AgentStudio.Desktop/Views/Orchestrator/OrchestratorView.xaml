@@ -13,13 +13,13 @@
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The «Orquestador» tab: engine status, the preparation (request, frozen requirements, agents, verification
          profile), the plan under review (validation, approval, run), the canvas with the properties of the selected node,
-         and the monitor of the run with the previous runs. The tab fills its pane and never scrolls as a whole (docs/24 §1,
-         rows 14 and 15): the bands take at most half of its height and scroll inside when they need more, and always leave
-         300 px for the canvas, the divider and the monitor (120 + 8 + 120 and some room), so the divider always has room to move.
-         The canvas and the monitor start with the same height. -->
+         and the monitor of the run with the previous runs. The tab fills its pane (docs/24 §1, rows 14 and 15): the bands take at
+         most half of its height and scroll inside when they need more, and always leave 300 px for the canvas, the divider and the
+         monitor (120 + 8 + 120 and some room), so the divider always has room to move. The canvas and the monitor start with the
+         same height. Only a pane shorter than 400 px scrolls as a whole, so the bands keep 100 px at least and nothing is lost. -->
     <UserControl.Resources>
-        <!-- The bands: at most half of the tab, and never the 300 px the canvas and the monitor keep. -->
-        <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeight" Factor="0.5" Reserve="300"/>
+        <!-- The bands: at most half of the tab, and never the 300 px the canvas and the monitor keep; 100 px at least. -->
+        <views:ShareOfLengthConverter x:Key="Orchestrator.BandsMaxHeight" Factor="0.5" Reserve="300" Minimum="100"/>
         <!-- «Resumen del plan»: three lines at least, about twelve at most, and never more than a quarter of the tab. -->
         <views:ShareOfLengthConverter x:Key="Orchestrator.SummaryMaxHeight" Factor="0.25" Minimum="64" Maximum="220"/>
 
@@ -64,7 +64,9 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid x:Name="Layout" Background="{StaticResource BackgroundBrush}">
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                  Background="{StaticResource BackgroundBrush}">
+    <Grid x:Name="Layout" Background="{StaticResource BackgroundBrush}" Height="{Binding ViewportHeight, ElementName=Scroller}" MinHeight="400">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition x:Name="CanvasRow" Height="*" MinHeight="120"/>
@@ -373,4 +375,5 @@
                 </Border>
             </views:AdaptiveColumnsPanel>
     </Grid>
+    </ScrollViewer>
 </UserControl>

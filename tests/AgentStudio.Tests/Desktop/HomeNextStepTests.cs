@@ -218,7 +218,7 @@ public sealed class HomeNextStepTests : IDisposable
         await shell.OpenRequirementsAsync(_temp.CreateDirectory("otro"));
 
         Assert.DoesNotContain(shell.Documents, d => d is OrchestratorDocumentViewModel);
-        Assert.NotNull(shell.StatusMessage);
+        Assert.Equal("Esos requisitos son de otro proyecto. Ábrelo para verlos.", shell.StatusMessage);
     }
 
     /// <summary>The status band of the orchestrator offers the way to «Requisitos» while the project has none frozen.</summary>

@@ -127,6 +127,33 @@ public sealed class OrchestratorLayoutTests
     }
 
     /// <summary>
+    /// A pane shorter than 400 px (a small window with the bottom panels open) scrolls as a whole, so the bands keep 100 px and
+    /// the canvas and the monitor their least height: nothing disappears without a way to reach it.
+    /// </summary>
+    [Fact]
+    public async Task A_pane_shorter_than_400_scrolls_as_a_whole_and_the_bands_keep_100()
+    {
+        var document = await WpfHost.RunAsync(() => OpenAsync());
+
+        var (layoutHeight, scrollable, bands, bandsMax, canvasHeight, monitorHeight) = WpfHost.Run(() =>
+        {
+            document.IsPreparationExpanded = true;
+            var view = new OrchestratorView { DataContext = document };
+            OffscreenRender.SaveIfRequested(OffscreenRender.Render(view, 600, 260), "ola1-orquestador-600x260.png");
+            var layout = (Grid)view.FindName("Layout");
+            var bandsScroller = (ScrollViewer)view.FindName("Bands");
+            return (layout.ActualHeight, ((ScrollViewer)view.FindName("Scroller")).ScrollableHeight, bandsScroller.ActualHeight, bandsScroller.MaxHeight, layout.RowDefinitions[1].ActualHeight, layout.RowDefinitions[3].ActualHeight);
+        });
+
+        Assert.Equal(400, layoutHeight, 0.5);
+        Assert.True(scrollable > 0, "A pane of 260 does not scroll as a whole.");
+        Assert.Equal(100, bandsMax, 0.5);
+        Assert.Equal(100, bands, 0.5);
+        Assert.True(canvasHeight >= 119.5, $"The canvas got {canvasHeight}.");
+        Assert.True(monitorHeight >= 119.5, $"The monitor got {monitorHeight}.");
+    }
+
+    /// <summary>
     /// docs/24 §1, row 16: «Resumen del plan» takes the width of its band and wraps its words: three lines at least, and a long
     /// summary grows up to its limit and then scrolls, with «Pedir plan» above it, beside its label, instead of squeezing it.
     /// </summary>
