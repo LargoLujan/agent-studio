@@ -639,7 +639,7 @@ Choose how long each attempt can last.</value>
     <value>Saved. Now write what you want the team to do.</value>
   </data>
   <data name="Text_setup_hello_subject_profile_own" xml:space="preserve">
-    <value>your check commands</value>
+    <value>your own check commands</value>
     <comment>What Windows Hello is asked for (setup.hello.subject-profile-own): commands the person wrote for a technology not recognised.</comment>
   </data>
   <data name="Text_setup_check_invalid" xml:space="preserve">

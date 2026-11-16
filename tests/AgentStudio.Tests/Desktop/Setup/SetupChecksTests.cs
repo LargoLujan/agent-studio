@@ -171,6 +171,55 @@ public sealed class SetupChecksTests
     }
 
     [Fact]
+    public async Task Edited_commands_are_the_persons_own_and_windows_hello_says_so_while_untouched_ones_keep_their_stack()
+    {
+        var rig = new Rig();
+        var vm = await rig.OpenAsync();
+        Step(vm, SetupStep.Verification).IsIncluded = true;
+
+        Assert.Equal(DotNetVerificationProfile.ProfileName, vm.BuildSelection().Profile!.Name);
+
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        var edited = vm.BuildSelection().Profile!;
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.Equal(SetupChecks.OwnProfileName, edited.Name);
+        var asked = Assert.Single(rig.Gate.Asked);
+        Assert.Equal("setup.hello.subject-profile-own", asked.Subject.Code);
+        Assert.Equal(Spanish.Get("Text_setup_hello_subject_profile_own"), Spanish.Render(asked.Subject));
+    }
+
+    [Fact]
+    public async Task Changing_the_size_of_the_team_keeps_the_commands_the_models_and_the_limits_typed()
+    {
+        var vm = await new Rig().OpenAsync();
+        Row(vm, "build").CommandText = "dotnet build App.slnx";
+        vm.ModelRows.Single(r => r.Name == "Ejecutor").ModelText = "sonnet";
+        vm.MaxParallelTasksText = "2";
+
+        vm.SelectedSize = vm.Sizes.Single(s => s.Size == SetupSize.Large);
+        await WaitForAsync(() => vm.TeamRows.Count == 5);
+        await WaitForAsync(() => Row(vm, "build").CommandText == "dotnet build App.slnx");
+
+        Assert.True(Step(vm, SetupStep.Verification).IsIncluded);
+        Assert.Equal("sonnet", vm.ModelRows.Single(r => r.Name == "Ejecutor").ModelText);
+        Assert.True(Step(vm, SetupStep.Models).IsIncluded);
+        Assert.Equal("2", vm.MaxParallelTasksText);
+        Assert.True(Step(vm, SetupStep.Budget).IsIncluded);
+        Assert.True(Step(vm, SetupStep.Team).IsIncluded);
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        for (var i = 0; i < 100 && !condition(); i++)
+        {
+            await Task.Delay(20, Ct);
+        }
+
+        Assert.True(condition(), "The condition was not met in time.");
+    }
+
+    [Fact]
     public async Task Without_the_barrier_the_edited_commands_are_never_saved()
     {
         var rig = new Rig { Gate = new FakeGate(false) };

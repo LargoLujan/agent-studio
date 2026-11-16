@@ -731,7 +731,7 @@ public sealed partial class SetupViewModel : ObservableObject
     {
         if (!_loading && _proposal is not null && value.Size != _proposal.Team.Size)
         {
-            _ = ProposeAsync(value.Size);
+            _ = ResizeAsync(value.Size);
         }
     }
 
@@ -1119,6 +1119,17 @@ public sealed partial class SetupViewModel : ObservableObject
             Notice = string.IsNullOrEmpty(notice) ? confirmation : confirmation + " " + notice;
             WorkRequested?.Invoke(this, new SetupWorkRequestedEventArgs(confirmation));
         }
+    }
+
+    /// <summary>
+    /// Another size of the team: its template is proposed again, and what the person typed in the other steps stays (the commands,
+    /// the models of the agents that remain, the skills, the limits; the brief is kept by the proposal itself).
+    /// </summary>
+    private async Task ResizeAsync(SetupSize size)
+    {
+        var edits = CaptureEdits();
+        await ProposeAsync(size).ConfigureAwait(true);
+        await RestoreEditsAsync(edits, new HashSet<SetupStep> { SetupStep.Models, SetupStep.Verification, SetupStep.Skills, SetupStep.Budget }).ConfigureAwait(true);
     }
 
     /// <summary>The steps whose part was not written: denied or failed. The template carries the team and the models together.</summary>

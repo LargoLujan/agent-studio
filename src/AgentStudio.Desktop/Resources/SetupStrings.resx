@@ -688,7 +688,7 @@ Elegir cuánto puede durar cada intento.</value>
     <value>Guardado. Ahora escribe qué quieres que haga el equipo.</value>
   </data>
   <data name="Text_setup_hello_subject_profile_own" xml:space="preserve">
-    <value>tus órdenes de comprobación</value>
+    <value>tus órdenes propias de comprobación</value>
     <comment>What Windows Hello is asked for (setup.hello.subject-profile-own): commands the person wrote for a technology not recognised.</comment>
   </data>
   <data name="Text_setup_check_invalid" xml:space="preserve">

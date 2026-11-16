@@ -110,6 +110,9 @@ public sealed partial class SetupCheckRowViewModel : ObservableObject
     /// <summary>The line is empty: the command is left out.</summary>
     public bool IsEmpty => string.IsNullOrWhiteSpace(CommandText);
 
+    /// <summary>The person changed the line from the command the row was read with.</summary>
+    public bool IsChanged => !string.Equals(CommandText, _original, StringComparison.Ordinal);
+
     /// <summary>Why the line cannot be used, or empty.</summary>
     public string Problem
     {
@@ -192,7 +195,9 @@ public static class SetupChecks
 
     /// <summary>
     /// The profile the rows make: each command that is not empty, in order. A command that required one left out requires what
-    /// that one required, so nothing runs before what it needs. Null when every line is empty.
+    /// that one required, so nothing runs before what it needs. Null when every line is empty. Once the person changes a line the
+    /// commands are theirs and the profile is named <see cref="OwnProfileName"/>: it no longer is the one of a stack, and Windows
+    /// Hello does not say it is.
     /// </summary>
     /// <param name="problem">Why it cannot be used, from the first row that cannot or from the rules of a profile; null when it can.</param>
     public static VerificationProfile? Profile(string name, IReadOnlyList<SetupCheckRowViewModel> rows, IUiTextProvider text, out string? problem)
@@ -228,7 +233,7 @@ public static class SetupChecks
         var steps = kept.Select(s => s.Requires is { Count: > 0 } requires && requires.Any(dropped.ContainsKey)
             ? s with { Requires = Resolve(requires, dropped, ids) }
             : s).ToList();
-        var profile = new VerificationProfile(name, steps);
+        var profile = new VerificationProfile(rows.Any(r => r.IsChanged) ? OwnProfileName : name, steps);
         if (VerificationRules.Check(profile).Count > 0)
         {
             problem = text.Get("Setup_Verification_Invalid");
