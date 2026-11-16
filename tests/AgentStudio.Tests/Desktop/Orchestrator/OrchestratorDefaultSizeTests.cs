@@ -225,6 +225,41 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         Assert.Same(Cursors.SizeNS, moved.Cursor);
     }
 
+    /// <summary>
+    /// Review fix 1 (ADR-0018 §3): what «Aprobar plan» approves is said before it. A plan whose steps run without isolation warns
+    /// above the button, and with the bands scrolled to «Aprobar plan» the warning is in view too: it cannot be reached without it.
+    /// </summary>
+    [Fact]
+    public async Task The_warning_of_a_plan_comes_before_approve_and_is_in_view_with_it()
+    {
+        var steps = Backends.Profile.Steps;
+        var profile = Backends.Profile with { Steps = [steps[0] with { Isolation = AgentStudio.Application.Execution.ProcessIsolation.None }, .. steps.Skip(1)] };
+        var backend = Backends.Complete(new FakeOrchestrator()) with { Verification = new FakeProfileSource(profile) };
+        var (tab, document) = await OpenInTheWindowAsync(backend, withRun: false, "ola1-orquestador-aviso.png");
+
+        var (warns, approveInView, warningInView, warningAbove) = WpfHost.Run(() =>
+        {
+            document.Canvas.LoadTasks(AgentStudio.Tests.Domain.Orchestration.PlanFixtures.Plan().Tasks, CanvasLayout.Empty);
+            document.PlanSummary = "Añadir Calc.Multiply(a, b) con su prueba, revisada por el juez antes de integrarla en la rama del proyecto.";
+            var view = new OrchestratorView { DataContext = document };
+            var host = new Border { Width = tab.Width, Height = tab.Height, Child = view };
+            OffscreenRender.Render(host, tab.Width, tab.Height);
+            var bands = (ScrollViewer)view.FindName("Bands");
+            var approve = Labelled(bands, "Orchestrator_Review_Approve");
+            var warning = Descendants<TextBlock>(bands).First(t => t.Text == document.IsolationWarningText);
+            approve.BringIntoView();
+            OffscreenRender.Render(host, tab.Width, tab.Height);
+            var warningBottom = warning.TransformToAncestor(bands).Transform(new Point(0, warning.ActualHeight)).Y;
+            var approveTop = approve.TransformToAncestor(bands).Transform(new Point(0, 0)).Y;
+            return (document.HasIsolationWarning, InView(approve, bands), InView(warning, bands), warningBottom <= approveTop + 0.5);
+        });
+
+        Assert.True(warns, "The plan has no warning: the test does not test anything.");
+        Assert.True(approveInView, "«Aprobar plan» was brought into view, and it is not.");
+        Assert.True(warningAbove, "The warning is not above «Aprobar plan».");
+        Assert.True(warningInView, "With «Aprobar plan» in view, its warning is not.");
+    }
+
     [Fact]
     public async Task In_a_fresh_project_the_divider_moves_both_ways_at_the_default_size()
     {

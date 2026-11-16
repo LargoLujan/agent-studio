@@ -186,6 +186,19 @@
                             </TextBox.Style>
                         </TextBox>
 
+                        <!-- What the approval approves comes before its button (ADR-0018 §3): the warnings are passed before «Aprobar plan» is reached. -->
+                        <!-- Part of what «Aprobar plan» approves: the steps that run the agents' code with the user's rights (ADR-0017). -->
+                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
+                                   Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarningText}"
+                                   Visibility="{Binding HasIsolationWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                   AutomationProperties.Name="{l:T Orchestrator_Review_IsolationName}" AutomationProperties.LiveSetting="Polite"/>
+                        <!-- B10: a valid plan whose writing no integration reviewed by the judge takes in cannot be delivered. -->
+                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Foreground="{StaticResource WarningBrush}" Text="{Binding DeliveryWarning}"
+                                   Visibility="{Binding HasDeliveryWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                   AutomationProperties.Name="{l:T Orchestrator_Review_DeliveryWarningName}" AutomationProperties.LiveSetting="Polite"/>
+                        <!-- «Aprobar plan» without Windows Hello on this computer: the button decided alone (docs/16 D-13). -->
+                        <lockviews:HelloNoticeView/>
                         <!-- The decision on the plan and the run. -->
                         <WrapPanel Margin="0,6,0,0">
                             <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Validate}" Command="{Binding ValidateCommand}"/>
@@ -214,18 +227,6 @@
                             <TextBlock Style="{StaticResource OptionalSecondaryText}" VerticalAlignment="Center"
                                        Text="{Binding ExecuteBlockers, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Review_ToRun}"/>
                         </WrapPanel>
-                        <!-- Part of what «Aprobar plan» approves: the steps that run the agents' code with the user's rights (ADR-0017). -->
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
-                                   Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarningText}"
-                                   Visibility="{Binding HasIsolationWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                   AutomationProperties.Name="{l:T Orchestrator_Review_IsolationName}" AutomationProperties.LiveSetting="Polite"/>
-                        <!-- B10: a valid plan whose writing no integration reviewed by the judge takes in cannot be delivered. -->
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                   Foreground="{StaticResource WarningBrush}" Text="{Binding DeliveryWarning}"
-                                   Visibility="{Binding HasDeliveryWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                   AutomationProperties.Name="{l:T Orchestrator_Review_DeliveryWarningName}" AutomationProperties.LiveSetting="Polite"/>
-                        <!-- «Aprobar plan» without Windows Hello on this computer: the button decided alone (docs/16 D-13). -->
-                        <lockviews:HelloNoticeView/>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
                                     Visibility="{Binding IsBusy, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                             <ProgressBar Style="{StaticResource AccentProgress}" Width="120" Margin="0,0,10,0" VerticalAlignment="Center"/>
