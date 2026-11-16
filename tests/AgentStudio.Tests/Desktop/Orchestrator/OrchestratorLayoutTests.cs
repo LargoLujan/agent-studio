@@ -102,8 +102,9 @@ public sealed class OrchestratorLayoutTests
     }
 
     /// <summary>
-    /// docs/24 §1, rows 14 and 15: the tab never scrolls as a whole. In a short pane the bands take at most half of it and scroll
-    /// inside, and the canvas and the monitor keep at least their least height (120 each), so the divider always has room.
+    /// docs/24 §1, rows 14 and 15: a pane of 400 px or more never scrolls as a whole. The bands take at most 40 % of it and leave
+    /// 360 px to the canvas, the divider and the monitor, 100 px at least: in a pane of 450 that is 100, and they scroll inside;
+    /// the canvas and the monitor keep at least their least height (120 each), so the divider always has room.
     /// </summary>
     [Fact]
     public async Task In_a_short_pane_the_bands_scroll_inside_and_the_canvas_and_the_monitor_keep_their_least_height()
@@ -121,8 +122,8 @@ public sealed class OrchestratorLayoutTests
         });
 
         Assert.Equal(450, layoutHeight, 0.5);
-        Assert.True(bands <= 225.5, $"The bands take {bands} of 450.");
-        Assert.True(bandsScrollable > 0, "The bands do not fit in half of 450: they scroll inside.");
+        Assert.True(bands <= 100.5, $"The bands take {bands} of 450, more than the 100 the 360 px of the canvas and the monitor leave.");
+        Assert.True(bandsScrollable > 0, "The bands do not fit in 100 px: they scroll inside.");
         Assert.True(canvasHeight >= 119.5, $"The canvas got {canvasHeight}.");
         Assert.True(monitorHeight >= 119.5, $"The monitor got {monitorHeight}.");
     }

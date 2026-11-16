@@ -35,11 +35,15 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
     /// <summary>What each row keeps beyond its least height, so the divider moves both ways by a useful step.</summary>
     private const double Travel = 24;
 
-    /// <summary>What the editor of the canvas keeps at least while a run goes on, before the divider is moved: its nodes are seen.</summary>
-    private const double EditorWithARun = 100;
+    /// <summary>
+    /// The share of its row the editor of the canvas, and the lists of the monitor, keep at least while a run goes on, before the
+    /// divider is moved. A share, not pixels, so it holds whatever the fonts of the computer (measured: 114 of 249 and 107 of 249
+    /// in Spanish at 1264 × 760); the caps of the toolbar (30 %) and of the top of the monitor (50 %) are what give it.
+    /// </summary>
+    private const double ShareWithARun = 0.35;
 
-    /// <summary>What the lists of the monitor keep at least while a run goes on, before the divider is moved: several of its tasks.</summary>
-    private const double ListsWithARun = 90;
+    /// <summary>The bands take at most 40 % of the tab, and leave 360 px to the canvas, the divider and the monitor; 100 px at least.</summary>
+    private static double BandsCap(double tab) => Math.Max(100, Math.Min(tab * 0.4, tab - 360));
 
     private readonly TempDirectory _temp = new();
 
@@ -212,6 +216,9 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
 
     private static void AssertMoves(Moved moved, Tab tab)
     {
+        // Review fix 7: the caps of the bands are the ones the tab promises.
+        Assert.Equal(BandsCap(tab.Height), tab.BandsMax, 0.5);
+        Assert.True(tab.Bands <= tab.BandsMax + 0.5, $"The bands pass their cap: {tab}.");
         var report = $"{tab}; canvas {moved.Before:F0}, dragged down {moved.AfterDown:F0}, dragged up {moved.AfterUp:F0}, arrow down {moved.AfterKeyDown:F0}, arrow up {moved.AfterKeyUp:F0}";
         Note(report);
         Assert.True(moved.AfterDown > moved.Before + Travel - 0.5, $"Dragged down, the canvas did not grow: {report}.");
@@ -283,8 +290,8 @@ public sealed class OrchestratorDefaultSizeTests : IDisposable
         var moved = MoveTheDivider(document, tab);
 
         Assert.True(tab.ReviewFolded, $"The band of the plan is not folded while the run goes on: {tab}.");
-        Assert.True(tab.Editor >= EditorWithARun, $"The canvas leaves its editor {tab.Editor:F0}: {tab}.");
-        Assert.True(tab.Lists >= ListsWithARun, $"The monitor leaves its lists {tab.Lists:F0}: {tab}.");
+        Assert.True(tab.Editor >= tab.CanvasRow * ShareWithARun, $"The canvas leaves its editor {tab.Editor:F0} of {tab.CanvasRow:F0}: {tab}.");
+        Assert.True(tab.Lists >= tab.MonitorRow * ShareWithARun, $"The monitor leaves its lists {tab.Lists:F0} of {tab.MonitorRow:F0}: {tab}.");
         AssertMoves(moved, tab);
     }
 
