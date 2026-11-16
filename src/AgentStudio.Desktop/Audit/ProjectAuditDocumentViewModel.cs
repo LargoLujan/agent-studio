@@ -155,8 +155,11 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     private readonly SynchronizationContext? _ui;
     private FrozenRequirementSet? _requirements;
 
-    /// <summary>The read of the requirements going on, which a second ask waits for instead of reading again.</summary>
+    /// <summary>The read of the requirements going on.</summary>
     private Task? _refreshing;
+
+    /// <summary>The read asked for while <see cref="_refreshing"/> went on, which follows it once; null when none was asked.</summary>
+    private Task? _refreshAgain;
 
     /// <summary>The error a failed read of the requirements left on screen, which the next read that succeeds takes away.</summary>
     private string? _refreshError;
@@ -462,18 +465,27 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     /// them. Nothing while it has not opened, while it loads or audits, or once it has them.
     /// </summary>
     /// <remarks>
-    /// One read at a time: the tab coming back into view and the shell opening it ask together, and both wait for the same read. A
-    /// read that succeeds takes away the error a failed one left.
+    /// One read at a time. An ask that comes while a read goes on is answered by one more read once that one ends (it may have
+    /// started before the requirements were frozen); the asks that come meanwhile share it. A read that succeeds takes away the
+    /// error a failed one left.
     /// </remarks>
     public Task RefreshRequirementsAsync()
     {
         if (_refreshing is { IsCompleted: false } going)
         {
-            return going;
+            return _refreshAgain ??= ReadAgainAfterAsync(going);
         }
 
         _refreshing = ReadRequirementsAsync();
         return _refreshing;
+    }
+
+    private async Task ReadAgainAfterAsync(Task going)
+    {
+        await going.ConfigureAwait(true);
+        _refreshAgain = null;
+        _refreshing = ReadRequirementsAsync();
+        await _refreshing.ConfigureAwait(true);
     }
 
     private async Task ReadRequirementsAsync()

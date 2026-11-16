@@ -254,7 +254,10 @@ public sealed class ProjectAuditDocumentViewModelTests
         return document;
     }
 
-    /// <summary>Review fix 5: the tab coming back into view and the shell opening it ask together, and the requirements are read once.</summary>
+    /// <summary>
+    /// Review fix 5: the tab coming back into view and the shell opening it ask together; once the first read finds the requirements,
+    /// the second ask has nothing left to read.
+    /// </summary>
     [Fact]
     public async Task Two_asks_to_read_the_requirements_again_at_once_read_them_once()
     {
@@ -269,6 +272,30 @@ public sealed class ProjectAuditDocumentViewModelTests
         await Task.WhenAll(first, second);
 
         Assert.Equal(2, store.Reads);
+        Assert.False(document.ShowsGoToRequirements);
+    }
+
+    /// <summary>
+    /// Review round 3, fix 4: an ask that comes while a read goes on gets a read of its own after it. The first read started before
+    /// the requirements were frozen and finds none; the second one finds them, so «Auditar» does not wait for the next activation.
+    /// </summary>
+    [Fact]
+    public async Task An_ask_during_a_read_reads_again_after_it()
+    {
+        var store = new StepByStepRequirements();
+        var document = await WithStepByStepRequirementsAsync(store);
+        var before = new TaskCompletionSource<AgentStudio.Domain.Requirements.FrozenRequirementSet?>();
+        store.Answers.Enqueue(() => before.Task);
+        store.Answers.Enqueue(() => Task.FromResult<AgentStudio.Domain.Requirements.FrozenRequirementSet?>(Requirements));
+
+        var first = document.RefreshRequirementsAsync();
+        var second = document.RefreshRequirementsAsync();
+        var third = document.RefreshRequirementsAsync();
+        before.SetResult(null);
+        await Task.WhenAll(first, second, third);
+
+        Assert.Same(second, third);
+        Assert.Equal(3, store.Reads);
         Assert.False(document.ShowsGoToRequirements);
     }
 
