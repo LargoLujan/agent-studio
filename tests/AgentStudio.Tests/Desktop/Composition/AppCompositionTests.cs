@@ -650,6 +650,13 @@ public sealed class AppCompositionTests
         var main = provider.GetRequiredService<MainViewModel>();
 
         Assert.Equal(["agents", "tools", "tests"], main.Activities.Where(a => a.Id is "agents" or "tools" or "tests").Select(a => a.Id));
+
+        // The bar is narrow: «Documentación para clientes» is written short there, and its tooltip and its name keep the whole title.
+        var documents = Assert.Single(main.Activities, a => a.Id == "documents");
+        Assert.Equal("Docs para clientes", documents.Label);
+        Assert.Equal("Documentación para clientes", documents.Title);
+        Assert.Equal(documents.Title, documents.ToolTip);
+        Assert.Equal(documents.Title, documents.ToString());
         Assert.NotNull(main.Problems);
         Assert.NotNull(main.Output);
         Assert.NotNull(main.Tests);

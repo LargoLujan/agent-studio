@@ -703,4 +703,8 @@ If you choose No, your changes stay in the editor, unsaved.</value>
     <value>The run of this project is waiting for your approval. Go to the run and decide so it can go on.</value>
     <comment>Why the next step is to see the run: a task waits for the approval of the person.</comment>
   </data>
+  <data name="Main_Activity_DocumentsShort" xml:space="preserve">
+    <value>Client docs</value>
+    <comment>The name of «Documentación para clientes» in the activity bar, which is narrow; the tooltip and the screen keep the whole name.</comment>
+  </data>
 </root>
