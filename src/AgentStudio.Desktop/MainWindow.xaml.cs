@@ -651,7 +651,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        pane.DockMinWidth = ExplorerMinWidth;
+        // Never lower: docked in the column on the right, its pane keeps the 240 that column asks for.
+        pane.DockMinWidth = Math.Max(pane.DockMinWidth, ExplorerMinWidth);
         if (pane.DockWidth.IsAbsolute && pane.DockWidth.Value < ExplorerMinWidth)
         {
             pane.DockWidth = new GridLength(ExplorerMinWidth);
