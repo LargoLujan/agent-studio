@@ -73,6 +73,10 @@ public sealed class ListItemTypesGuardTests
             "The parts of a prompt in the live state (LiveContext.Parts, Phase 13): a bar shows them as MetricBarSegment, named by its label and value, never the record.",
         ["AgentStudio.Domain.Orchestration.Analysis.TaskContextFacts"] =
             "The context of each task the analyzer reads (MontageFacts.TaskContexts, P49): only the rules of the analysis band read them, and the band shows their findings.",
+        ["AgentStudio.Desktop.Setup.SetupCheckTrialStep"] =
+            "What «Probarla ahora» of the configurator found for one command (SetupCheckTrialResult.Steps): the configurator writes it as lines of text (SetupViewModel.TrialLines), never the record.",
+        ["AgentStudio.Application.Verification.FailedTest"] =
+            "A test a report names as failed (VerificationResult.FailedTests, SetupCheckTrialStep.FailedTests): the configurator writes its name in a line of text, and the panel of tests shows FailedTestRow.",
     };
 
     [Fact]
