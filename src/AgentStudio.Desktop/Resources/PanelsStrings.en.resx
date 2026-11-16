@@ -399,4 +399,8 @@ Press "Give to an agent…" to go to its card: the change is approved as always.
   <data name="Tools_Publication_PerUse" xml:space="preserve"><value>Requires a valid approval for this operation; a standing grant cannot cover it.</value></data>
   <data name="Tools_Publication_Approved" xml:space="preserve"><value>The rule requires an approved verdict; all other checks must also pass.</value></data>
   <data name="Tools_Publication_OtherChecks" xml:space="preserve"><value>The rule does not require an approved verdict for this operation. Other checks still apply.</value></data>
+  <data name="Panels_Tests_HeadProfileUnusable" xml:space="preserve">
+    <value>the file of the check commands of the project cannot be used. Fix it or delete it, then try again.</value>
+    <comment>Reason: the file of the verification profile breaks a rule.</comment>
+  </data>
 </root>

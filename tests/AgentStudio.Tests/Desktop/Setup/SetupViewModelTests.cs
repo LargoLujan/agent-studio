@@ -258,6 +258,19 @@ public sealed class SetupViewModelTests
     }
 
     [Fact]
+    public async Task The_lines_of_the_summary_are_written_with_the_texts_of_the_language_never_with_a_separator_in_code()
+    {
+        var english = await new Rig().OpenAsync(English);
+        english.ModelRows.Single(r => r.Name == "Ejecutor").ModelText = "sonnet";
+
+        var line = Assert.Single(english.SummaryLines, l => l.StartsWith(English.Get("Setup_Step_Models"), StringComparison.Ordinal));
+
+        Assert.Equal(
+            English.Format("Setup_Summary_Line", English.Get("Setup_Step_Models"), English.Format("Setup_Summary_Item", "Ejecutor", English.Format("Setup_Power_Line", English.Get("Setup_Model_Default"), English.Get("Models_Effort_CliDefault"))), English.Format("Setup_Power_Line", "sonnet", English.Get("Models_Effort_CliDefault"))),
+            line);
+    }
+
+    [Fact]
     public async Task Use_all_recommended_takes_each_recommendation_the_rows_do_not_say_yet()
     {
         var vm = await new Rig().OpenAsync();

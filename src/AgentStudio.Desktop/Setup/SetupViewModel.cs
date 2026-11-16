@@ -936,12 +936,12 @@ public sealed partial class SetupViewModel : ObservableObject
                     // The model chosen for it, against the one its template brings.
                     if (proposal.Team.Changes.FirstOrDefault(c => c.After.Id == agent.Id)?.After is { } template && RosterHash.Of([template]) != RosterHash.Of([agent]))
                     {
-                        Change(SetupStep.Models, $"{agent.Name}: {SetupTexts.Power(text, template.Model.Model, template.Effort)}", SetupTexts.Power(text, agent.Model.Model, agent.Effort));
+                        Change(SetupStep.Models, text.Format("Setup_Summary_Item", agent.Name, SetupTexts.Power(text, template.Model.Model, template.Effort)), SetupTexts.Power(text, agent.Model.Model, agent.Effort));
                     }
                 }
                 else if (RosterHash.Of([before]) != RosterHash.Of([agent]))
                 {
-                    Change(SetupStep.Models, $"{agent.Name}: {SetupTexts.Power(text, before.Model.Model, before.Effort)}", SetupTexts.Power(text, agent.Model.Model, agent.Effort));
+                    Change(SetupStep.Models, text.Format("Setup_Summary_Item", agent.Name, SetupTexts.Power(text, before.Model.Model, before.Effort)), SetupTexts.Power(text, agent.Model.Model, agent.Effort));
                 }
             }
 
@@ -964,7 +964,7 @@ public sealed partial class SetupViewModel : ObservableObject
         foreach (var skill in selection.Skills ?? [])
         {
             var row = SkillRows.First(r => r.Agent == skill.Agent && r.Skill == skill.Skill);
-            Change(SetupStep.Skills, text.Get("Setup_Summary_Inactive"), $"{row.SkillName}: {row.AgentName}");
+            Change(SetupStep.Skills, text.Get("Setup_Summary_Inactive"), text.Format("Setup_Summary_Skill", row.SkillName, row.AgentName));
         }
 
         // The limits.

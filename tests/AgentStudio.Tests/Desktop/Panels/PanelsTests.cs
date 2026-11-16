@@ -285,6 +285,20 @@ public sealed class PanelsTests
     }
 
     [Fact]
+    public async Task A_profile_file_that_breaks_a_rule_is_said_in_plain_words_and_never_in_the_english_of_the_loader()
+    {
+        var panel = new TestsPanelViewModel
+        {
+            HeadTests = new ScriptedHeadTests(new System.IO.InvalidDataException("The verification profile 'x' cannot be used: Step 'build': argument 0 contains an invisible or direction character.")),
+        };
+
+        await panel.RunHeadTestsCommand.ExecuteAsync(null);
+
+        Assert.Equal(Texts.Format("Panels_Tests_HeadError", Texts.Get("Panels_Tests_HeadProfileUnusable")), panel.ErrorMessage);
+        Assert.DoesNotContain("argument", panel.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task The_tests_of_head_can_be_cancelled_and_the_service_gets_the_cancellation()
     {
         var service = new WaitingHeadTests();
