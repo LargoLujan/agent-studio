@@ -370,6 +370,24 @@ public sealed class MainViewModelBuilderTests
         Assert.Single(rig.Main.Documents.OfType<SetupDocumentViewModel>());
     }
 
+    /// <summary>
+    /// Review fix 3: a fresh clone of a project prepared elsewhere has no database yet, but its verification profile is versioned:
+    /// the orchestrator takes it as ready, so «Inicio» does not ask to set it up.
+    /// </summary>
+    [Fact]
+    public async Task A_fresh_clone_with_a_versioned_profile_is_not_asked_to_be_set_up()
+    {
+        using var rig = new Rig();
+        var root = rig.Folder.CreateDirectory("clonado");
+        rig.Folder.WriteFile(Path.Combine("clonado", ".agentstudio", "verification.json"), "{}");
+        await rig.Main.OpenProjectAsync(root);
+        rig.Main.ShowWelcomeCommand.Execute(null);
+        await rig.Main.NextStepRead;
+
+        var welcome = Assert.IsType<WelcomeDocumentViewModel>(rig.Main.ActiveContent);
+        Assert.Equal(NextStepKind.NewRequest, welcome.NextStep?.Kind);
+    }
+
     [Fact]
     public async Task The_band_of_preparation_of_the_orchestrator_opens_the_configurator_of_its_project()
     {

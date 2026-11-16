@@ -21,6 +21,16 @@ public sealed class ProjectProgressReader(IDecisionRecorder? decisions)
     }
 
     /// <summary>
+    /// The project carries a verification profile in its repository (<c>.agentstudio/verification.json</c>, versioned, unlike the
+    /// database): a fresh clone of a project prepared elsewhere, which the orchestrator takes as ready, is not one to set up.
+    /// </summary>
+    public static bool HasVersionedProfile(string projectRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
+        return File.Exists(Path.Combine(projectRoot, AgentStudioFiles.DataFolder, AgentStudioFiles.VerificationProfileFile));
+    }
+
+    /// <summary>
     /// Whether the configurator was applied to <paramref name="project"/>, which must be open already (the orchestrator opened it):
     /// this never opens a project. Null when it cannot be known.
     /// </summary>

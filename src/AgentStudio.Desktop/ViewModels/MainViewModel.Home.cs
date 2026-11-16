@@ -189,7 +189,8 @@ public sealed partial class MainViewModel
 
         if (!ProjectProgressReader.HasStorage(root))
         {
-            welcome.NextStep = _setupFactory is null ? NewRequestStep() : SetUpStep();
+            // Never opened here; but a versioned profile says it was prepared elsewhere (a fresh clone), so it is not one to set up.
+            welcome.NextStep = _setupFactory is null || ProjectProgressReader.HasVersionedProfile(root) ? NewRequestStep() : SetUpStep();
             return;
         }
 
